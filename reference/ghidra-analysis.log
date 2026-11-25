@@ -1,0 +1,441 @@
+2026-11-26 01:35:42 INFO  (LoggingInitialization) Using log config file: jar:file:/D:/03.%20Works/ghidra_12.2_PUBLIC/Ghidra/Framework/Generic/lib/Generic.jar!/generic.log4j.xml  
+2026-11-26 01:35:42 INFO  (LoggingInitialization) Using log file: D:\03. Works\Test\orcad-investigation\ghidra-analysis.log  
+2026-11-26 01:35:42 DEBUG (GhidraObjectInputFilter) Including serial input filter: FileSystem/data/client.rmi.serial.filter  
+2026-11-26 01:35:42 INFO  (Preferences) Loading user preferences: D:\03. Works\Test\orcad-investigation\ghidra-state\ghidra\ghidra_12.2_PUBLIC\preferences  
+2026-11-26 01:35:42 INFO  (ClassSearcher) Searching for classes...  
+2026-11-26 01:35:43 INFO  (ClassSearcher) Class search complete (881 ms)  
+2026-11-26 01:35:43 INFO  (DefaultSSLContextInitializer) Initializing SSL Context  
+2026-11-26 01:35:43 INFO  (SecureRandomFactory) Initializing Random Number Generator...  
+2026-11-26 01:35:43 INFO  (SecureRandomFactory) Random Number Generator initialization complete: SHA1PRNG  
+2026-11-26 01:35:43 INFO  (DefaultTrustManagerFactory) Loaded 49 trusted CA certificates from the OS trust store.  
+2026-11-26 01:35:43 INFO  (DefaultTrustManagerFactory) Loaded 118 trusted CA certificates from the Java default trust store.  
+2026-11-26 01:35:43 INFO  (FileCacheMaintenanceDaemon) Starting cache cleanup: D:\03. Works\Test\orcad-investigation\ghidra-state\ghidra\fscache2  
+2026-11-26 01:35:43 INFO  (FileCacheMaintenanceDaemon) Finished cache cleanup, estimated storage used: 0  
+2026-11-26 01:35:44 INFO  (AnalyzeHeadless) Headless startup complete (2450 ms)  
+2026-11-26 01:35:44 INFO  (ClassSearcher) Class searcher loaded 60 extension points (19 false positives)  
+2026-11-26 01:35:44 INFO  (HeadlessAnalyzer) HEADLESS Script Paths:
+    D:\03. Works\ghidra_12.2_PUBLIC\Ghidra\Features\DecompilerDependent\ghidra_scripts
+    D:\03. Works\ghidra_12.2_PUBLIC\Ghidra\Features\Swift\ghidra_scripts
+    D:\03. Works\ghidra_12.2_PUBLIC\Ghidra\Features\WildcardAssembler\ghidra_scripts
+    D:\03. Works\ghidra_12.2_PUBLIC\Ghidra\Features\Decompiler\ghidra_scripts
+    D:\03. Works\ghidra_12.2_PUBLIC\Ghidra\Features\MicrosoftCodeAnalyzer\ghidra_scripts
+    D:\03. Works\ghidra_12.2_PUBLIC\Ghidra\Processors\DATA\ghidra_scripts
+    D:\03. Works\ghidra_12.2_PUBLIC\Ghidra\Features\PyGhidra\ghidra_scripts
+    D:\03. Works\ghidra_12.2_PUBLIC\Ghidra\Features\FunctionID\ghidra_scripts
+    D:\03. Works\ghidra_12.2_PUBLIC\Ghidra\Features\SystemEmulation\ghidra_scripts
+    D:\03. Works\ghidra_12.2_PUBLIC\Ghidra\Debug\Debugger\ghidra_scripts
+    D:\03. Works\ghidra_12.2_PUBLIC\Ghidra\Processors\JVM\ghidra_scripts
+    D:\03. Works\ghidra_12.2_PUBLIC\Ghidra\Features\Base\ghidra_scripts
+    D:\03. Works\ghidra_12.2_PUBLIC\Ghidra\Features\VersionTracking\ghidra_scripts
+    D:\03. Works\ghidra_12.2_PUBLIC\Ghidra\Debug\Debugger-rmi-trace\ghidra_scripts
+    D:\03. Works\ghidra_12.2_PUBLIC\Ghidra\Processors\Atmel\ghidra_scripts
+    D:\03. Works\ghidra_12.2_PUBLIC\Ghidra\Features\BSim\ghidra_scripts
+    D:\03. Works\ghidra_12.2_PUBLIC\Ghidra\Features\BytePatterns\ghidra_scripts
+    D:\03. Works\ghidra_12.2_PUBLIC\Ghidra\Processors\PIC\ghidra_scripts
+    D:\03. Works\ghidra_12.2_PUBLIC\Ghidra\Features\FileFormats\ghidra_scripts
+    D:\03. Works\ghidra_12.2_PUBLIC\Ghidra\Features\GnuDemangler\ghidra_scripts
+    D:\03. Works\ghidra_12.2_PUBLIC\Ghidra\Features\PDB\ghidra_scripts
+    D:\03. Works\ghidra_12.2_PUBLIC\Ghidra\Processors\8051\ghidra_scripts  
+2026-11-26 01:35:44 INFO  (HeadlessAnalyzer) HEADLESS: execution starts  
+2026-11-26 01:35:44 INFO  (HeadlessAnalyzer) Creating project: D:\03. Works\Test\orcad-investigation\OrcadStatic  
+2026-11-26 01:35:44 DEBUG (DefaultProjectManager) No tools found; Installing default tools  
+2026-11-26 01:35:44 DEBUG (DefaultProjectManager) 	no recent project directories found  
+2026-11-26 01:35:44 INFO  (DefaultProject) Creating project: D:\03. Works\Test\orcad-investigation\OrcadStatic  
+2026-11-26 01:35:44 INFO  (HeadlessAnalyzer) REPORT: Processing input files:   
+2026-11-26 01:35:44 INFO  (HeadlessAnalyzer)      project: D:\03. Works\Test\orcad-investigation\OrcadStatic  
+2026-11-26 01:35:44 INFO  (HeadlessAnalyzer) IMPORTING: file:///C:/Program Files/Orcad/PSpice/pspice.exe  
+2026-11-26 01:35:47 DEBUG (SleighLanguage) Took 173ms (0ms inside lock) to initialize language D:\03. Works\ghidra_12.2_PUBLIC\Ghidra\Processors\x86\data\languages\x86.slaspec -> D:\03. Works\ghidra_12.2_PUBLIC\Ghidra\Processors\x86\data\languages\x86.sla  
+2026-11-26 01:35:47 INFO  (ProgramLoader) Using Loader: Portable Executable (PE)  
+2026-11-26 01:35:47 INFO  (ProgramLoader) Using Language/Compiler: x86:LE:32:default:windows  
+2026-11-26 01:35:47 INFO  (ProgramLoader) Using Library Search Path: [., C:\WINDOWS\SysWOW64, C:\Program Files\Microsoft\jdk-25.0.5.102-hotspot\bin, C:\WINDOWS\Sun\Java\bin, C:\WINDOWS\system32, C:\WINDOWS, C:\Users\Tonmoy Paul\.codex\tmp\arg0-windows\codex-arg0hpmPvi, C:\Python315\Scripts\, C:\Python315\, C:\WINDOWS\System32\Wbem, C:\WINDOWS\System32\WindowsPowerShell\v1.0\, C:\WINDOWS\System32\OpenSSH\, C:\Program Files\MiKTeX\miktex\bin\x64\, C:\Program Files\MATLAB\R2025b\bin, C:\Program Files\nodejs\, C:\ProgramData\chocolatey\bin, C:\Program Files\PVsyst8.1.8\, C:\Users\Tonmoy Paul\AppData\Local\Programs\Python\Python312\Scripts\, C:\Users\Tonmoy Paul\AppData\Local\Programs\Python\Python312\, C:\Users\Tonmoy Paul\AppData\Local\Programs\Python\Launcher\, C:\Users\Tonmoy Paul\.cache\codex-runtimes\codex-primary-runtime\dependencies\native\powershell, C:\Users\Tonmoy Paul\AppData\Local\Microsoft\WindowsApps, C:\Users\Tonmoy Paul\AppData\Local\Programs\Ollama, C:\Users\Tonmoy Paul\AppData\Local\Programs\Microsoft VS Code\bin, C:\Users\Tonmoy Paul\AppData\Roaming\npm, C:\Program Files\WindowsApps\OpenAI.Codex_26.1120.6357.0_x64__2p2nqsd0c76g0\app\resources]  
+2026-11-26 01:35:50 WARN  (ExportDataDirectory) Invalid or missing function at 100754dc  
+2026-11-26 01:35:50 INFO  (TLSDirectory) TLS callbacks at 10003764  
+2026-11-26 01:35:53 WARN  (ExportDataDirectory) Invalid or missing function at 5f4c6020  
+2026-11-26 01:35:53 DEBUG (LibraryLookupTable) got exception looking for .exports file (or parsing, etc.)  
+2026-11-26 01:35:54 INFO  (TLSDirectory) TLS callbacks at 100057cc  
+2026-11-26 01:35:54 DEBUG (WEVTResourceDataType) Error processing Provider Element.  
+2026-11-26 01:35:55 INFO  (TLSDirectory) TLS callbacks at 10006fe4  
+2026-11-26 01:35:55 WARN  (ExportDataDirectory) Invalid or missing function at 1008f0c8  
+2026-11-26 01:35:55 INFO  (TLSDirectory) TLS callbacks at 100015cc  
+2026-11-26 01:35:56 INFO  (TLSDirectory) TLS callbacks at 10029728  
+2026-11-26 01:35:56 WARN  (ExportDataDirectory) Invalid or missing function at 105f9f4c  
+2026-11-26 01:35:59 WARN  (ExportDataDirectory) Invalid or missing function at 100e31dc  
+2026-11-26 01:35:59 DEBUG (WEVTResourceDataType) Error processing Provider Element.  
+2026-11-26 01:36:00 INFO  (ProgramLoader) Additional info:
+Loading file:///C:/Program Files/Orcad/PSpice/pspice.exe?MD5=edff875a19b5a827b6cd8b0a54473a4b...
+------------------------------------------------
+
+Searching 23 paths for library ADVAPI32.DLL...
+Loading file:///C:/Windows/SysWOW64/advapi32.dll?MD5=3ae45ee3ca66486c3747838ebdf9dfc2...
+Created exports file: D:\03. Works\Test\orcad-investigation\ghidra-state\ghidra\ghidra_12.2_PUBLIC\symbols\win32\advapi32.exports
+Library not saved to project.
+------------------------------------------------
+
+Searching 23 paths for library COMCTL32.DLL...
+Loading file:///C:/Windows/SysWOW64/comctl32.dll?MD5=a19d57953ec5f48772f24bad3b51dcac...
+Created exports file: D:\03. Works\Test\orcad-investigation\ghidra-state\ghidra\ghidra_12.2_PUBLIC\symbols\win32\comctl32.exports
+Library not saved to project.
+------------------------------------------------
+
+Searching 23 paths for library COMDLG32.DLL...
+Loading file:///C:/Windows/SysWOW64/comdlg32.dll?MD5=07ba13cefefc30d2f321597192f08b35...
+Created exports file: D:\03. Works\Test\orcad-investigation\ghidra-state\ghidra\ghidra_12.2_PUBLIC\symbols\win32\comdlg32.exports
+Library not saved to project.
+------------------------------------------------
+
+Searching 23 paths for library GDI32.DLL...
+Loading file:///C:/Windows/SysWOW64/gdi32.dll?MD5=37002dbb23f87dae9ebd7dd7b5051995...
+Created exports file: D:\03. Works\Test\orcad-investigation\ghidra-state\ghidra\ghidra_12.2_PUBLIC\symbols\win32\gdi32.exports
+Library not saved to project.
+------------------------------------------------
+
+Searching 23 paths for library KERNEL32.DLL...
+Loading file:///C:/Windows/SysWOW64/kernel32.dll?MD5=505c80011e47bc0dd833c598919d64c6...
+Created exports file: D:\03. Works\Test\orcad-investigation\ghidra-state\ghidra\ghidra_12.2_PUBLIC\symbols\win32\kernel32.exports
+Library not saved to project.
+------------------------------------------------
+
+Searching 23 paths for library MFC42.DLL...
+Loading file:///C:/Program Files/Orcad/PSpice/mfc42.dll?MD5=4d197238fdfaa5793d1b0961aaef649a...
+Using existing exports file: D:\03. Works\ghidra_12.2_PUBLIC\Ghidra\Features\Base\data\symbols\win32\mfc42.exports
+WARNING: Existing exports file may not be an exact match.
+Library not saved to project.
+------------------------------------------------
+
+Searching 23 paths for library MSVCP60.DLL...
+Loading file:///C:/Program Files/Orcad/PSpice/MSVCP60.DLL?MD5=6050bcc1b23f3df7a1876cbdcbac8232...
+Created exports file: D:\03. Works\Test\orcad-investigation\ghidra-state\ghidra\ghidra_12.2_PUBLIC\symbols\win32\msvcp60.exports
+Library not saved to project.
+------------------------------------------------
+
+Searching 23 paths for library MSVCRT.DLL...
+Loading file:///C:/Program Files/Orcad/PSpice/msvcrt.dll?MD5=63da4613383ec70e047b4cd5c48f0b05...
+Created exports file: D:\03. Works\Test\orcad-investigation\ghidra-state\ghidra\ghidra_12.2_PUBLIC\symbols\win32\msvcrt.exports
+Library not saved to project.
+------------------------------------------------
+
+Searching 23 paths for library OLE32.DLL...
+Loading file:///C:/Windows/SysWOW64/ole32.dll?MD5=2f668cb8a27dda57e8815e262a6b2745...
+[ole32.dll]: failed to create WEVTResource at 10138740: Failed to resolve data length for WEVTResource
+Created exports file: D:\03. Works\Test\orcad-investigation\ghidra-state\ghidra\ghidra_12.2_PUBLIC\symbols\win32\ole32.exports
+Library not saved to project.
+------------------------------------------------
+
+Searching 23 paths for library OLEAUT32.DLL...
+Loading file:///C:/Windows/SysWOW64/oleaut32.dll?MD5=dfff6a0a32e67642f0c09fabcb9871dd...
+Created exports file: D:\03. Works\Test\orcad-investigation\ghidra-state\ghidra\ghidra_12.2_PUBLIC\symbols\win32\oleaut32.exports
+Library not saved to project.
+------------------------------------------------
+
+Searching 23 paths for library OLEDLG.DLL...
+Loading file:///C:/Windows/SysWOW64/oledlg.dll?MD5=eb05c7241b29953dd4b7a4f50d169f28...
+Created exports file: D:\03. Works\Test\orcad-investigation\ghidra-state\ghidra\ghidra_12.2_PUBLIC\symbols\win32\oledlg.exports
+Library not saved to project.
+------------------------------------------------
+
+Searching 23 paths for library ORCADFNC.DLL...
+Loading file:///C:/Program Files/Orcad/PSpice/orcadfnc.dll?MD5=ca8023125505a5a7258030e32d61241b...
+Created exports file: D:\03. Works\Test\orcad-investigation\ghidra-state\ghidra\ghidra_12.2_PUBLIC\symbols\win32\orcadfnc.exports
+Library not saved to project.
+------------------------------------------------
+
+Searching 23 paths for library PSP_WOBJ.DLL...
+Loading file:///C:/Program Files/Orcad/PSpice/psp_wobj.dll?MD5=6d37a7cb6b57fc83926eee0acdd5f9e9...
+Created exports file: D:\03. Works\Test\orcad-investigation\ghidra-state\ghidra\ghidra_12.2_PUBLIC\symbols\win32\psp_wobj.exports
+Library not saved to project.
+------------------------------------------------
+
+Searching 23 paths for library SHELL32.DLL...
+Loading file:///C:/Windows/SysWOW64/shell32.dll?MD5=d8b1a97aefe8518dc5688c76b39c6d77...
+Created exports file: D:\03. Works\Test\orcad-investigation\ghidra-state\ghidra\ghidra_12.2_PUBLIC\symbols\win32\shell32.exports
+Library not saved to project.
+------------------------------------------------
+
+Searching 23 paths for library USER32.DLL...
+Loading file:///C:/Windows/SysWOW64/user32.dll?MD5=7597f31e467fc6b4be8e2390e761cf9c...
+[user32.dll]: failed to create WEVTResource at 10101a70: Failed to resolve data length for WEVTResource
+Created exports file: D:\03. Works\Test\orcad-investigation\ghidra-state\ghidra\ghidra_12.2_PUBLIC\symbols\win32\user32.exports
+Library not saved to project.
+------------------------------------------------
+
+Applying cached symbols from PSP_WOBJ.DLL
+Applying cached symbols from ORCADFNC.DLL
+Applying D:\03. Works\ghidra_12.2_PUBLIC\Ghidra\Features\Base\data\symbols\win32\mfc42.exports
+Applying cached symbols from MSVCRT.DLL
+Applying D:\03. Works\Test\orcad-investigation\ghidra-state\ghidra\ghidra_12.2_PUBLIC\symbols\win32\kernel32.exports
+Applying cached symbols from USER32.DLL
+Applying D:\03. Works\Test\orcad-investigation\ghidra-state\ghidra\ghidra_12.2_PUBLIC\symbols\win32\gdi32.exports
+Applying D:\03. Works\Test\orcad-investigation\ghidra-state\ghidra\ghidra_12.2_PUBLIC\symbols\win32\comdlg32.exports
+Applying D:\03. Works\Test\orcad-investigation\ghidra-state\ghidra\ghidra_12.2_PUBLIC\symbols\win32\advapi32.exports
+Applying cached symbols from SHELL32.DLL
+Applying D:\03. Works\Test\orcad-investigation\ghidra-state\ghidra\ghidra_12.2_PUBLIC\symbols\win32\comctl32.exports
+Applying D:\03. Works\Test\orcad-investigation\ghidra-state\ghidra\ghidra_12.2_PUBLIC\symbols\win32\oledlg.exports
+Applying D:\03. Works\Test\orcad-investigation\ghidra-state\ghidra\ghidra_12.2_PUBLIC\symbols\win32\ole32.exports
+Applying D:\03. Works\Test\orcad-investigation\ghidra-state\ghidra\ghidra_12.2_PUBLIC\symbols\win32\oleaut32.exports
+Applying D:\03. Works\Test\orcad-investigation\ghidra-state\ghidra\ghidra_12.2_PUBLIC\symbols\win32\msvcp60.exports
+Linking the External Programs of 'pspice.exe' to imported libraries...
+  [PSP_WOBJ.DLL] -> not found in project
+  [ORCADFNC.DLL] -> not found in project
+  [MFC42.DLL] -> not found in project
+  [MSVCRT.DLL] -> not found in project
+  [KERNEL32.DLL] -> not found in project
+  [USER32.DLL] -> not found in project
+  [GDI32.DLL] -> not found in project
+  [COMDLG32.DLL] -> not found in project
+  [ADVAPI32.DLL] -> not found in project
+  [SHELL32.DLL] -> not found in project
+  [COMCTL32.DLL] -> not found in project
+  [OLEDLG.DLL] -> not found in project
+  [OLE32.DLL] -> not found in project
+  [OLEAUT32.DLL] -> not found in project
+  [MSVCP60.DLL] -> not found in project
+------------------------------------------------
+
+  
+2026-11-26 01:36:00 INFO  (HeadlessAnalyzer) IMPORTING: Loaded 0 additional files  
+2026-11-26 01:36:00 INFO  (HeadlessAnalyzer) ANALYZING all memory and code: file:///C:/Program Files/Orcad/PSpice/pspice.exe  
+2026-11-26 01:36:00 WARN  (NoReturnFunctionAnalyzer) Ignoring leading '_' chars on no-return name '___raise_securityfailure' specified in file: D:\03. Works\ghidra_12.2_PUBLIC\Ghidra\Features\Base\data\PEFunctionsThatDoNotReturn  
+2026-11-26 01:36:00 WARN  (NoReturnFunctionAnalyzer) Ignoring leading '_' chars on no-return name '___report_rangecheckfailure' specified in file: D:\03. Works\ghidra_12.2_PUBLIC\Ghidra\Features\Base\data\PEFunctionsThatDoNotReturn  
+2026-11-26 01:36:00 INFO  (DWARFAnalyzer) Unable to find DWARF information, skipping DWARF analysis  
+2026-11-26 01:36:00 INFO  (PdbUniversalAnalyzer) Skipping PDB processing: missing PDB information in program metadata  
+2026-11-26 01:36:00 INFO  (PackedDatabaseCache) Packed database cache: D:\03. Works\Test\orcad-investigation\ghidra-state\ghidra\packed-db-cache  
+2026-11-26 01:36:00 DEBUG (PackedDatabaseCache) Caching packed database: D:\03. Works\ghidra_12.2_PUBLIC\Ghidra\Features\Base\data\typeinfo\win32\windows_vs12_32.gdt  
+2026-11-26 01:36:00 DEBUG (PackedDatabase) Unpacking database D:\03. Works\ghidra_12.2_PUBLIC\Ghidra\Features\Base\data\typeinfo\win32\windows_vs12_32.gdt -> D:\03. Works\Test\orcad-investigation\ghidra-state\ghidra\packed-db-cache\pdbE394A40B\db.1.gbf  
+2026-11-26 01:36:01 DEBUG (PackedDatabaseCache) Cache update completed: D:\03. Works\ghidra_12.2_PUBLIC\Ghidra\Features\Base\data\typeinfo\win32\windows_vs12_32.gdt  
+2026-11-26 01:36:05 INFO  (TypeDescriptorModel) Unprocessed TypeDescriptor: int  
+2026-11-26 01:36:05 INFO  (TypeDescriptorModel) Unprocessed TypeDescriptor: int  
+2026-11-26 01:36:07 INFO  (TypeDescriptorModel) Unprocessed TypeDescriptor: enum CGXGenericViewerImpl::eViewerFlags  
+2026-11-26 01:36:07 INFO  (TypeDescriptorModel) Unprocessed TypeDescriptor: enum CGXGenericViewerImpl::eViewerFlags  
+2026-11-26 01:36:07 INFO  (TypeDescriptorModel) Unprocessed TypeDescriptor: enum CGXGenericViewerImpl::eViewerFlags  
+2026-11-26 01:36:07 INFO  (TypeDescriptorModel) Unprocessed TypeDescriptor: enum CGXGenericViewerImpl::eViewerFlags  
+2026-11-26 01:36:07 INFO  (TypeDescriptorModel) Unprocessed TypeDescriptor: enum CGXGenericViewerImpl::eViewerFlags  
+2026-11-26 01:36:07 INFO  (TypeDescriptorModel) Unprocessed TypeDescriptor: enum CGXGenericViewerImpl::eViewerFlags  
+2026-11-26 01:36:07 INFO  (TypeDescriptorModel) Unprocessed TypeDescriptor: long  
+2026-11-26 01:36:07 INFO  (TypeDescriptorModel) Unprocessed TypeDescriptor: long  
+2026-11-26 01:36:07 INFO  (TypeDescriptorModel) Unprocessed TypeDescriptor: enum CGXGenericViewerImpl::eViewerFlags  
+2026-11-26 01:36:07 INFO  (TypeDescriptorModel) Unprocessed TypeDescriptor: enum CGXGenericViewerImpl::eViewerFlags  
+2026-11-26 01:36:07 INFO  (TypeDescriptorModel) Unprocessed TypeDescriptor: long  
+2026-11-26 01:36:07 INFO  (TypeDescriptorModel) Unprocessed TypeDescriptor: long  
+2026-11-26 01:36:07 INFO  (TypeDescriptorModel) Unprocessed TypeDescriptor: enum CGXGenericViewerImpl::eViewerFlags  
+2026-11-26 01:36:07 INFO  (TypeDescriptorModel) Unprocessed TypeDescriptor: enum CGXGenericViewerImpl::eViewerFlags  
+2026-11-26 01:36:07 INFO  (TypeDescriptorModel) Unprocessed TypeDescriptor: long  
+2026-11-26 01:36:07 INFO  (TypeDescriptorModel) Unprocessed TypeDescriptor: long  
+2026-11-26 01:36:09 INFO  (DecompilerSwitchAnalyzer) hit non-returning function, restarting decompiler switch analyzer later  
+2026-11-26 01:37:10 INFO  (TypeDescriptorModel) Unprocessed TypeDescriptor: int  
+2026-11-26 01:37:10 INFO  (TypeDescriptorModel) Unprocessed TypeDescriptor: int  
+2026-11-26 01:37:10 INFO  (TypeDescriptorModel) Unprocessed TypeDescriptor: enum CGXGenericViewerImpl::eViewerFlags  
+2026-11-26 01:37:10 INFO  (TypeDescriptorModel) Unprocessed TypeDescriptor: enum CGXGenericViewerImpl::eViewerFlags  
+2026-11-26 01:37:10 INFO  (TypeDescriptorModel) Unprocessed TypeDescriptor: long  
+2026-11-26 01:37:10 INFO  (TypeDescriptorModel) Unprocessed TypeDescriptor: long  
+2026-11-26 01:37:19 INFO  (TypeDescriptorModel) Unprocessed TypeDescriptor: int  
+2026-11-26 01:37:19 INFO  (TypeDescriptorModel) Unprocessed TypeDescriptor: int  
+2026-11-26 01:37:19 INFO  (TypeDescriptorModel) Unprocessed TypeDescriptor: int  
+2026-11-26 01:37:19 INFO  (TypeDescriptorModel) Unprocessed TypeDescriptor: int  
+2026-11-26 01:37:19 INFO  (TypeDescriptorModel) Unprocessed TypeDescriptor: enum CGXGenericViewerImpl::eViewerFlags  
+2026-11-26 01:37:19 INFO  (TypeDescriptorModel) Unprocessed TypeDescriptor: enum CGXGenericViewerImpl::eViewerFlags  
+2026-11-26 01:37:19 INFO  (TypeDescriptorModel) Unprocessed TypeDescriptor: enum CGXGenericViewerImpl::eViewerFlags  
+2026-11-26 01:37:19 INFO  (TypeDescriptorModel) Unprocessed TypeDescriptor: enum CGXGenericViewerImpl::eViewerFlags  
+2026-11-26 01:37:19 INFO  (TypeDescriptorModel) Unprocessed TypeDescriptor: long  
+2026-11-26 01:37:19 INFO  (TypeDescriptorModel) Unprocessed TypeDescriptor: long  
+2026-11-26 01:37:19 INFO  (TypeDescriptorModel) Unprocessed TypeDescriptor: enum CGXGenericViewerImpl::eViewerFlags  
+2026-11-26 01:37:19 INFO  (TypeDescriptorModel) Unprocessed TypeDescriptor: enum CGXGenericViewerImpl::eViewerFlags  
+2026-11-26 01:37:19 INFO  (TypeDescriptorModel) Unprocessed TypeDescriptor: enum CGXGenericViewerImpl::eViewerFlags  
+2026-11-26 01:37:19 INFO  (TypeDescriptorModel) Unprocessed TypeDescriptor: enum CGXGenericViewerImpl::eViewerFlags  
+2026-11-26 01:37:19 INFO  (TypeDescriptorModel) Unprocessed TypeDescriptor: long  
+2026-11-26 01:37:19 INFO  (TypeDescriptorModel) Unprocessed TypeDescriptor: long  
+2026-11-26 01:37:19 INFO  (TypeDescriptorModel) Unprocessed TypeDescriptor: enum CGXGenericViewerImpl::eViewerFlags  
+2026-11-26 01:37:19 INFO  (TypeDescriptorModel) Unprocessed TypeDescriptor: enum CGXGenericViewerImpl::eViewerFlags  
+2026-11-26 01:37:19 INFO  (TypeDescriptorModel) Unprocessed TypeDescriptor: long  
+2026-11-26 01:37:19 INFO  (TypeDescriptorModel) Unprocessed TypeDescriptor: long  
+2026-11-26 01:37:19 INFO  (TypeDescriptorModel) Unprocessed TypeDescriptor: enum CGXGenericViewerImpl::eViewerFlags  
+2026-11-26 01:37:19 INFO  (TypeDescriptorModel) Unprocessed TypeDescriptor: enum CGXGenericViewerImpl::eViewerFlags  
+2026-11-26 01:37:19 INFO  (TypeDescriptorModel) Unprocessed TypeDescriptor: long  
+2026-11-26 01:37:19 INFO  (TypeDescriptorModel) Unprocessed TypeDescriptor: long  
+2026-11-26 01:37:42 INFO  (ApplyDataArchiveAnalyzer) Applied data type archive: windows_vs12_32  
+2026-11-26 01:38:00 INFO  (AutoAnalysisManager) -----------------------------------------------------
+    Apply Data Archives                        0.521 secs
+    Call Convention ID                         0.011 secs
+    Call-Fixup Installer                       0.367 secs
+    Create Address Tables                      0.528 secs
+    Create Address Tables - One Time           2.692 secs
+    Create Function                            1.903 secs
+    DWARF                                      0.003 secs
+    Data Reference                             2.642 secs
+    Decompiler Switch Analysis                46.695 secs
+    Decompiler Switch Analysis - One Time      5.492 secs
+    Demangler Microsoft                        1.117 secs
+    Disassemble                                4.140 secs
+    Disassemble Entry Points                   0.099 secs
+    Embedded Media                             0.032 secs
+    External Entry References                  0.000 secs
+    Function ID                                4.571 secs
+    Function Start Pre Search                  0.047 secs
+    Function Start Search                      0.206 secs
+    Function Start Search After Code           0.162 secs
+    Function Start Search After Data           0.197 secs
+    Function Start Search delayed - One Time   0.026 secs
+    Non-Returning Functions - Discovered       1.242 secs
+    Non-Returning Functions - Known            0.017 secs
+    PDB Universal                              0.002 secs
+    Reference                                  2.511 secs
+    Scalar Operand References                  2.189 secs
+    Shared Return Calls                        1.333 secs
+    Source Language Support                    0.006 secs
+    Subroutine References                      2.092 secs
+    Subroutine References - One Time           0.020 secs
+    Windows x86 PE Exception Handling          7.287 secs
+    Windows x86 PE RTTI Analyzer               8.827 secs
+    Windows x86 Thread Environment Block (TEB) Analyzer     0.018 secs
+    WindowsResourceReference                   6.870 secs
+    X86 Function Callee Purge                  5.543 secs
+    x86 Constant Reference Analyzer           10.463 secs
+-----------------------------------------------------
+     Total Time   119 secs
+-----------------------------------------------------
+  
+2026-11-26 01:38:00 ERROR (HeadlessAnalyzer) REPORT: Analysis timed out at 120 seconds. Processing not completed for file: file:///C:/Program Files/Orcad/PSpice/pspice.exe  
+2026-11-26 01:38:01 INFO  (LocalFileSystem) /pspice.exe: file created (TonmoyPaul)  
+2026-11-26 01:38:01 INFO  (HeadlessAnalyzer) REPORT: Save succeeded for: /pspice.exe (OrcadStatic:/pspice.exe)  
+2026-11-26 01:38:01 INFO  (HeadlessAnalyzer) REPORT: Import succeeded  
+2026-11-26 01:38:01 INFO  (HeadlessAnalyzer) IMPORTING: file:///C:/Program Files/Orcad/PSpice/psp_eng.dll  
+2026-11-26 01:38:01 INFO  (ProgramLoader) Using Loader: Portable Executable (PE)  
+2026-11-26 01:38:01 INFO  (ProgramLoader) Using Language/Compiler: x86:LE:32:default:windows  
+2026-11-26 01:38:01 INFO  (ProgramLoader) Using Library Search Path: [., C:\WINDOWS\SysWOW64, C:\Program Files\Microsoft\jdk-25.0.5.102-hotspot\bin, C:\WINDOWS\Sun\Java\bin, C:\WINDOWS\system32, C:\WINDOWS, C:\Users\Tonmoy Paul\.codex\tmp\arg0-windows\codex-arg0hpmPvi, C:\Python315\Scripts\, C:\Python315\, C:\WINDOWS\System32\Wbem, C:\WINDOWS\System32\WindowsPowerShell\v1.0\, C:\WINDOWS\System32\OpenSSH\, C:\Program Files\MiKTeX\miktex\bin\x64\, C:\Program Files\MATLAB\R2025b\bin, C:\Program Files\nodejs\, C:\ProgramData\chocolatey\bin, C:\Program Files\PVsyst8.1.8\, C:\Users\Tonmoy Paul\AppData\Local\Programs\Python\Python312\Scripts\, C:\Users\Tonmoy Paul\AppData\Local\Programs\Python\Python312\, C:\Users\Tonmoy Paul\AppData\Local\Programs\Python\Launcher\, C:\Users\Tonmoy Paul\.cache\codex-runtimes\codex-primary-runtime\dependencies\native\powershell, C:\Users\Tonmoy Paul\AppData\Local\Microsoft\WindowsApps, C:\Users\Tonmoy Paul\AppData\Local\Programs\Ollama, C:\Users\Tonmoy Paul\AppData\Local\Programs\Microsoft VS Code\bin, C:\Users\Tonmoy Paul\AppData\Roaming\npm, C:\Program Files\WindowsApps\OpenAI.Codex_26.1120.6357.0_x64__2p2nqsd0c76g0\app\resources]  
+2026-11-26 01:38:03 WARN  (ExportDataDirectory) Invalid or missing function at 100e31dc  
+2026-11-26 01:38:03 DEBUG (WEVTResourceDataType) Error processing Provider Element.  
+2026-11-26 01:38:04 INFO  (ProgramLoader) Additional info:
+Loading file:///C:/Program Files/Orcad/PSpice/psp_eng.dll?MD5=a0866230bf967514ce35591f29cd9c9c...
+------------------------------------------------
+
+Searching 23 paths for library ADVAPI32.DLL...
+Loading file:///C:/Windows/SysWOW64/advapi32.dll?MD5=3ae45ee3ca66486c3747838ebdf9dfc2...
+Using existing exports file: D:\03. Works\Test\orcad-investigation\ghidra-state\ghidra\ghidra_12.2_PUBLIC\symbols\win32\advapi32.exports
+Library not saved to project.
+------------------------------------------------
+
+Searching 23 paths for library KERNEL32.DLL...
+Loading file:///C:/Windows/SysWOW64/kernel32.dll?MD5=505c80011e47bc0dd833c598919d64c6...
+Using existing exports file: D:\03. Works\Test\orcad-investigation\ghidra-state\ghidra\ghidra_12.2_PUBLIC\symbols\win32\kernel32.exports
+Library not saved to project.
+------------------------------------------------
+
+Searching 23 paths for library MSVCIRT.DLL...
+Loading file:///C:/Program Files/Orcad/PSpice/msvcirt.dll?MD5=e7cd26405293ee866fefdd715fc8b5e5...
+Created exports file: D:\03. Works\Test\orcad-investigation\ghidra-state\ghidra\ghidra_12.2_PUBLIC\symbols\win32\msvcirt.exports
+Library not saved to project.
+------------------------------------------------
+
+Searching 23 paths for library MSVCP60.DLL...
+Loading file:///C:/Program Files/Orcad/PSpice/MSVCP60.DLL?MD5=6050bcc1b23f3df7a1876cbdcbac8232...
+Using existing exports file: D:\03. Works\Test\orcad-investigation\ghidra-state\ghidra\ghidra_12.2_PUBLIC\symbols\win32\msvcp60.exports
+Library not saved to project.
+------------------------------------------------
+
+Searching 23 paths for library MSVCRT.DLL...
+Loading file:///C:/Program Files/Orcad/PSpice/msvcrt.dll?MD5=63da4613383ec70e047b4cd5c48f0b05...
+Using existing exports file: D:\03. Works\Test\orcad-investigation\ghidra-state\ghidra\ghidra_12.2_PUBLIC\symbols\win32\msvcrt.exports
+Library not saved to project.
+------------------------------------------------
+
+Searching 23 paths for library ORCADFNC.DLL...
+Loading file:///C:/Program Files/Orcad/PSpice/orcadfnc.dll?MD5=ca8023125505a5a7258030e32d61241b...
+Created exports file: D:\03. Works\Test\orcad-investigation\ghidra-state\ghidra\ghidra_12.2_PUBLIC\symbols\win32\orcadfnc.exports
+Library not saved to project.
+------------------------------------------------
+
+Searching 23 paths for library USER32.DLL...
+Loading file:///C:/Windows/SysWOW64/user32.dll?MD5=7597f31e467fc6b4be8e2390e761cf9c...
+[user32.dll]: failed to create WEVTResource at 10101a70: Failed to resolve data length for WEVTResource
+Using existing exports file: D:\03. Works\Test\orcad-investigation\ghidra-state\ghidra\ghidra_12.2_PUBLIC\symbols\win32\user32.exports
+Library not saved to project.
+------------------------------------------------
+
+Applying D:\03. Works\Test\orcad-investigation\ghidra-state\ghidra\ghidra_12.2_PUBLIC\symbols\win32\kernel32.exports
+Applying D:\03. Works\Test\orcad-investigation\ghidra-state\ghidra\ghidra_12.2_PUBLIC\symbols\win32\user32.exports
+Applying D:\03. Works\Test\orcad-investigation\ghidra-state\ghidra\ghidra_12.2_PUBLIC\symbols\win32\advapi32.exports
+Applying cached symbols from ORCADFNC.DLL
+Applying cached symbols from MSVCP60.DLL
+Applying D:\03. Works\Test\orcad-investigation\ghidra-state\ghidra\ghidra_12.2_PUBLIC\symbols\win32\msvcrt.exports
+Applying cached symbols from MSVCIRT.DLL
+Linking the External Programs of 'psp_eng.dll' to imported libraries...
+  [KERNEL32.DLL] -> not found in project
+  [USER32.DLL] -> not found in project
+  [ADVAPI32.DLL] -> not found in project
+  [ORCADFNC.DLL] -> not found in project
+  [MSVCP60.DLL] -> not found in project
+  [MSVCRT.DLL] -> not found in project
+  [MSVCIRT.DLL] -> not found in project
+------------------------------------------------
+
+  
+2026-11-26 01:38:04 INFO  (HeadlessAnalyzer) IMPORTING: Loaded 0 additional files  
+2026-11-26 01:38:04 INFO  (HeadlessAnalyzer) ANALYZING all memory and code: file:///C:/Program Files/Orcad/PSpice/psp_eng.dll  
+2026-11-26 01:38:04 WARN  (NoReturnFunctionAnalyzer) Ignoring leading '_' chars on no-return name '___raise_securityfailure' specified in file: D:\03. Works\ghidra_12.2_PUBLIC\Ghidra\Features\Base\data\PEFunctionsThatDoNotReturn  
+2026-11-26 01:38:04 WARN  (NoReturnFunctionAnalyzer) Ignoring leading '_' chars on no-return name '___report_rangecheckfailure' specified in file: D:\03. Works\ghidra_12.2_PUBLIC\Ghidra\Features\Base\data\PEFunctionsThatDoNotReturn  
+2026-11-26 01:38:04 INFO  (DWARFAnalyzer) Unable to find DWARF information, skipping DWARF analysis  
+2026-11-26 01:38:04 INFO  (PdbUniversalAnalyzer) Skipping PDB processing: missing PDB information in program metadata  
+2026-11-26 01:38:04 DEBUG (PackedDatabaseCache) Using cached packed database: D:\03. Works\ghidra_12.2_PUBLIC\Ghidra\Features\Base\data\typeinfo\win32\windows_vs12_32.gdt  
+2026-11-26 01:38:09 INFO  (DecompilerSwitchAnalyzer) hit non-returning function, restarting decompiler switch analyzer later  
+2026-11-26 01:38:48 INFO  (ApplyDataArchiveAnalyzer) Applied data type archive: windows_vs12_32  
+2026-11-26 01:39:39 DEBUG (NewFunctionStackAnalysisCmd) Failed to create variable (instruction at 1004cdaa, stack-offset=-4, size=8): Data type does not fit within stack frame constraints (stack offset=-4, size=8  
+2026-11-26 01:39:39 DEBUG (NewFunctionStackAnalysisCmd) Failed to create variable (instruction at 1004cdbe, stack-offset=-4, size=8): Data type does not fit within stack frame constraints (stack offset=-4, size=8  
+2026-11-26 01:39:39 DEBUG (NewFunctionStackAnalysisCmd) Failed to create variable (instruction at 1004cdd7, stack-offset=-4, size=8): Data type does not fit within stack frame constraints (stack offset=-4, size=8  
+2026-11-26 01:39:39 DEBUG (NewFunctionStackAnalysisCmd) Failed to create variable (instruction at 1004cde9, stack-offset=-4, size=8): Data type does not fit within stack frame constraints (stack offset=-4, size=8  
+2026-11-26 01:39:46 DEBUG (NewFunctionStackAnalysisCmd) Failed to create variable (instruction at 1004b100, stack-offset=-4, size=8): Data type does not fit within stack frame constraints (stack offset=-4, size=8  
+2026-11-26 01:39:46 DEBUG (NewFunctionStackAnalysisCmd) Failed to create variable (instruction at 1004b11c, stack-offset=-4, size=8): Data type does not fit within stack frame constraints (stack offset=-4, size=8  
+2026-11-26 01:39:46 DEBUG (NewFunctionStackAnalysisCmd) Failed to create variable (instruction at 1004b100, stack-offset=-4, size=8): Data type does not fit within stack frame constraints (stack offset=-4, size=8  
+2026-11-26 01:39:46 DEBUG (NewFunctionStackAnalysisCmd) Failed to create variable (instruction at 1004b11c, stack-offset=-4, size=8): Data type does not fit within stack frame constraints (stack offset=-4, size=8  
+2026-11-26 01:39:46 DEBUG (NewFunctionStackAnalysisCmd) Failed to create variable (instruction at 1004b139, stack-offset=-4, size=8): Data type does not fit within stack frame constraints (stack offset=-4, size=8  
+2026-11-26 01:39:46 DEBUG (NewFunctionStackAnalysisCmd) Failed to create variable (instruction at 1004b151, stack-offset=-4, size=8): Data type does not fit within stack frame constraints (stack offset=-4, size=8  
+2026-11-26 01:39:46 DEBUG (NewFunctionStackAnalysisCmd) Failed to create variable (instruction at 1004b139, stack-offset=-4, size=8): Data type does not fit within stack frame constraints (stack offset=-4, size=8  
+2026-11-26 01:39:46 DEBUG (NewFunctionStackAnalysisCmd) Failed to create variable (instruction at 1004b139, stack-offset=-4, size=8): Data type does not fit within stack frame constraints (stack offset=-4, size=8  
+2026-11-26 01:39:46 DEBUG (NewFunctionStackAnalysisCmd) Failed to create variable (instruction at 1004b100, stack-offset=-4, size=8): Data type does not fit within stack frame constraints (stack offset=-4, size=8  
+2026-11-26 01:39:46 DEBUG (NewFunctionStackAnalysisCmd) Failed to create variable (instruction at 1004b11c, stack-offset=-4, size=8): Data type does not fit within stack frame constraints (stack offset=-4, size=8  
+2026-11-26 01:40:07 INFO  (AutoAnalysisManager) -----------------------------------------------------
+    ASCII Strings                              1.189 secs
+    Apply Data Archives                        0.089 secs
+    Call Convention ID                         0.024 secs
+    Call-Fixup Installer                       0.075 secs
+    Create Address Tables                      0.385 secs
+    Create Address Tables - One Time           0.458 secs
+    Create Function                            0.582 secs
+    DWARF                                      0.000 secs
+    Data Reference                             0.352 secs
+    Decompiler Parameter ID                   44.066 secs
+    Decompiler Switch Analysis                19.439 secs
+    Decompiler Switch Analysis - One Time     10.524 secs
+    Demangler Microsoft                        0.118 secs
+    Disassemble                                1.592 secs
+    Disassemble Entry Points                   1.454 secs
+    Embedded Media                             0.009 secs
+    External Entry References                  0.001 secs
+    Function ID                                1.479 secs
+    Function Start Pre Search                  0.028 secs
+    Function Start Search                      0.184 secs
+    Function Start Search After Code           0.052 secs
+    Function Start Search After Data           0.048 secs
+    Non-Returning Functions - Discovered       0.573 secs
+    Non-Returning Functions - Known            0.013 secs
+    PDB Universal                              0.001 secs
+    Reference                                  0.640 secs
+    Scalar Operand References                  1.668 secs
+    Shared Return Calls                        0.570 secs
+    Source Language Support                    0.001 secs
+    Stack                                     11.349 secs
+    Subroutine References                      0.458 secs
+    Subroutine References - One Time           0.000 secs
+    Variadic Function Signature Override      18.263 secs
+    Windows x86 PE Exception Handling          1.597 secs
+    Windows x86 PE RTTI Analyzer               0.064 secs
+    Windows x86 Thread Environment Block (TEB) Analyzer     0.008 secs
+    WindowsResourceReference                   0.671 secs
+    X86 Function Callee Purge                  0.638 secs
+    x86 Constant Reference Analyzer            4.329 secs
+-----------------------------------------------------
+     Total Time   122 secs
+-----------------------------------------------------
+  
+2026-11-26 01:40:07 ERROR (HeadlessAnalyzer) REPORT: Analysis timed out at 120 seconds. Processing not completed for file: file:///C:/Program Files/Orcad/PSpice/psp_eng.dll  
+2026-11-26 01:40:07 INFO  (LocalFileSystem) /psp_eng.dll: file created (TonmoyPaul)  
+2026-11-26 01:40:07 INFO  (HeadlessAnalyzer) REPORT: Save succeeded for: /psp_eng.dll (OrcadStatic:/psp_eng.dll)  
+2026-11-26 01:40:07 INFO  (HeadlessAnalyzer) REPORT: Import succeeded  

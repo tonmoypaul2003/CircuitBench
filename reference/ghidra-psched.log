@@ -1,0 +1,224 @@
+2026-11-26 02:15:43 INFO  (LoggingInitialization) Using log config file: jar:file:/D:/03.%20Works/ghidra_12.2_PUBLIC/Ghidra/Framework/Generic/lib/Generic.jar!/generic.log4j.xml  
+2026-11-26 02:15:43 INFO  (LoggingInitialization) Using log file: D:\03. Works\Test\orcad-investigation\ghidra-psched.log  
+2026-11-26 02:15:43 DEBUG (GhidraObjectInputFilter) Including serial input filter: FileSystem/data/client.rmi.serial.filter  
+2026-11-26 02:15:43 INFO  (Preferences) Loading user preferences: D:\03. Works\Test\orcad-investigation\ghidra-state\ghidra\ghidra_12.2_PUBLIC\preferences  
+2026-11-26 02:15:43 INFO  (ClassSearcher) Searching for classes...  
+2026-11-26 02:15:44 INFO  (ClassSearcher) Class search complete (973 ms)  
+2026-11-26 02:15:44 INFO  (DefaultSSLContextInitializer) Initializing SSL Context  
+2026-11-26 02:15:44 INFO  (SecureRandomFactory) Initializing Random Number Generator...  
+2026-11-26 02:15:44 INFO  (SecureRandomFactory) Random Number Generator initialization complete: SHA1PRNG  
+2026-11-26 02:15:44 INFO  (DefaultTrustManagerFactory) Loaded 49 trusted CA certificates from the OS trust store.  
+2026-11-26 02:15:45 INFO  (DefaultTrustManagerFactory) Loaded 118 trusted CA certificates from the Java default trust store.  
+2026-11-26 02:15:45 INFO  (AnalyzeHeadless) Headless startup complete (2697 ms)  
+2026-11-26 02:15:45 INFO  (ClassSearcher) Class searcher loaded 60 extension points (19 false positives)  
+2026-11-26 02:15:45 INFO  (HeadlessAnalyzer) HEADLESS Script Paths:
+    D:\03. Works\ghidra_12.2_PUBLIC\Ghidra\Features\DecompilerDependent\ghidra_scripts
+    D:\03. Works\ghidra_12.2_PUBLIC\Ghidra\Features\Swift\ghidra_scripts
+    D:\03. Works\Test\orcad-investigation
+    D:\03. Works\ghidra_12.2_PUBLIC\Ghidra\Features\WildcardAssembler\ghidra_scripts
+    D:\03. Works\ghidra_12.2_PUBLIC\Ghidra\Features\Decompiler\ghidra_scripts
+    D:\03. Works\ghidra_12.2_PUBLIC\Ghidra\Features\MicrosoftCodeAnalyzer\ghidra_scripts
+    D:\03. Works\ghidra_12.2_PUBLIC\Ghidra\Processors\DATA\ghidra_scripts
+    D:\03. Works\ghidra_12.2_PUBLIC\Ghidra\Features\PyGhidra\ghidra_scripts
+    D:\03. Works\ghidra_12.2_PUBLIC\Ghidra\Features\FunctionID\ghidra_scripts
+    D:\03. Works\ghidra_12.2_PUBLIC\Ghidra\Features\SystemEmulation\ghidra_scripts
+    D:\03. Works\ghidra_12.2_PUBLIC\Ghidra\Debug\Debugger\ghidra_scripts
+    D:\03. Works\ghidra_12.2_PUBLIC\Ghidra\Processors\JVM\ghidra_scripts
+    D:\03. Works\ghidra_12.2_PUBLIC\Ghidra\Features\Base\ghidra_scripts
+    D:\03. Works\ghidra_12.2_PUBLIC\Ghidra\Features\VersionTracking\ghidra_scripts
+    D:\03. Works\ghidra_12.2_PUBLIC\Ghidra\Debug\Debugger-rmi-trace\ghidra_scripts
+    D:\03. Works\ghidra_12.2_PUBLIC\Ghidra\Processors\Atmel\ghidra_scripts
+    D:\03. Works\ghidra_12.2_PUBLIC\Ghidra\Features\BSim\ghidra_scripts
+    D:\03. Works\ghidra_12.2_PUBLIC\Ghidra\Features\BytePatterns\ghidra_scripts
+    D:\03. Works\ghidra_12.2_PUBLIC\Ghidra\Processors\PIC\ghidra_scripts
+    D:\03. Works\ghidra_12.2_PUBLIC\Ghidra\Features\FileFormats\ghidra_scripts
+    D:\03. Works\ghidra_12.2_PUBLIC\Ghidra\Features\GnuDemangler\ghidra_scripts
+    D:\03. Works\ghidra_12.2_PUBLIC\Ghidra\Features\PDB\ghidra_scripts
+    D:\03. Works\ghidra_12.2_PUBLIC\Ghidra\Processors\8051\ghidra_scripts  
+2026-11-26 02:15:45 INFO  (HeadlessAnalyzer) HEADLESS: execution starts  
+2026-11-26 02:15:45 INFO  (HeadlessAnalyzer) Opening existing project: D:\03. Works\Test\orcad-investigation\OrcadStatic  
+2026-11-26 02:15:45 INFO  (HeadlessProject) Opening project: D:\03. Works\Test\orcad-investigation\OrcadStatic  
+2026-11-26 02:15:45 INFO  (HeadlessAnalyzer) REPORT: Processing input files:   
+2026-11-26 02:15:45 INFO  (HeadlessAnalyzer)      project: D:\03. Works\Test\orcad-investigation\OrcadStatic  
+2026-11-26 02:15:45 INFO  (HeadlessAnalyzer) IMPORTING: file:///C:/Program Files/Orcad/PSpice/psched.exe  
+2026-11-26 02:15:48 DEBUG (SleighLanguage) Took 216ms (0ms inside lock) to initialize language D:\03. Works\ghidra_12.2_PUBLIC\Ghidra\Processors\x86\data\languages\x86.slaspec -> D:\03. Works\ghidra_12.2_PUBLIC\Ghidra\Processors\x86\data\languages\x86.sla  
+2026-11-26 02:15:48 INFO  (ProgramLoader) Using Loader: Portable Executable (PE)  
+2026-11-26 02:15:48 INFO  (ProgramLoader) Using Language/Compiler: x86:LE:32:default:windows  
+2026-11-26 02:15:48 INFO  (ProgramLoader) Using Library Search Path: [., C:\WINDOWS\SysWOW64, C:\Program Files\Microsoft\jdk-25.0.5.102-hotspot\bin, C:\WINDOWS\Sun\Java\bin, C:\WINDOWS\system32, C:\WINDOWS, C:\Users\Tonmoy Paul\.codex\tmp\arg0-windows\codex-arg0hpmPvi, C:\Python315\Scripts\, C:\Python315\, C:\WINDOWS\System32\Wbem, C:\WINDOWS\System32\WindowsPowerShell\v1.0\, C:\WINDOWS\System32\OpenSSH\, C:\Program Files\MiKTeX\miktex\bin\x64\, C:\Program Files\MATLAB\R2025b\bin, C:\Program Files\nodejs\, C:\ProgramData\chocolatey\bin, C:\Program Files\PVsyst8.1.8\, C:\Users\Tonmoy Paul\AppData\Local\Programs\Python\Python312\Scripts\, C:\Users\Tonmoy Paul\AppData\Local\Programs\Python\Python312\, C:\Users\Tonmoy Paul\AppData\Local\Programs\Python\Launcher\, C:\Users\Tonmoy Paul\.cache\codex-runtimes\codex-primary-runtime\dependencies\native\powershell, C:\Users\Tonmoy Paul\AppData\Local\Microsoft\WindowsApps, C:\Users\Tonmoy Paul\AppData\Local\Programs\Ollama, C:\Users\Tonmoy Paul\AppData\Local\Programs\Microsoft VS Code\bin, C:\Users\Tonmoy Paul\AppData\Roaming\npm, C:\Program Files\WindowsApps\OpenAI.Codex_26.1120.6357.0_x64__2p2nqsd0c76g0\app\resources]  
+2026-11-26 02:15:51 INFO  (TLSDirectory) TLS callbacks at 10003764  
+2026-11-26 02:15:53 WARN  (ExportDataDirectory) Invalid or missing function at 5f4c6020  
+2026-11-26 02:15:53 DEBUG (LibraryLookupTable) got exception looking for .exports file (or parsing, etc.)  
+2026-11-26 02:15:54 INFO  (TLSDirectory) TLS callbacks at 10029728  
+2026-11-26 02:15:54 WARN  (ExportDataDirectory) Invalid or missing function at 105f9f4c  
+2026-11-26 02:15:56 WARN  (ExportDataDirectory) Invalid or missing function at 100e31dc  
+2026-11-26 02:15:56 DEBUG (WEVTResourceDataType) Error processing Provider Element.  
+2026-11-26 02:15:57 INFO  (TLSDirectory) TLS callbacks at 10002504  
+2026-11-26 02:15:57 WARN  (ExportDataDirectory) Invalid or missing function at 10066194  
+2026-11-26 02:15:57 DEBUG (WEVTResourceDataType) Error processing Provider Element.  
+2026-11-26 02:15:57 INFO  (ProgramLoader) Additional info:
+Loading file:///C:/Program Files/Orcad/PSpice/psched.exe?MD5=a2ffe104900350db8653276b38fe9a6c...
+------------------------------------------------
+
+Searching 23 paths for library ADVAPI32.DLL...
+Loading file:///C:/Windows/SysWOW64/advapi32.dll?MD5=3ae45ee3ca66486c3747838ebdf9dfc2...
+Using existing exports file: D:\03. Works\Test\orcad-investigation\ghidra-state\ghidra\ghidra_12.2_PUBLIC\symbols\win32\advapi32.exports
+Library not saved to project.
+------------------------------------------------
+
+Searching 23 paths for library ALSSRVR.DLL...
+Loading file:///C:/Program Files/Orcad/PSpice/alssrvr.dll?MD5=27e50306d6a508d958cd0a61046f7cd4...
+Created exports file: D:\03. Works\Test\orcad-investigation\ghidra-state\ghidra\ghidra_12.2_PUBLIC\symbols\win32\alssrvr.exports
+Library not saved to project.
+------------------------------------------------
+
+Searching 23 paths for library CHKPTDLG.DLL...
+Loading file:///C:/Program Files/Orcad/PSpice/chkptdlg.dll?MD5=44c06e9d95dc27e7f12108abdbf3ce72...
+Created exports file: D:\03. Works\Test\orcad-investigation\ghidra-state\ghidra\ghidra_12.2_PUBLIC\symbols\win32\chkptdlg.exports
+Library not saved to project.
+------------------------------------------------
+
+Searching 23 paths for library COMDLG32.DLL...
+Loading file:///C:/Windows/SysWOW64/comdlg32.dll?MD5=07ba13cefefc30d2f321597192f08b35...
+Using existing exports file: D:\03. Works\Test\orcad-investigation\ghidra-state\ghidra\ghidra_12.2_PUBLIC\symbols\win32\comdlg32.exports
+Library not saved to project.
+------------------------------------------------
+
+Searching 23 paths for library GDI32.DLL...
+Loading file:///C:/Windows/SysWOW64/gdi32.dll?MD5=37002dbb23f87dae9ebd7dd7b5051995...
+Using existing exports file: D:\03. Works\Test\orcad-investigation\ghidra-state\ghidra\ghidra_12.2_PUBLIC\symbols\win32\gdi32.exports
+Library not saved to project.
+------------------------------------------------
+
+Searching 23 paths for library KERNEL32.DLL...
+Loading file:///C:/Windows/SysWOW64/kernel32.dll?MD5=505c80011e47bc0dd833c598919d64c6...
+Using existing exports file: D:\03. Works\Test\orcad-investigation\ghidra-state\ghidra\ghidra_12.2_PUBLIC\symbols\win32\kernel32.exports
+Library not saved to project.
+------------------------------------------------
+
+Searching 23 paths for library MFC42.DLL...
+Loading file:///C:/Program Files/Orcad/PSpice/mfc42.dll?MD5=4d197238fdfaa5793d1b0961aaef649a...
+Using existing exports file: D:\03. Works\ghidra_12.2_PUBLIC\Ghidra\Features\Base\data\symbols\win32\mfc42.exports
+WARNING: Existing exports file may not be an exact match.
+Library not saved to project.
+------------------------------------------------
+
+Searching 23 paths for library MPR.DLL...
+Loading file:///C:/Windows/SysWOW64/mpr.dll?MD5=b41b6f4d1681b25336942c52ec9216c3...
+Created exports file: D:\03. Works\Test\orcad-investigation\ghidra-state\ghidra\ghidra_12.2_PUBLIC\symbols\win32\mpr.exports
+Library not saved to project.
+------------------------------------------------
+
+Searching 23 paths for library MSVCP60.DLL...
+Loading file:///C:/Program Files/Orcad/PSpice/MSVCP60.DLL?MD5=6050bcc1b23f3df7a1876cbdcbac8232...
+Using existing exports file: D:\03. Works\Test\orcad-investigation\ghidra-state\ghidra\ghidra_12.2_PUBLIC\symbols\win32\msvcp60.exports
+Library not saved to project.
+------------------------------------------------
+
+Searching 23 paths for library MSVCRT.DLL...
+Loading file:///C:/Program Files/Orcad/PSpice/msvcrt.dll?MD5=63da4613383ec70e047b4cd5c48f0b05...
+Using existing exports file: D:\03. Works\Test\orcad-investigation\ghidra-state\ghidra\ghidra_12.2_PUBLIC\symbols\win32\msvcrt.exports
+Library not saved to project.
+------------------------------------------------
+
+Searching 23 paths for library SHELL32.DLL...
+Loading file:///C:/Windows/SysWOW64/shell32.dll?MD5=d8b1a97aefe8518dc5688c76b39c6d77...
+Using existing exports file: D:\03. Works\Test\orcad-investigation\ghidra-state\ghidra\ghidra_12.2_PUBLIC\symbols\win32\shell32.exports
+Library not saved to project.
+------------------------------------------------
+
+Searching 23 paths for library USER32.DLL...
+Loading file:///C:/Windows/SysWOW64/user32.dll?MD5=7597f31e467fc6b4be8e2390e761cf9c...
+[user32.dll]: failed to create WEVTResource at 10101a70: Failed to resolve data length for WEVTResource
+Using existing exports file: D:\03. Works\Test\orcad-investigation\ghidra-state\ghidra\ghidra_12.2_PUBLIC\symbols\win32\user32.exports
+Library not saved to project.
+------------------------------------------------
+
+Searching 23 paths for library WINSPOOL.DRV...
+Loading file:///C:/Windows/SysWOW64/winspool.drv?MD5=aea4411ab865c10b53ae28094b3f3b79...
+[winspool.drv]: failed to create WEVTResource at 1006e4b8: Failed to resolve data length for WEVTResource
+Created exports file: D:\03. Works\Test\orcad-investigation\ghidra-state\ghidra\ghidra_12.2_PUBLIC\symbols\win32\winspool.exports
+Library not saved to project.
+------------------------------------------------
+
+Applying cached symbols from CHKPTDLG.DLL
+Applying cached symbols from ALSSRVR.DLL
+Applying D:\03. Works\ghidra_12.2_PUBLIC\Ghidra\Features\Base\data\symbols\win32\mfc42.exports
+Applying D:\03. Works\Test\orcad-investigation\ghidra-state\ghidra\ghidra_12.2_PUBLIC\symbols\win32\msvcrt.exports
+Applying D:\03. Works\Test\orcad-investigation\ghidra-state\ghidra\ghidra_12.2_PUBLIC\symbols\win32\kernel32.exports
+Applying D:\03. Works\Test\orcad-investigation\ghidra-state\ghidra\ghidra_12.2_PUBLIC\symbols\win32\user32.exports
+Applying D:\03. Works\Test\orcad-investigation\ghidra-state\ghidra\ghidra_12.2_PUBLIC\symbols\win32\gdi32.exports
+Applying D:\03. Works\Test\orcad-investigation\ghidra-state\ghidra\ghidra_12.2_PUBLIC\symbols\win32\comdlg32.exports
+Applying cached symbols from WINSPOOL.DRV
+Applying D:\03. Works\Test\orcad-investigation\ghidra-state\ghidra\ghidra_12.2_PUBLIC\symbols\win32\advapi32.exports
+Applying D:\03. Works\Test\orcad-investigation\ghidra-state\ghidra\ghidra_12.2_PUBLIC\symbols\win32\shell32.exports
+Applying D:\03. Works\Test\orcad-investigation\ghidra-state\ghidra\ghidra_12.2_PUBLIC\symbols\win32\msvcp60.exports
+Applying D:\03. Works\Test\orcad-investigation\ghidra-state\ghidra\ghidra_12.2_PUBLIC\symbols\win32\mpr.exports
+Linking the External Programs of 'psched.exe' to imported libraries...
+  [CHKPTDLG.DLL] -> not found in project
+  [ALSSRVR.DLL] -> not found in project
+  [MFC42.DLL] -> not found in project
+  [MSVCRT.DLL] -> not found in project
+  [KERNEL32.DLL] -> not found in project
+  [USER32.DLL] -> not found in project
+  [GDI32.DLL] -> not found in project
+  [COMDLG32.DLL] -> not found in project
+  [WINSPOOL.DRV] -> not found in project
+  [ADVAPI32.DLL] -> not found in project
+  [SHELL32.DLL] -> not found in project
+  [MSVCP60.DLL] -> not found in project
+  [MPR.DLL] -> not found in project
+------------------------------------------------
+
+  
+2026-11-26 02:15:57 INFO  (HeadlessAnalyzer) IMPORTING: Loaded 0 additional files  
+2026-11-26 02:15:58 INFO  (HeadlessAnalyzer) ANALYZING all memory and code: file:///C:/Program Files/Orcad/PSpice/psched.exe  
+2026-11-26 02:15:58 WARN  (NoReturnFunctionAnalyzer) Ignoring leading '_' chars on no-return name '___raise_securityfailure' specified in file: D:\03. Works\ghidra_12.2_PUBLIC\Ghidra\Features\Base\data\PEFunctionsThatDoNotReturn  
+2026-11-26 02:15:58 WARN  (NoReturnFunctionAnalyzer) Ignoring leading '_' chars on no-return name '___report_rangecheckfailure' specified in file: D:\03. Works\ghidra_12.2_PUBLIC\Ghidra\Features\Base\data\PEFunctionsThatDoNotReturn  
+2026-11-26 02:15:58 INFO  (DWARFAnalyzer) Unable to find DWARF information, skipping DWARF analysis  
+2026-11-26 02:15:58 DEBUG (SymbolServerService) SymbolServerService: querying Program's Import Location - C:\Program Files\Orcad\PSpice for psched.pdb, 3940B0AF, 1, 0, ???  
+2026-11-26 02:15:58 DEBUG (SymbolServerService) SymbolServerService: got 0 results from Program's Import Location - C:\Program Files\Orcad\PSpice  
+2026-11-26 02:15:58 DEBUG (SymbolServerService) SymbolServerService: found 0 matches  
+2026-11-26 02:15:58 INFO  (PdbUniversalAnalyzer) Skipping PDB processing: failed to locate PDB file in configured locations  
+2026-11-26 02:15:58 INFO  (PdbUniversalAnalyzer) Use a script to set the PDB file location. I.e.,
+    PdbAnalyzer.setPdbFileOption(currentProgram, new File("/path/to/pdb/file.pdb")); or
+    PdbUniversalAnalyzer.setPdbFileOption(currentProgram, new File("/path/to/pdb/file.pdb"));
+Or set the symbol server search configuration using:    PdbPlugin.saveSymbolServerServiceConfig(...);
+ This must be done using a pre-script (prior to analysis).  
+2026-11-26 02:15:58 INFO  (PackedDatabaseCache) Packed database cache: D:\03. Works\Test\orcad-investigation\ghidra-state\ghidra\packed-db-cache  
+2026-11-26 02:15:58 DEBUG (PackedDatabaseCache) Using cached packed database: D:\03. Works\ghidra_12.2_PUBLIC\Ghidra\Features\Base\data\typeinfo\win32\windows_vs12_32.gdt  
+2026-11-26 02:16:25 WARN  (DecompileCallback) Decompiling 0051a0a0: Unable to read bytes at ram:01010100  
+2026-11-26 02:16:31 WARN  (DecompileCallback) Decompiling 00519e60: Unable to read bytes at ram:01010100  
+2026-11-26 02:16:58 INFO  (AutoAnalysisManager) -----------------------------------------------------
+    Call-Fixup Installer                       0.134 secs
+    Create Function                            2.389 secs
+    DWARF                                      0.003 secs
+    Decompiler Switch Analysis                14.252 secs
+    Disassemble                                7.914 secs
+    Disassemble Entry Points                   0.097 secs
+    Embedded Media                             0.017 secs
+    External Entry References                  0.000 secs
+    Function Start Pre Search                  0.024 secs
+    Function Start Search                      0.547 secs
+    Non-Returning Functions - Discovered       1.100 secs
+    Non-Returning Functions - Known            0.015 secs
+    PDB Universal                              0.015 secs
+    Scalar Operand References                  0.885 secs
+    Shared Return Calls                        1.922 secs
+    Source Language Support                    0.006 secs
+    Subroutine References                      0.552 secs
+    Windows x86 PE Exception Handling          6.626 secs
+    Windows x86 Thread Environment Block (TEB) Analyzer     0.013 secs
+    X86 Function Callee Purge                 12.460 secs
+    x86 Constant Reference Analyzer           10.957 secs
+-----------------------------------------------------
+     Total Time   59 secs
+-----------------------------------------------------
+  
+2026-11-26 02:16:58 ERROR (HeadlessAnalyzer) REPORT: Analysis timed out at 60 seconds. Processing not completed for file: file:///C:/Program Files/Orcad/PSpice/psched.exe  
+2026-11-26 02:16:58 INFO  (HeadlessAnalyzer) REPORT: Execute script: ExportOrcadStatic.java 'D:\03. Works\Test\orcad-investigation\static'   
+2026-11-26 02:16:59 INFO  (HeadlessAnalyzer) SCRIPT: D:\03. Works\Test\orcad-investigation\ExportOrcadStatic.java  
+2026-11-26 02:17:00 INFO  (HeadlessAnalyzer) ANALYZING changes made by post scripts: file:///C:/Program Files/Orcad/PSpice/psched.exe  
+2026-11-26 02:17:00 INFO  (HeadlessAnalyzer) REPORT: Post-analysis succeeded for file: file:///C:/Program Files/Orcad/PSpice/psched.exe  
+2026-11-26 02:17:00 INFO  (LocalFileSystem) /psched.exe: file created (TonmoyPaul)  
+2026-11-26 02:17:00 INFO  (HeadlessAnalyzer) REPORT: Save succeeded for: /psched.exe (OrcadStatic:/psched.exe)  
+2026-11-26 02:17:00 INFO  (HeadlessAnalyzer) REPORT: Import succeeded  

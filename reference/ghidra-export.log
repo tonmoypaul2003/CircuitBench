@@ -1,0 +1,47 @@
+2026-11-26 01:40:11 INFO  (LoggingInitialization) Using log config file: jar:file:/D:/03.%20Works/ghidra_12.2_PUBLIC/Ghidra/Framework/Generic/lib/Generic.jar!/generic.log4j.xml  
+2026-11-26 01:40:11 INFO  (LoggingInitialization) Using log file: D:\03. Works\Test\orcad-investigation\ghidra-export.log  
+2026-11-26 01:40:12 DEBUG (GhidraObjectInputFilter) Including serial input filter: FileSystem/data/client.rmi.serial.filter  
+2026-11-26 01:40:12 INFO  (Preferences) Loading user preferences: D:\03. Works\Test\orcad-investigation\ghidra-state\ghidra\ghidra_12.2_PUBLIC\preferences  
+2026-11-26 01:40:12 INFO  (ClassSearcher) Searching for classes...  
+2026-11-26 01:40:13 INFO  (ClassSearcher) Class search complete (1114 ms)  
+2026-11-26 01:40:13 INFO  (DefaultSSLContextInitializer) Initializing SSL Context  
+2026-11-26 01:40:13 INFO  (SecureRandomFactory) Initializing Random Number Generator...  
+2026-11-26 01:40:13 INFO  (SecureRandomFactory) Random Number Generator initialization complete: SHA1PRNG  
+2026-11-26 01:40:13 INFO  (DefaultTrustManagerFactory) Loaded 49 trusted CA certificates from the OS trust store.  
+2026-11-26 01:40:13 INFO  (DefaultTrustManagerFactory) Loaded 118 trusted CA certificates from the Java default trust store.  
+2026-11-26 01:40:14 INFO  (AnalyzeHeadless) Headless startup complete (3437 ms)  
+2026-11-26 01:40:14 INFO  (ClassSearcher) Class searcher loaded 60 extension points (19 false positives)  
+2026-11-26 01:40:14 INFO  (HeadlessAnalyzer) HEADLESS Script Paths:
+    D:\03. Works\ghidra_12.2_PUBLIC\Ghidra\Features\DecompilerDependent\ghidra_scripts
+    D:\03. Works\ghidra_12.2_PUBLIC\Ghidra\Features\Swift\ghidra_scripts
+    D:\03. Works\Test\orcad-investigation
+    D:\03. Works\ghidra_12.2_PUBLIC\Ghidra\Features\WildcardAssembler\ghidra_scripts
+    D:\03. Works\ghidra_12.2_PUBLIC\Ghidra\Features\Decompiler\ghidra_scripts
+    D:\03. Works\ghidra_12.2_PUBLIC\Ghidra\Features\MicrosoftCodeAnalyzer\ghidra_scripts
+    D:\03. Works\ghidra_12.2_PUBLIC\Ghidra\Processors\DATA\ghidra_scripts
+    D:\03. Works\ghidra_12.2_PUBLIC\Ghidra\Features\PyGhidra\ghidra_scripts
+    D:\03. Works\ghidra_12.2_PUBLIC\Ghidra\Features\FunctionID\ghidra_scripts
+    D:\03. Works\ghidra_12.2_PUBLIC\Ghidra\Features\SystemEmulation\ghidra_scripts
+    D:\03. Works\ghidra_12.2_PUBLIC\Ghidra\Debug\Debugger\ghidra_scripts
+    D:\03. Works\ghidra_12.2_PUBLIC\Ghidra\Processors\JVM\ghidra_scripts
+    D:\03. Works\ghidra_12.2_PUBLIC\Ghidra\Features\Base\ghidra_scripts
+    D:\03. Works\ghidra_12.2_PUBLIC\Ghidra\Features\VersionTracking\ghidra_scripts
+    D:\03. Works\ghidra_12.2_PUBLIC\Ghidra\Debug\Debugger-rmi-trace\ghidra_scripts
+    D:\03. Works\ghidra_12.2_PUBLIC\Ghidra\Processors\Atmel\ghidra_scripts
+    D:\03. Works\ghidra_12.2_PUBLIC\Ghidra\Features\BSim\ghidra_scripts
+    D:\03. Works\ghidra_12.2_PUBLIC\Ghidra\Features\BytePatterns\ghidra_scripts
+    D:\03. Works\ghidra_12.2_PUBLIC\Ghidra\Processors\PIC\ghidra_scripts
+    D:\03. Works\ghidra_12.2_PUBLIC\Ghidra\Features\FileFormats\ghidra_scripts
+    D:\03. Works\ghidra_12.2_PUBLIC\Ghidra\Features\GnuDemangler\ghidra_scripts
+    D:\03. Works\ghidra_12.2_PUBLIC\Ghidra\Features\PDB\ghidra_scripts
+    D:\03. Works\ghidra_12.2_PUBLIC\Ghidra\Processors\8051\ghidra_scripts  
+2026-11-26 01:40:14 INFO  (HeadlessAnalyzer) HEADLESS: execution starts  
+2026-11-26 01:40:14 INFO  (HeadlessAnalyzer) Opening existing project: D:\03. Works\Test\orcad-investigation\OrcadStatic  
+2026-11-26 01:40:14 INFO  (HeadlessProject) Opening project: D:\03. Works\Test\orcad-investigation\OrcadStatic  
+2026-11-26 01:40:21 DEBUG (SleighLanguage) Took 602ms (0ms inside lock) to initialize language D:\03. Works\ghidra_12.2_PUBLIC\Ghidra\Processors\x86\data\languages\x86.slaspec -> D:\03. Works\ghidra_12.2_PUBLIC\Ghidra\Processors\x86\data\languages\x86.sla  
+2026-11-26 01:40:23 INFO  (HeadlessAnalyzer) REPORT: Processing read-only project file: /pspice.exe  
+2026-11-26 01:40:24 INFO  (HeadlessAnalyzer) REPORT: Execute script: ExportOrcadStatic.java 'D:\03. Works\Test\orcad-investigation\static'   
+2026-11-26 01:40:27 INFO  (HeadlessAnalyzer) SCRIPT: D:\03. Works\Test\orcad-investigation\ExportOrcadStatic.java  
+2026-11-26 01:40:30 INFO  (HeadlessAnalyzer) REPORT: Processing read-only project file: /psp_eng.dll  
+2026-11-26 01:40:30 INFO  (HeadlessAnalyzer) REPORT: Execute script: ExportOrcadStatic.java 'D:\03. Works\Test\orcad-investigation\static'   
+2026-11-26 01:40:32 INFO  (HeadlessAnalyzer) SCRIPT: D:\03. Works\Test\orcad-investigation\ExportOrcadStatic.java  

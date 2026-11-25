@@ -1,0 +1,3549 @@
+address	value
+006a6636	??1CheckPointDialog@@QAE@XZ
+006a6654	?DoModal@CheckPointDialog@@QAEXXZ
+006a6678	??0CheckPointDialog@@QAE@ABVCString@@P6AHPBDHPAD@Z@Z
+006a66ae	CHKPTDLG.dll
+006a66be	createAliasInterface
+006a66d4	AlsSrvr.dll
+006a66e0	MFC42.DLL
+006a66ec	_purecall
+006a66f8	_HUGE
+006a6700	sprintf
+006a670a	__CxxFrameHandler
+006a671e	sscanf
+006a6728	strncat
+006a6732	atoi
+006a673a	strchr
+006a6744	isalpha
+006a674e	strtok
+006a6758	isspace
+006a6762	strncmp
+006a676c	tolower
+006a6776	isupper
+006a6780	toupper
+006a678a	_mbsicmp
+006a6796	_ftol
+006a679e	isdigit
+006a67a8	strstr
+006a67b2	strncpy
+006a67bc	time
+006a67c4	strftime
+006a67d0	localtime
+006a67dc	atol
+006a67e4	_mbscmp
+006a67ee	fclose
+006a67f8	fopen
+006a6800	fread
+006a6808	strrchr
+006a6812	memmove
+006a681c	remove
+006a6826	_stricmp
+006a6832	asctime
+006a683c	strpbrk
+006a6846	fprintf
+006a6850	_iob
+006a6858	isalnum
+006a6862	islower
+006a686c	qsort
+006a6874	rename
+006a687e	fflush
+006a6888	fputs
+006a6890	vsprintf
+006a689c	rand
+006a68a4	tmpnam
+006a68ae	atof
+006a68b6	floor
+006a68be	fgets
+006a68c6	_strupr
+006a68d0	strcspn
+006a68da	_CIpow
+006a68e4	getenv
+006a68ee	_close
+006a68f8	_write
+006a6902	_open
+006a690a	__p___argc
+006a6918	_splitpath
+006a6926	__p___argv
+006a6934	_read
+006a693c	malloc
+006a6946	free
+006a694e	ftell
+006a6956	fseek
+006a695e	fwrite
+006a6968	_access
+006a6972	_unlink
+006a697c	_errno
+006a6986	vfprintf
+006a6992	ctime
+006a699a	fgetc
+006a69a2	strlen
+006a69ac	strtod
+006a69b6	_stat
+006a69be	__dllonexit
+006a69cc	_onexit
+006a69d4	MSVCRT.dll
+006a69e2	_except_handler3
+006a69f6	?terminate@@YAXXZ
+006a6a0a	_exit
+006a6a12	_XcptFilter
+006a6a20	exit
+006a6a28	_acmdln
+006a6a32	__getmainargs
+006a6a42	_initterm
+006a6a4e	__setusermatherr
+006a6a62	_adjust_fdiv
+006a6a72	__p__commode
+006a6a82	__p__fmode
+006a6a90	__set_app_type
+006a6aa2	_controlfp
+006a6ab0	SleepEx
+006a6aba	Sleep
+006a6ac2	CloseHandle
+006a6ad0	GetExitCodeProcess
+006a6ae6	WaitForSingleObject
+006a6afc	CreateProcessA
+006a6b0e	GetWindowsDirectoryA
+006a6b26	LocalFree
+006a6b32	LocalUnlock
+006a6b40	MultiByteToWideChar
+006a6b56	LocalLock
+006a6b62	LocalAlloc
+006a6b70	DebugBreak
+006a6b7e	OutputDebugStringA
+006a6b94	GetVersion
+006a6ba2	lstrlenA
+006a6bae	GetProfileStringA
+006a6bc2	WriteProfileStringA
+006a6bd8	SetCurrentDirectoryA
+006a6bf0	WinExec
+006a6bfa	GetCurrentThreadId
+006a6c10	GetVersionExA
+006a6c20	GetModuleFileNameA
+006a6c36	GlobalUnlock
+006a6c46	GlobalLock
+006a6c54	FreeLibrary
+006a6c62	GetProcAddress
+006a6c74	LoadLibraryA
+006a6c84	GetTempFileNameA
+006a6c98	GetTempPathA
+006a6ca8	GetLastError
+006a6cb8	MapViewOfFile
+006a6cc8	CreateFileMappingA
+006a6cde	CreateMutexA
+006a6cee	ReleaseMutex
+006a6cfe	UnmapViewOfFile
+006a6d10	GetEnvironmentVariableA
+006a6d2a	GetSystemDirectoryA
+006a6d40	GetCurrentDirectoryA
+006a6d58	InterlockedDecrement
+006a6d70	FormatMessageA
+006a6d82	InterlockedIncrement
+006a6d9a	MulDiv
+006a6da4	GetPrivateProfileStringA
+006a6dc0	WritePrivateProfileStringA
+006a6dde	GetPrivateProfileIntA
+006a6df6	GetFullPathNameA
+006a6e0a	GetFileAttributesA
+006a6e20	GetShortPathNameA
+006a6e34	GetVolumeInformationA
+006a6e4c	FindClose
+006a6e58	FindNextFileA
+006a6e68	FindFirstFileA
+006a6e7a	GetModuleHandleA
+006a6e8e	GetStartupInfoA
+006a6e9e	KERNEL32.dll
+006a6eae	SetFocus
+006a6eba	MessageBeep
+006a6ec8	SetActiveWindow
+006a6eda	SetForegroundWindow
+006a6ef0	ShowWindow
+006a6efe	IsIconic
+006a6f0a	GetWindowTextA
+006a6f1c	GetWindow
+006a6f28	FindWindowA
+006a6f36	IsWindowVisible
+006a6f48	IsWindow
+006a6f54	GetParent
+006a6f60	UpdateWindow
+006a6f70	BringWindowToTop
+006a6f84	InvalidateRect
+006a6f96	DispatchMessageA
+006a6faa	TranslateMessage
+006a6fbe	PeekMessageA
+006a6fce	KillTimer
+006a6fda	SetTimer
+006a6fe6	AttachThreadInput
+006a6ffa	GetWindowThreadProcessId
+006a7016	GetForegroundWindow
+006a702c	GetAsyncKeyState
+006a7040	SetCapture
+006a704e	ReleaseCapture
+006a7060	EnableWindow
+006a7070	DrawFocusRect
+006a7080	InflateRect
+006a708e	CopyRect
+006a709a	SendMessageA
+006a70aa	InvertRect
+006a70b8	GetSysColor
+006a70c6	LoadAcceleratorsA
+006a70da	SetRect
+006a70e4	TranslateAcceleratorA
+006a70fc	IsChild
+006a7106	GetFocus
+006a7112	GetWindowRect
+006a7122	GetClientRect
+006a7132	IsRectEmpty
+006a7140	FillRect
+006a714c	ReleaseDC
+006a7158	GetDC
+006a7160	BeginPaint
+006a716e	WindowFromDC
+006a717e	SetCursorPos
+006a718e	ClientToScreen
+006a71a0	GetSystemMetrics
+006a71b4	CloseClipboard
+006a71c6	SetClipboardData
+006a71da	EmptyClipboard
+006a71ec	OpenClipboard
+006a71fc	IsDialogMessageA
+006a7210	LoadIconA
+006a721c	DestroyIcon
+006a722a	MoveWindow
+006a7238	MessageBoxA
+006a7246	GetDlgItem
+006a7254	DestroyWindow
+006a7264	WinHelpA
+006a7270	SetDlgItemTextA
+006a7282	SetWindowPos
+006a7292	CreateDialogParamA
+006a72a8	DefWindowProcA
+006a72ba	SetWindowTextA
+006a72cc	SetCursor
+006a72d8	LoadCursorA
+006a72e6	ShowCursor
+006a72f4	DestroyCursor
+006a7304	DialogBoxParamA
+006a7316	EndDialog
+006a7322	GetDlgItemTextA
+006a7334	SendDlgItemMessageA
+006a734a	GetClassNameA
+006a735a	GetActiveWindow
+006a736c	GetWindowLongA
+006a737e	DlgDirListA
+006a738c	MapWindowPoints
+006a739e	SetWindowsHookExA
+006a73b2	RegisterWindowMessageA
+006a73cc	GetKeyboardType
+006a73de	UnhookWindowsHookEx
+006a73f4	LoadStringA
+006a7402	CallNextHookEx
+006a7414	PostMessageA
+006a7424	CharNextA
+006a7430	RegisterClassA
+006a7442	UnregisterClassA
+006a7456	SetScrollRange
+006a7468	SetWindowLongA
+006a747a	ShowScrollBar
+006a748a	EnableScrollBar
+006a749c	CallWindowProcA
+006a74ae	CreateWindowExA
+006a74c0	ScrollWindow
+006a74d0	ValidateRect
+006a74e0	SetScrollPos
+006a74f0	ClipCursor
+006a74fe	ScreenToClient
+006a7510	GetCursorPos
+006a7520	EndPaint
+006a752c	PostQuitMessage
+006a753e	WaitForInputIdle
+006a7552	OffsetRect
+006a7560	GetDesktopWindow
+006a7574	GetMenuStringA
+006a7586	GetSubMenu
+006a7594	GetMenuItemCount
+006a75a8	GetMenu
+006a75b2	EnumWindows
+006a75c0	DrawMenuBar
+006a75ce	RemoveMenu
+006a75dc	LoadBitmapA
+006a75ea	TabbedTextOutA
+006a75fa	USER32.dll
+006a7608	Polygon
+006a7612	TextOutA
+006a761e	DeleteObject
+006a762e	Rectangle
+006a763a	SelectObject
+006a764a	CreatePen
+006a7656	CreateSolidBrush
+006a766a	SetBkColor
+006a7678	SetTextColor
+006a7688	GetBkColor
+006a7696	LineTo
+006a76a0	MoveToEx
+006a76ac	GetDeviceCaps
+006a76bc	CreateFontIndirectA
+006a76d2	GetTextExtentPoint32A
+006a76ea	SetViewportOrgEx
+006a76fe	SetViewportExtEx
+006a7712	SetWindowExtEx
+006a7724	SetWindowOrgEx
+006a7736	SetMapMode
+006a7744	GetTextMetricsA
+006a7756	LPtoDP
+006a7760	GetTextFaceA
+006a7770	CreateFontA
+006a777e	SetROP2
+006a7788	Arc
+006a778e	GetStockObject
+006a77a0	RoundRect
+006a77ac	Polyline
+006a77b8	Ellipse
+006a77c2	SetPixel
+006a77ce	DPtoLP
+006a77d8	ExtTextOutA
+006a77e6	SetTextAlign
+006a77f6	GetCharacterPlacementA
+006a7810	GetCharWidthA
+006a7820	GetNearestColor
+006a7832	GetObjectA
+006a7840	SetBkMode
+006a784c	RealizePalette
+006a785e	SelectPalette
+006a786e	DeleteDC
+006a787a	BitBlt
+006a7884	CreateCompatibleBitmap
+006a789e	CreateCompatibleDC
+006a78b4	SetPixelV
+006a78c0	GetPaletteEntries
+006a78d4	GetNearestPaletteIndex
+006a78ee	CreatePalette
+006a78fe	SetPaletteEntries
+006a7912	ResizePalette
+006a7922	StartDocA
+006a792e	SetAbortProc
+006a793e	Escape
+006a7948	StartPage
+006a7954	EndPage
+006a795e	EndDoc
+006a7968	SelectClipRgn
+006a7978	CreateRectRgn
+006a7988	RestoreDC
+006a7994	SaveDC
+006a799e	StretchBlt
+006a79ac	GetTextExtentPointA
+006a79c2	CreateICA
+006a79ce	CreateDCA
+006a79da	StretchDIBits
+006a79ea	SetDIBitsToDevice
+006a79fe	SetStretchBltMode
+006a7a12	DeleteEnhMetaFile
+006a7a26	GetEnhMetaFileHeader
+006a7a3e	PlayEnhMetaFile
+006a7a50	GetClipBox
+006a7a5e	CopyEnhMetaFileA
+006a7a72	GetEnhMetaFilePaletteEntries
+006a7a92	SetWinMetaFileBits
+006a7aa8	GetEnhMetaFileA
+006a7ab8	GDI32.dll
+006a7ac4	ChooseFontA
+006a7ad2	GetOpenFileNameA
+006a7ae6	GetSaveFileNameA
+006a7afa	GetFileTitleA
+006a7b08	comdlg32.dll
+006a7b18	ClosePrinter
+006a7b28	DocumentPropertiesA
+006a7b3e	OpenPrinterA
+006a7b4c	WINSPOOL.DRV
+006a7b5c	RegCloseKey
+006a7b6a	RegQueryValueExA
+006a7b7e	RegOpenKeyExA
+006a7b8e	RegSetValueExA
+006a7ba0	RegCreateKeyExA
+006a7bb0	ADVAPI32.dll
+006a7bc0	ShellExecuteA
+006a7bce	SHELL32.dll
+006a7bdc	??1_Lockit@std@@QAE@XZ
+006a7bf6	??0_Lockit@std@@QAE@XZ
+006a7c10	??1?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@QAE@XZ
+006a7c5a	?_Tidy@?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@AAEX_N@Z
+006a7caa	?_C@?1??_Nullstr@?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@CAPBDXZ@4DB
+006a7d06	?assign@?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@QAEAAV12@ABV12@II@Z
+006a7d62	?npos@?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@2IB
+006a7dac	?_Grow@?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@AAE_NI_N@Z
+006a7dfe	?assign@?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@QAEAAV12@PBDI@Z
+006a7e56	??Hstd@@YA?AV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@0@ABV10@0@Z
+006a7eaa	??Hstd@@YA?AV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@0@ABV10@PBD@Z
+006a7f00	??8std@@YA_NABV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@0@PBD@Z
+006a7f52	?_Eos@?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@AAEXI@Z
+006a7fa0	?erase@?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@QAEAAV12@II@Z
+006a7ff4	?_Split@?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@AAEXXZ
+006a8042	?_Xran@std@@YAXXZ
+006a8056	??Mstd@@YA_NABV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@0@0@Z
+006a80a6	?_Copy@?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@AAEXI@Z
+006a80f4	?_Xlen@std@@YAXXZ
+006a8108	?append@?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@QAEAAV12@ABV12@II@Z
+006a8164	?append@?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@QAEAAV12@PBDI@Z
+006a81ba	MSVCP60.dll
+006a81c8	WNetGetConnectionA
+006a81dc	MPR.dll
+006a81e6	_strnicmp
+006a81f2	_itoa
+006a81fa	_ltoa
+006a8202	_getcwd
+006a820c	_putenv
+006a8216	_utime
+006a8220	_mkdir
+006a822a	_setmbcp
+006d30b0	GroupIcon
+006d34f0	GroupIcon
+006d3928	GroupIcon
+006da530	Menu
+006da708	Menu
+006dbbc8	Menu
+006dca30	Dialog
+006dcb40	Dialog
+006dcd50	Dialog
+006dce08	Dialog
+006dd128	Dialog
+006dd248	Dialog
+006dd3f0	Dialog
+006dd770	Dialog
+006dd950	Dialog
+006dda38	Dialog
+006ddd08	Dialog
+006ddf50	Dialog
+006de210	Dialog
+006de5e0	Dialog
+006dea10	Dialog
+006decc0	Dialog
+006df000	Dialog
+006df0f2	StringFileInfo
+006df116	000004b0
+006df12e	CompanyName
+006df148	Cadence Design Systems, Inc
+006df186	FileDescription
+006df1a8	Schematic Editor
+006df1d2	FileVersion
+006df1ec	9.2
+006df1fa	InternalName
+006df214	Schematics
+006df232	LegalCopyright
+006df250	Copyright © 1986-2000 Cadence Design Systems, Inc.
+006df2be	OriginalFilename
+006df2e0	PSCHED.exe
+006df2fe	ProductName
+006df318	PSpice Schematics
+006df342	ProductVersion
+006df360	9.2
+006df36e	VarFileInfo
+006df38e	Translation
+006e6538	GroupIcon
+006e6aa8	GroupIcon
+006e6dc0	GroupIcon
+006e70c0	GroupIcon
+006e73c0	GroupIcon
+006e73d8	Dialog
+006e74d0	Dialog
+006e7628	Dialog
+006e7828	Dialog
+006e7a08	Dialog
+006e7c10	Dialog
+006e7d60	Dialog
+006e7e98	Dialog
+006e84a8	Dialog
+006e86f8	Dialog
+006e8910	Dialog
+006e8d90	Dialog
+006e9188	Dialog
+006e9308	Dialog
+006e95a8	Dialog
+006e9670	Dialog
+006e98d0	Dialog
+006e9c50	Dialog
+006ea050	Dialog
+006ea370	Dialog
+006ea4c0	Dialog
+006ea5c8	Dialog
+006ea750	Dialog
+006ea878	Dialog
+006eaa78	Dialog
+006eac00	Dialog
+006eafe8	Dialog
+006eb548	Dialog
+006ebcf8	Dialog
+006ec220	Dialog
+006ec328	Dialog
+006ec428	Dialog
+006ec578	Dialog
+006ec9b8	Dialog
+006ecb28	Dialog
+006ecfb0	Dialog
+006ed1e8	Dialog
+006ed690	Dialog
+006eda68	Dialog
+006ee150	Dialog
+006ee2d0	Dialog
+006ee5f8	Dialog
+006eea80	Dialog
+006eef88	Dialog
+006ef318	Dialog
+006ef668	Dialog
+006ef7e0	Dialog
+006efc40	Dialog
+006efd60	Dialog
+006f00d8	Dialog
+006f0360	Dialog
+006f0540	Dialog
+006f0ac8	Dialog
+006f0ca8	Dialog
+006f0d58	Dialog
+006f0f50	Dialog
+006f1228	Dialog
+006f15c0	Dialog
+006f1ae0	Dialog
+006f1c30	Dialog
+006f1e00	Dialog
+006f1fe8	Dialog
+006f2180	Dialog
+006f24c0	Dialog
+006f2790	Dialog
+006f2aa0	Dialog
+006f2b50	Dialog
+006f2cf0	Dialog
+006f2eb8	Dialog
+006f3050	Dialog
+006f3298	Dialog
+006f3348	Dialog
+006f3530	Dialog
+006f39c0	Dialog
+006f3b18	Dialog
+006f3ca0	Dialog
+006f3fd8	Dialog
+006f42e0	Dialog
+006f4760	Dialog
+006f4b70	Dialog
+006f4ef8	Dialog
+006f5210	Dialog
+006f5500	Dialog
+006f5680	Dialog
+006f5930	Dialog
+006f5aa0	Dialog
+006f5e20	Dialog
+006f6258	Dialog
+006f6638	Dialog
+006f68c0	Dialog
+006f69f8	Dialog
+006f6b30	Dialog
+006f6c68	Dialog
+006f6d40	Dialog
+006f6ea0	Dialog
+006f7348	Dialog
+006f7488	Dialog
+006f75a0	Dialog
+006f76b8	Dialog
+006f77d0	Dialog
+006f7a88	Dialog
+006f7cd8	Dialog
+006f7db0	Dialog
+006f7fa0	Dialog
+006f8490	Dialog
+006f89e8	Dialog
+006f8ad8	Dialog
+006f8bd8	Dialog
+006f8d58	Dialog
+006f90a8	Dialog
+006f9288	Dialog
+006f9418	Dialog
+006f9928	Dialog
+006f9c40	Dialog
+006f9ec0	Dialog
+006fa358	Dialog
+006fa808	Dialog
+006faa98	Dialog
+006fae70	Dialog
+006fb480	Dialog
+006fba38	Dialog
+006fbe10	Dialog
+006fc030	Dialog
+006fc268	Dialog
+006fc818	Dialog
+006fcd38	Dialog
+006fd0c8	Dialog
+006fd7c0	Dialog
+006fdae8	Dialog
+006fdd48	Dialog
+006fe570	Dialog
+006fe8c8	Dialog
+006fecd0	Dialog
+006ff2f8	Dialog
+006ff510	Dialog
+006ff828	Dialog
+006ffbb0	Dialog
+006ffff0	Dialog
+00700368	Dialog
+00700748	Dialog
+00700810	Dialog
+00700948	Dialog
+00700ae0	Dialog
+00700be8	Dialog
+00700db0	Dialog
+00700ee0	Dialog
+00701498	Dialog
+00701848	Dialog
+00701a50	Dialog
+00701ba0	Dialog
+00701d98	Dialog
+00702018	Dialog
+007021f8	Dialog
+007023d8	Dialog
+007025f8	Dialog
+00702798	Dialog
+00702950	Dialog
+00702b60	Dialog
+00702d08	Dialog
+00702f40	Dialog
+00703428	Dialog
+00703910	Dialog
+00703ce8	Dialog
+00704070	Dialog
+00704358	Dialog
+00704710	Dialog
+00704a50	Dialog
+00704e88	Dialog
+00705318	Dialog
+00705750	Dialog
+00705c70	Dialog
+00706178	Dialog
+00706470	Dialog
+007066c0	Dialog
+00706b48	
+00706b4a	
+00706b4c	
+00706b4e	
+00706b50	OLE initialization failed.  Make sure that the OLE libraries are the correct version.
+00706bfc	
+00706bfe	Failed to create object.  Make sure the object is entered in the system registry.
+00706ca2	
+00706ca4	
+00706ca6	
+00706ca8	
+00706caa	
+00706cac	
+00706cae	
+00706cb0	
+00706cb2	
+00706cb8	PSpice Schematics
+00706cdc	PSpice Schematics\nSchematic\nSchematic\nSchematics (*.sch)\n.SCH\nPSched.Document\nPSpice Schematic
+00706d9a	
+00706d9c	
+00706d9e	
+00706da0	
+00706da2	Symbol Editor\nSymbol Library\nSymbol Library\nSymbol Libraries (*.slb)\n.SLB\nPSched.SymbolLib\nPSpice Symbol Library
+00706e84	
+00706e86	
+00706e88	
+00706e8a	
+00706e8c	
+00706e8e	
+00706e90	
+00706e92	
+00706e94	
+00706e98	
+00706e9a	
+00706e9c	
+00706e9e	
+00706ea0	
+00706ea2	
+00706ea4	
+00706ea6	
+00706ea8	
+00706eaa	
+00706eac	
+00706eae	
+00706eb0	All
+00706eb8	All but Internal Subcircuits
+00706ef2	At Markers Only
+00706f12	None
+00706f20	Schematics
+00706f36	For Help, Press F1
+00706f5c	Select an object on which to get Help
+00706fa8	
+00706faa	
+00706fac	
+00706fae	
+00706fb0	
+00706fb2	
+00706fb4	
+00706fb6	
+00706fb8	
+00706fba	
+00706fbc	
+00706fbe	
+00706fc0	
+00706fc8	EXT
+00706fd0	CAP
+00706fd8	NUM
+00706fe0	SCRL
+00706fea	OVR
+00706ff2	REC
+00706ffa	
+00706ffc	
+00706ffe	
+00707000	
+00707002	
+00707004	
+00707006	
+00707008	
+0070700a	
+0070700c	
+00707010	
+00707012	Create a new schematic\nNew Schematic
+0070705c	Open an existing schematic\nOpen Schematic
+007070b0	
+007070b2	
+007070b4	
+007070b6	
+007070b8	
+007070ba	Invoke the Symbol Editor
+007070ec	
+007070ee	Converts the active schematic into a symbol
+00707146	Show the current error list
+0070717e	
+00707180	
+00707182	
+00707184	
+00707188	
+0070718a	
+0070718c	Close schematic file\nClose schematic
+007071d6	Save the active schematic\nSave
+00707214	Save the active schematic with a new name\nSave As
+00707278	Change the printing options\nPage Setup
+007072c6	Change the printer and printing options\nPrint Setup
+0070732e	Print the active document\nPrint
+0070736e	
+00707370	Display full pages\nPrint Preview
+007073b2	Update the container to show any changes\nUpdate
+00707412	Save a copy of the active document with a new name\nSave Copy
+0070748c	
+0070748e	
+00707490	
+00707492	
+00707498	Displays the program information, serial number and copyright.\nAbout
+00707522	Quit Schematics; prompts to save documents\nExit
+00707582	List Help topics\nHelp Index
+007075ba	Display help table of contents\nHelp Topics
+00707610	Display instructions about how to use help\nHelp
+00707670	Display help for clicked on buttons, menus and windows\nHelp
+007076e8	Display help for current task or command\nHelp
+00707744	
+00707746	
+00707748	
+0070774a	
+0070774c	
+0070774e	
+00707750	
+00707752	
+00707754	
+00707758	Open this document
+0070777e	Open this document
+007077a4	Open this document
+007077ca	Open this document
+007077f0	
+007077f2	
+007077f4	
+007077f6	
+007077f8	
+007077fa	
+007077fc	
+007077fe	
+00707800	
+00707802	
+00707804	
+00707806	
+00707808	Switch to the next window pane\nNext Pane
+0070785a	Switch back to the previous window pane\nPrevious Pane
+007078c6	
+007078c8	
+007078ca	
+007078cc	
+007078ce	
+007078d0	
+007078d2	
+007078d4	
+007078d6	
+007078d8	
+007078da	
+007078dc	
+007078de	
+007078e0	
+007078e8	Open another window for the active schematic\nNew Window
+00707958	Arrange icons at the bottom of the window\nArrange Icons
+007079c8	Arrange windows so they overlap\nCascade Windows
+00707a28	Arrange windows as non-overlapping tiles horizontally\nTile Windows Horizontally
+00707ac8	Arrange windows as non-overlapping tiles vertically\nTile Windows
+00707b4a	Split the active window into panes\nSplit
+00707b9c	
+00707b9e	
+00707ba0	
+00707ba2	
+00707ba4	
+00707ba6	
+00707ba8	
+00707baa	
+00707bac	
+00707bae	
+00707bb0	Erase the selection\nErase
+00707be4	Erase everything\nErase All
+00707c1a	Copy the selection and put it in the Clipboard\nCopy
+00707c82	Cut the selection and put it on the Clipboard\nCut
+00707ce6	Find and select parts, wires, busses
+00707d30	Insert Clipboard contents\nPaste
+00707d70	
+00707d72	
+00707d74	Repeat the last action\nRepeat
+00707db0	Replace selected part(s) with other parts
+00707e04	Select the entire document\nSelect All
+00707e50	Undoes the last action\nUndo
+00707e88	Redoes the previously undone action\nRedo
+00707eda	
+00707edc	
+00707ede	
+00707ee0	
+00707ee2	Undo the last action\nUndo
+00707f16	
+00707f18	
+00707f1a	
+00707f1c	Copy selected area to clipboard
+00707f5c	Delete selected item(s)
+00707f8c	Edit attributes of selected item(s)\nEdit Attributes
+00707ff4	Edit the label of selected item(s)
+0070803a	Edit the simulation model
+0070806e	Invoke the Symbol Editor on the selected symbol\nSymbol Editor
+007080ea	Rotate the selected item(s)
+00708122	Flip the selected item(s)
+00708156	Align selected items horizontally
+0070819a	Align selected items vertically
+007081da	
+007081e0	Show or hide toolbars\nShow/Hide Toolbars
+00708232	Show or hide the status bar\nToggle StatusBar
+0070828c	
+0070828e	
+00708290	
+00708292	
+00708294	
+00708296	
+00708298	
+0070829a	
+0070829c	
+0070829e	
+007082a0	
+007082a2	
+007082a4	
+007082a6	
+007082a8	Insert new embedded object\nNew Object
+007082f4	Edit linked objects\nEdit Links
+00708332	Convert object to different type\nConvert Object
+00708392	
+00708394	
+00708396	
+00708398	
+0070839a	
+0070839c	
+0070839e	
+007083a0	
+007083a2	
+007083a4	
+007083a6	
+007083a8	
+007083aa	
+007083b0	Activate embedded or linked object
+007083f6	Activate embedded or linked object
+0070843c	Activate embedded or linked object
+00708482	Activate embedded or linked object
+007084c8	
+007084ca	
+007084cc	
+007084ce	
+007084d0	
+007084d2	
+007084d4	
+007084d6	
+007084d8	
+007084da	
+007084dc	
+007084de	
+007084e0	Change the window size
+0070850e	Change the window position
+00708544	Reduce the window to an icon
+0070857e	Enlarge the window to full size
+007085be	Switch to the next document window
+00708604	Switch to the previous document window
+00708652	Close the active window and prompts to save the documents
+007086c6	
+007086c8	
+007086ca	
+007086cc	
+007086ce	
+007086d0	
+007086d2	
+007086d4	
+007086d6	
+007086d8	
+007086da	
+007086dc	Restore the window to normal size
+00708720	Activate Task List
+00708746	
+00708748	
+0070874a	
+0070874c	
+0070874e	
+00708750	
+00708752	
+00708754	
+00708756	
+00708758	
+0070875a	
+0070875c	Activate this window
+00708788	
+0070878a	
+0070878c	
+0070878e	
+00708790	
+00708792	Close print preview mode\nCancel Preview
+007087e2	PSpice
+007087f0	Cmd: %s
+00708800	Bitmaps (*.bmp;*.dib)|*.bmp; *.dib|Metafiles (*.wmf,*.emf)|*.wmf; *.emf||
+00708894	Insert a Picture
+007088b6	chkpoint.
+007088ca	(CheckPoint %s)
+007088ea	Probe Setup Options
+00708912	PROBE CHECKPOINT
+00708934	AutoLoad
+00708946	PlotOption
+00708960	
+00708962	Create a Bill of Materials report
+007089a6	Import OrCAD SDT schematics and libraries
+007089fa	
+007089fc	
+007089fe	
+00708a00	
+00708a02	
+00708a04	
+00708a06	
+00708a08	
+00708a0a	
+00708a0c	
+00708a0e	
+00708a10	
+00708a12	
+00708a18	
+00708a1a	Convert a block to a symbol
+00708a52	Display or change the view for the block or symbol
+00708ab8	
+00708aba	Edit stimulus definition
+00708aec	Edit Graphics or Text Properties
+00708b2e	
+00708b30	
+00708b32	
+00708b34	
+00708b36	
+00708b38	
+00708b3a	
+00708b3c	
+00708b3e	
+00708b40	
+00708b48	
+00708b4a	Repeat last operation
+00708b76	Place instance of current part\nPlace Part
+00708bca	Draw text\nDraw Text
+00708bf2	Draw a new wire\nDraw Wire
+00708c26	Draw a new bus\nDraw Bus
+00708c56	Select a part to draw from the part list\nGet New Part
+00708cc2	Reroute the selected wire
+00708cf6	Draw a new block\nDraw Block
+00708d2e	Draw a new circle\nDraw Circle
+00708d6a	Draw a new box\nDraw Box
+00708d9a	Draw a new polyline\nDraw Polyline
+00708dde	
+00708de0	
+00708de2	
+00708de4	
+00708de8	Insert a new bitmap\nInsert Bitmap
+00708e2c	
+00708e2e	
+00708e30	
+00708e32	Set up preferences for display layers. 
+00708e82	
+00708e84	Insert a Bitmap or Metafile\nInsert Picture
+00708eda	Insert a Picture (Bitmap or Metafile)\nInsert Picture
+00708f44	
+00708f46	
+00708f48	
+00708f4a	
+00708f4c	Show User's Guide\nUser's Guide
+00708f8a	Place selected Graphics at the very back\nSend to Back
+00708ff6	Bring selected Graphics to the very front\nBring to Front
+00709068	Show Library Reference List\nLibrary Reference List
+007090d0	
+007090d2	Display the previous page
+00709106	Display the next page
+00709132	Select a page to display in the active window
+0070918e	Create a new page
+007091b2	Delete the currently active page
+007091f4	Copy page(s) from a schematic
+00709230	Change the page title
+0070925c	Push into a symbol or block
+00709294	Pop up one level
+007092b6	Pops up to the top schematic
+007092f0	Show the current hierarchical path
+00709336	Change attributes for the specific instance of the subschematic
+007093b6	Edit the subschematic (affects all instances of this subschematic)
+0070943c	
+0070943e	
+00709440	
+00709442	Zoom to show all items on the page\nZoom to Fit Page
+007094aa	Zoom in on the specified point\nZoom In
+007094f8	Zoom out centered on specified point\nZoom Out
+00709554	Zoom in on selected area\nZoom Area
+0070959a	Zoom to the previous zoomed area
+007095dc	Zoom to show the entire page
+00709616	
+00709618	Redraws the active schematic page\nRedraw
+0070966a	Pan so that the selected point is the new center
+007096cc	
+007096ce	
+007096d0	
+007096d2	
+007096d4	
+007096d6	
+007096d8	
+007096da	Specify the screen display options
+00709720	Change the page size for the active schematic window
+0070978a	
+0070978c	Control automatic new instance spacing
+007097da	Control automatic assignment of ref. designators or labels
+00709850	
+00709852	Control display and print of text or components
+007098b2	Control symbol libraries, paths, defaults, etc.
+00709912	
+00709914	
+00709916	Specify which view to use for each type of netlister
+00709980	Control pan and zoom settings
+007099bc	Control restricted operations
+007099f8	
+007099fa	
+00709a00	
+00709a02	Performs an Electrical Rule Check
+00709a46	Create a simulation netlist
+00709a7e	
+00709a80	Set up the simulation analyses for the active schematic\nSetup Analysis
+00709b0e	Specifies simulation libraries and include files
+00709b70	Simulate the active schematic\nSimulate
+00709bbe	
+00709bc0	Control the interactions with Probe
+00709c08	Invoke Probe to view simulation results
+00709c58	
+00709c5a	Display the simulation netlist
+00709c98	Display the simulation output file
+00709cde	Standard Schematics
+00709d06	Drawing
+00709d16	Annotation Graphics
+00709d40	
+00709d42	Package and/or annotate the active schematic
+00709d9c	Create a layout netlist
+00709dcc	Invoke the configured layout editor
+00709e14	Update schematic with backward ECO from the layout editor
+00709e88	Change the layout editor setup
+00709ec6	Display the layout netlist
+00709efc	Display the package definition of the selected item(s)
+00709f6a	Create a subcircuit from the active schematic
+00709fc6	Set up and invoke Polaris (signal integrity analysis)
+0070a032	Invoke PLSyn (PLD synthesis)
+0070a06c	Invoke the PSpice Optimizer (analog optimization)
+0070a0d0	Control use of optimized vs. initial parameters
+0070a130	Place voltage/digital level marker(s).\nVoltage/Level Marker
+0070a1a8	Place voltage differential marker(s)
+0070a1f2	Place marker(s) showing current into a pin.\nCurrent Marker
+0070a268	Place marker(s) for advanced functions
+0070a2b6	Delete all markers on all pages of current schematic
+0070a320	Display traces in Probe for all markers in the schematic/subschematics
+0070a3ae	Display trace in Probe for all selected markers
+0070a40e	Display program information, version number and copyright\nAbout
+0070a48e	List hotkeys and their functions\nKeyboard
+0070a4e2	
+0070a4e4	
+0070a4e6	
+0070a4e8	Create a new symbol library\nNew Library
+0070a538	
+0070a53a	Open an existing symbol library\nOpen Library
+0070a594	
+0070a596	Close the active symbol editor window
+0070a5e2	
+0070a5e4	Save the active symbol library\nSave
+0070a630	
+0070a632	
+0070a634	
+0070a636	
+0070a638	
+0070a63a	
+0070a63c	
+0070a63e	
+0070a640	
+0070a642	
+0070a644	
+0070a646	
+0070a648	
+0070a64a	0, 0
+0070a654	 
+0070a658	 
+0070a660	Save the library under a new name
+0070a6a4	Print the active symbol\nPrint symbol
+0070a6ee	
+0070a6f0	Change the printer and printing options\nPrint Setup
+0070a758	Display current error(s) window
+0070a798	Quit Schematics after prompting to save any unsaved work
+0070a80a	
+0070a80c	Restore deleted object(s)
+0070a840	
+0070a842	
+0070a844	
+0070a846	
+0070a848	
+0070a84a	Delete selected object(s)
+0070a87e	Cut selected object(s) to paste buffer\nCut
+0070a8d4	Copy selected object(s) to paste buffer
+0070a928	Paste object(s) from paste buffer
+0070a96c	Edit selected pin(s), text, attribute(s)
+0070a9be	Change the type of selected pin(s) or set default
+0070aa22	Edit the simulation model for this symbol
+0070aa76	Invoke the Stimulus Editor
+0070aaac	Edit the schematic this symbol represents
+0070ab00	Change the schematic name(s) for hierarchical symbol(s)
+0070ab70	
+0070ab72	Rotate the selected object(s)
+0070abae	Flip the selected object(s)
+0070abe6	Align the selected objects horizontally
+0070ac36	Align the selected objects vertically
+0070ac82	Draw an arc\nDraw Arc
+0070acac	Draw a box\nDraw Box
+0070acd4	Draw a circle\nDraw Circle
+0070ad08	Draw a polyline\nDraw Polyline
+0070ad48	Add a pin\nDraw Pin
+0070ad6e	Draw text\nDraw Text
+0070ad96	Change the bounding box of the symbol\nBounding Box
+0070adfc	Change the origin of the symbol\nOrigin
+0070ae4a	Repeat the last operation\nRepeat Operation
+0070aea0	Check the pins against the schematic interface ports
+0070af0a	Print the active symbol\nPrint
+0070af46	Display current errors
+0070af74	Start a new symbol
+0070af9a	Copy a symbol from a library
+0070afd4	Get a part from the library\nGet Part
+0070b01e	Delete symbol(s) from the current library
+0070b072	Save current symbol to library
+0070b0b0	Edit symbol attributes\nEdit Attributes
+0070b0fe	Change the part name, base part, or symbol type
+0070b15e	Edit all pins on this symbol
+0070b198	Import graphics from existing symbol
+0070b1e2	Write symbol definition(s) to a text file
+0070b236	Read symbol definition from a text file
+0070b286	Create a new package definition
+0070b2c6	Copy a package definition from a library
+0070b318	Edit a package definition in this library
+0070b36c	Delete package definition(s) from the current library
+0070b3d8	Edit package information for the current symbol
+0070b438	Add to the list of known packages and group them
+0070b49a	Write package definition(s) to a text file
+0070b4f0	Read package definition(s) from a text file
+0070b548	Zoom to show all graphics components\nZoom to Fit Symbol
+0070b5b8	Zoom in on specified point\nZoom in
+0070b5fe	Zoom out from specified point\n Zoom out
+0070b64e	Zoom in on selected area\nZoom Area
+0070b694	Zoom to the previous zoomed area
+0070b6d8	Zoom to show the entire symbol
+0070b716	Redraw the contents of the symbol editor window\nRedraw
+0070b784	Pan so that the selected point is the new center
+0070b7e6	Specify screen display options
+0070b824	Control automatic spacing of duplicate objects
+0070b882	Control display and/or print of text or components
+0070b8e8	Specify pan and zoom settings
+0070b924	Create a new schematic window
+0070b960	Close the active window
+0070b990	Arrange all windows
+0070b9b8	
+0070b9ba	
+0070b9bc	
+0070b9be	
+0070b9c0	
+0070b9c2	
+0070b9c8	Invoke the Symbol Editor\nEdit Symbol
+0070ba12	Prints the active schematic\nPrint
+0070ba56	Zooms in about center of schematic\nZoom In
+0070baac	Zoom out about center of schematic\n Zoom Out
+0070bb06	Closes the active window
+0070bb38	Arrange windows as non-overlapping tiles\nTile Windows
+0070bba4	
+0070bba6	Export schematic in DXF file format.
+0070bbf0	
+0070bbf2	Edit stimuli at all system inputs.
+0070bc38	Browse the log of back annotation changes that have been applied to this schematic.
+0070bce0	Xilinx setup.
+0070bcfc	Generate the .xnf file(s).
+0070bd32	Find and highlight the specified Xilinx net.
+0070bd8c	Highlight the specified signal or component in PCBoards.
+0070bdfe	
+0070be00	
+0070be02	
+0070be04	
+0070be06	
+0070be08	
+0070be0a	
+0070be0c	
+0070be0e	Get new part\nGet New Part
+0070be42	
+0070be44	
+0070be46	
+0070be48	
+0070be4a	Edit Attributes\nEdit Attributes
+0070be8a	
+0070be8c	
+0070be8e	
+0070be90	
+0070be92	
+0070be94	
+0070be96	Get a recently used part\nGet Recent Part
+0070bee8	Select marker color.\nMarker Color
+0070bf2c	
+0070bf2e	
+0070bf30	
+0070bf32	
+0070bf34	
+0070bf36	
+0070bf38	
+0070bf3a	
+0070bf3c	
+0070bf3e	
+0070bf40	
+0070bf48	
+0070bf4a	
+0070bf4c	
+0070bf4e	Create a new symbol\nNew Symbol
+0070bf8c	
+0070bf8e	
+0070bf90	
+0070bf92	
+0070bf94	
+0070bf96	
+0070bf98	
+0070bf9a	Create a new symbol\nNew Symbol
+0070bfd8	
+0070bfda	
+0070bfdc	
+0070bfde	Show Technical Support Help Page\nTechnical Support
+0070c048	
+0070c04a	Zooms in about center of symbol\nZoom in
+0070c09a	Zooms out about center of symbol\nZoom out
+0070c0ee	Toggle Voltage Bias Point value for current selection\nShow/Hide Voltage on Selected Net(s)
+0070c1a4	Toggle Current Bias Point value for current selection\nShow/Hide Currents on Selected Part(s)
+0070c25e	Enable display of bias voltages\nEnable Bias Voltage Display
+0070c2d6	Enable display of bias currents\nEnable Bias Current Display
+0070c34e	Edit the Bias Point Data Display options\nOptions for Bias Point Data
+0070c3d8	Edit the graphic properties of the selected objects.
+0070c442	Sets the FPGA simulation settings
+0070c486	Open, create or delete checkpoints
+0070c4cc	Export Files
+0070c4e6	
+0070c4e8	Show or hide the standard toolbar\nToggle Toolbar
+0070c54a	Draw a new arc\nDraw Arc
+0070c57a	Draw text box\nDraw Text Box
+0070c5b8	
+0070c5ba	Standard Symbol Editor
+0070c5e8	Simulation
+0070c5fe	
+0070c600	
+0070c602	
+0070c604	
+0070c606	
+0070c608	
+0070c60a	
+0070c60c	
+0070c60e	
+0070c610	
+0070c612	
+0070c614	
+0070c616	
+0070c618	Graphics Propert&ies...
+0070c648	Text Propert&ies...
+0070c670	TEXTEDITCMD
+0070c688	Objects with white outline color will not \nshow when printed on monochrome printers
+0070c730	
+0070c732	System error launching default browser.
+0070c782	Netlist settinng help ID
+0070c7b4	Comma is a reserved character!
+0070c7f2	
+0070c7f4	
+0070c7f6	
+0070c7f8	
+0070c7fa	
+0070c7fc	
+0070c7fe	
+0070c800	
+0070c808	Enable display of bias inforation\nEnable display of bias information
+0070c892	
+0070c894	
+0070c896	
+0070c898	
+0070c89a	Set netlist format
+0070c8c0	Create LVS netlist
+0070c8e6	
+0070c8e8	
+0070c8ea	
+0070c8ec	
+0070c8ee	
+0070c8f0	
+0070c8f2	
+0070c8f4	
+0070c8f6	
+0070c8f8	
+0070c8fa	
+0070c8fc	
+0070c8fe	
+0070c900	
+0070c902	
+0070c904	
+0070c906	
+0070c908	Total Pts.:
+0070c920	Pts/Octave:
+0070c938	Pts/Decade:
+0070c950	Set Attribute Value
+0070c978	Library: %s
+0070c990	.  Change new name or press OK in dialog to continue.
+0070c9fc	Delete Page
+0070ca14	Delete current schematic page?
+0070ca58	Exit
+0070ca62	Save changes before quitting?
+0070ca9e	Place Text...
+0070caba	normal
+0070cac8	bubble
+0070cad6	clock
+0070cae2	inv clock
+0070caf6	ANSI in
+0070cb06	ANSI out
+0070cb18	ANSI inv clock
+0070cb36	horizontal
+0070cb4c	vertical
+0070cb5e	upsidedown
+0070cb74	down
+0070cb7e	zero length
+0070cb96	left
+0070cba0	center
+0070cbae	right
+0070cbba	bottom
+0070cbc8	top
+0070cbd0	don't care
+0070cbe6	input
+0070cbf2	output
+0070cc00	bidir
+0070cc0c	highZ
+0070cc18	open collector
+0070cc36	power
+0070cc42	<new>
+0070cc4e	component
+0070cc62	annotation
+0070cc78	hier port
+0070cc8c	global port
+0070cca8	offpage
+0070ccb8	titleblock
+0070ccce	border
+0070ccdc	marker
+0070ccea	viewpoint
+0070ccfe	current probe
+0070cd1a	optimizer parameters
+0070cd44	Enter name of error file
+0070cd76	.  Change attribute or press OK in dialog to continue
+0070cde2	Save
+0070cdec	Save changes to current attribute?
+0070ce32	Pin/port mismatch:
+0070ce58	Load Bias Point
+0070ce78	Enter Load Bias File Name:
+0070ceae	 Pin Assignments
+0070ced0	 Pin Assignments - Gate Type 
+0070cf10	 Shared Pin Assignments
+0070cf40	Package Class
+0070cf5c	Configure Package Classes
+0070cf90	Remove Package Definition
+0070cfc4	Import Package Definition
+0070cff8	Get Package Definition
+0070d026	Export Package Definition
+0070d05a	Copy Package Definition
+0070d08a	Pkg Name:
+0070d09e	New Pkg Name:
+0070d0ba	Existing Pkg Name:
+0070d0e0	Package:
+0070d0f2	AKO:
+0070d0fc	Change AKO
+0070d112	Pin name does not appear on symbol.  Save anyway?
+0070d176	Unmodeled
+0070d190	RtoGND
+0070d19e	UniqueNet
+0070d1b2	Error
+0070d1be	Save changes to current pin?
+0070d1f8	Select routed PCB file
+0070d226	Select board stack file
+0070d256	Signal names:
+0070d272	View signals
+0070d28c	PCB Layout Netlist: 
+0070d2b6	Routed PCB Layout File: 
+0070d2e8	Setup: 
+0070d2f8	YES
+0070d300	NO
+0070d306	NONE
+0070d310	Units = 
+0070d322	Mm
+0070d328	Increment:
+0070d33e	Package types defined for this class will be deleted.
+0070d3aa	This attribute normally goes on a predefined layer.  Override?
+0070d428	Change Attributes
+0070d44c	This layer is normally used for system attribute.  Use anyway?
+0070d4ca	No boardstack file found
+0070d4fc	No routed PCB file found
+0070d52e	Continue exiting dialog?
+0070d560	Select signals
+0070d57e	Edit DSL Procedure
+0070d5a4	DSL procedure header is inconsistent with part.  Continue and save changes?
+0070d63c	Schematic or DSL File Name:
+0070d674	Checking DSL file...
+0070d69e	Setup Block
+0070d6b6	Schematic or DSL File Name
+0070d6ec	Select Attribute
+0070d710	Add* or Add Local was not done to add a new library.  Continue exiting without adding?
+0070d7be	Save changes to current optimizer parameter?
+0070d818	stimulus
+0070d82a	simulation control
+0070d850	Model: %s exists, replace it?
+0070d88c	Model Exists
+0070d8a6	Probe
+0070d8b2	StmEd
+0070d8be	Parts
+0070d8ca	Polaris
+0070d8da	PolTran
+0070d8ea	PLSyn
+0070d8f6	Optimizer
+0070d90a	Simulation model available
+0070d940	For simulation purposes only
+0070d97a	Zoom factor
+0070d998	Zoom fit
+0070d9aa	Auto pan hot zone
+0070d9ce	Auto pan sensitivity
+0070d9f8	Coarse pan delta
+0070da1a	Fine pan delta
+0070da38	%s = %g,\r\n should be %g - %g,\r\n setting to %g.
+0070da96	%s = %d,\r\n should be %d - %d,\r\n setting to %d.
+0070daf4	open emitter
+0070db0e	normal (long)
+0070db2a	bubble (long)
+0070db46	clock  (long)
+0070db62	inv clock (long)
+0070db84	No Connect
+0070db9a	Create New Part List
+0070dbc4	Add to Part List
+0070dbe6	Search within Part List
+0070dc18	Found %d items
+0070dc36	Building new part list
+0070dc64	Full List
+0070dc78	Partial List - %s
+0070dc9c	Starting Search
+0070dcbc	Searching %s\n%d matches so far
+0070dcfa	%d matches so far
+0070dd1e	Browse
+0070dd2c	%s ECO Files (*%s)
+0070dd52	Warning:  the schematic has not been packaged.  Continue?
+0070ddc6	Text Editor
+0070ddde	There were %d matches\nDo you want to restore back to the previous list?
+0070de6e	%s is an AKO part.\nDo you want to edit the part it references (%s)?
+0070def6	Continue
+0070df08	Cancel
+0070df16	MsgViewer
+0070df30	XNF2PS
+0070df3e	Sim Currents
+0070df58	Sim Voltages
+0070df72	None
+0070df7c	Custom Color...
+0070df9c	The 'Append Page number to wire labels' option was put in for compatibility with translated schematics.\nThis option should not be enabled for schematics that are to be simulated.
+0070e102	
+0070e104	
+0070e106	
+0070e108	
+0070e10a	
+0070e10c	
+0070e10e	
+0070e110	
+0070e112	
+0070e114	
+0070e118	
+0070e11a	
+0070e11c	
+0070e11e	
+0070e120	
+0070e122	
+0070e124	
+0070e126	
+0070e128	
+0070e12a	
+0070e12c	
+0070e12e	
+0070e130	This symbol also appears in a previous library
+0070e18e	Illegal page number
+0070e1b6	Improper number
+0070e1d6	Improper scale designator
+0070e210	Must be greater than 0
+0070e23e	
+0070e240	Specified page dimension(s) exceeds limit of 75inches or 1905mm
+0070e2c0	Please specify page dimensions
+0070e2fe	You must specify at least one value to sweep
+0070e358	This symbol name or alias appears previously in this library
+0070e3d2	This symbol name or alias appears previously in the current library
+0070e45a	Symbol name not specified
+0070e48e	Please enter a part name or select one from the list
+0070e4f8	
+0070e4fa	Changes will take effect the\nnext timeSchematics is started
+0070e572	You must enter the name of the part to replace
+0070e5d0	You must enter the name of the replacement part
+0070e630	Enter a library name before choosing ADD or CHANGE
+0070e696	Library appears more than once:  
+0070e6da	There is no attribute of that name in the list
+0070e738	This is an AKO attribute and can be overridden, but not deleted
+0070e7b8	Monte Carlo runs must be between 2 and 1000
+0070e810	Invalid name
+0070e82a	This is an AKO base part.  Press Delete in dialog to continue
+0070e8a6	Minimum pin to pin spacing is 10 units
+0070e8f4	Cannot open printer file
+0070e926	No such string in resource.
+0070e95e	Please specify a name
+0070e98a	Please enter search criteria or press CANCEL
+0070e9e4	This attribute is not changeable from the schematic editor
+0070ea5a	Please specify a symbol is has a symbol type of titleblock
+0070ead0	Warning:  title block symbol does not exist:  
+0070eb2e	Please enter one or more output variables
+0070eb82	Please enter a grid size greater than 0
+0070ebd2	
+0070ebd4	Only annotated attributes may be deleted while editing the instance
+0070ec60	Attribute may be not added while editing an instance
+0070ecca	Only annotated attributes may be changed while editing an instance
+0070ed50	Can not change base model definition, use symbol editor instead
+0070edd0	Pin name is required
+0070edfa	Package type is already in the list
+0070ee42	This entry is already in the list
+0070ee86	Improper integer 
+0070eeaa	Can not find a valid model or subcircuit name.
+0070ef08	Definition does not have an AKO reference in it.
+0070ef6a	Valid gates are: 
+0070ef8e	Warning:  duplicate pinumber 
+0070efca	Nested dialog must be closed before you can do this.
+0070f034	Port symbols must be replaced by another port symbol
+0070f09e	Part symbols must be replaced by another part symbol
+0070f108	Annotation symbols must be replaced by another annotation symbol
+0070f18a	Viewpoint symbols must be replaced by another viewpoint symbol
+0070f208	Marker symbols must be replaced by another marker symbol
+0070f27a	Could not open ECO file
+0070f2aa	Library Search path must be less than 255 characters
+0070f314	Please specify a package type
+0070f350	Please specify one or more signals for which to extract parasitics
+0070f3d6	Polaris will not exit - 
+0070f408	Warning: this is a system attribute and display of system attributes is disabled.
+0070f4ac	Warning: data is required for field
+0070f4f4	Fractions of a minute are not allowed
+0070f540	Commas are not allowed in pin numbers
+0070f58c	File too large for editor.
+0070f5c2	DSL files cannot have the same name as the schematic in which they are used.
+0070f65c	Model definition is too large for editor, lines truncated  
+0070f6d4	The AKO name cannot be the same as the part name
+0070f736	Please specify a package name
+0070f772	Gate name not recognized.\nEdit gate types first.
+0070f7d8	Zoom must be between 10% and 400%
+0070f81c	Zoom must be between 10 and 1000%
+0070f860	Part Name '%s' exists, but is not in the current list.\nDo you want to place anyways?
+0070f90a	File name must have .DSL extension.
+0070f952	
+0070f954	Attribute names can not have equal signs (=) in them.
+0070f9c0	Polaris does not support long file names.
+0070fa14	Directory specified in library path does not exist: \n%s\nDo you want to change it?
+0070fab8	The library path contains a directory requiring double quotes: \n%s\nInsert double quotes?
+0070fb6a	This version of the software is restricted to 10 configured libraries
+0070fbf6	This version of the software is restricted to 10 configured local libraries
+0070fc8e	The number of horizontal zones must be between 
+0070fcee	The number of vertical zones must be between 
+0070fd4a	Borders cannot be drawn with the given horizontal margin
+0070fdbc	Borders cannot be drawn with the given vertical margin
+0070fe2a	You must specify text.  To delete text, use Edit/Delete
+0070fea0	You must enter a Xilinx net name
+0070fee2	You must specify least one directory for the library path.
+0070ff58	The number of significant digits it either too big or too small.
+0070ffda	Please specify a Value
+00710008	Invalid number, must be between %d and %d.
+0071005e	%i and %i for the given width
+0071009a	%i and %i for the given height
+007100d8	You must limit your entries to values no greater than 
+00710146	Font size in inch must be between 0.01 and 22.75.
+007101aa	Invalid input for font size: 
+007101e6	
+007101e8	
+007101ea	
+007101ec	
+007101ee	
+007101f0	
+007101f8	.4
+007101fe	DIGDRVZ
+0071020e	20K
+00710216	DIGDRVF
+00710226	2
+0071022a	DIGOVRDRV
+0071023e	3
+00710242	DIGTYMXSCALE
+0071025c	1.6
+00710264	GMIN
+0071026e	1p
+00710274	ITL1
+0071027e	150
+00710286	ITL2
+00710290	20
+00710296	ITL4
+007102a0	10
+007102a6	ITL5
+007102b0	0
+007102b4	LIMPTS
+007102c2	0
+007102c6	NUMDGT
+007102d4	4
+007102d8	PIVREL
+007102e6	1m
+007102ec	PIVTOL
+007102fa	100.0f
+00710308	RELTOL
+00710316	0.001
+00710322	TNOM
+0071032c	27
+00710332	VNTOL
+00710340	0
+00710344	DEFAS
+00710350	0
+00710354	DEFL
+0071035e	100u
+00710368	DEFW
+00710372	100u
+0071037c	DIGFREQ
+0071038c	10GHz
+00710398	DIGINITSTATE
+007103b2	2
+007103b6	DIGIOLVL
+007103c8	1
+007103cc	DIGMNTYMX
+007103e0	2
+007103e4	DIGMNTYSCALE
+00710400	1uV
+00710408	WIDTH
+00710414	80
+0071041a	DIGERRDEFAULT
+00710436	20
+0071043c	DIGERRLIMIT
+00710454	0
+00710458	DISTRIBUTION
+00710472	UNIFORM
+00710482	ACCT
+0071048c	N
+00710490	EXPAND
+0071049e	N
+007104a2	LIBRARY
+007104b2	N
+007104b6	LIST
+007104c0	
+007104c2	
+007104c4	
+007104c6	
+007104c8	
+007104ca	
+007104cc	
+007104ce	
+007104d0	
+007104d2	ABSTOL
+007104e0	1pA
+007104e8	CHGTOL
+007104f6	0.01pC
+00710504	CPTIME
+00710512	1.0meg
+00710520	DEFAD
+00710530	N
+00710534	OPTS
+0071053e	N
+00710542	NOBIAS
+00710550	N
+00710554	NODE
+0071055e	N
+00710562	NOECHO
+00710570	N
+00710574	NOMOD
+00710580	N
+00710584	NOPAGE
+00710592	N
+00710596	NOREUSE
+007105a6	N
+007105aa	NOOUTMSG
+007105c0	N
+007105c4	NOPRBMSG
+007105d6	N
+007105da	NOICTRANSLATE
+007105f6	N
+007105fa	STEPGMIN
+0071060c	N
+00710610	PREORDER
+00710622	N
+00710626	OLDTLINETSTEP
+00710642	N
+00710646	
+00710648	
+0071064a	
+0071064c	
+0071064e	
+00710650	
+00710652	Warning
+00710662	Select shared pin names from the list and then press <OK>.
+007106d8	Browse Pin Names
+007106fa	
+007106fc	
+007106fe	
+00710700	
+00710702	
+00710704	
+00710706	
+00710708	
+0071070a	
+0071070c	
+0071070e	
+00710710	
+00710718	
+0071071a	
+0071071c	
+0071071e	
+00710720	
+00710722	
+00710724	
+00710726	
+00710728	
+0071072a	File extension is not valid.
+00710764	Invalid value specified for dialog field.
+007107b8	File name is not valid.
+007107e8	Please specify a valid file name
+0071082a	Text size must be a percentage which is greater than 0
+00710898	Drive is not valid.
+007108c0	Cannot find file.
+007108e8	Cannot open file with given permissions.
+0071093a	Zero length file.
+0071095e	Path is not valid.
+00710984	Command file has gotten out of sync on:\n
+007109d6	
+007109d8	
+007109da	
+007109dc	
+007109de	
+007109e0	
+007109e2	
+007109e4	
+007109e6	
+007109e8	
+007109ea	
+007109ec	
+007109f0	
+007109f2	
+007109f4	
+007109f6	
+007109f8	
+007109fa	
+007109fc	
+007109fe	
+00710a00	Aperture Def (*.adf)|*.adf|All Files (*.*)|*.*|
+00710a60	Backward ECO Files (*.bco)|*.bco|All Files (*.*)|*.*|
+00710acc	Backward ECO Files (*.blg)|*.blg|All Files (*.*)|*.*|
+00710b38	Board Netlist Files (*.bnl)|*.bnl|All Files (*.*)|*.*|
+00710ba6	CCT Design Files (*.cct)|*.cct|All Files (*.*)|*.*|
+00710c0e	Do Files (*.do)|*.do|All Files (*.*)|*.*|
+00710c62	DXF Files (*.dxf)|*.dxf|All Files (*.*)|*.*|
+00710cbc	Forward ECO log Files (*.flg)|*.flg|All Files (*.*)|*.*|
+00710d30	Footprint Report Files (*.fpr)|*.fpr|All Files (*.*)|*.*|
+00710da4	Footprint Libraries (*.flb)|*.flb|All Files (*.*)|*.*|
+00710e12	Job Files (*.job)|*.job|All Files (*.*)|*.*|
+00710e6c	NC Drill Tool Def (*.tdf)|*.tdf|All Files (*.*)|*.*|
+00710ed6	Netlists (*.nlf;*.bnl;*.pad)|*.nlf;*.bnl;*.pad|Schematic Netlist (*.nlf)|*.nlf|Layout Netlist (*.bnl)|*.bnl|PADS Netlist (*.pad)|*.pad|All Files (*.*)|*.*|
+0071100e	Schematic Netlist (*.nlf)|*.nlf|Layout Netlist (*.bnl)|*.bnl|All Files (*.*)|*.*|
+007110b2	PADS Netlist (*.pad)|*.pad|All Files (*.*)|*.*|
+00711112	PCB Database (*.pca)|*.pca|All Files (*.*)|*.*|
+00711172	Package Definition Info (*.pdf)|*.pdf|All Files (*.*)|*.*|
+007111e8	Package Libraries (*.plb)|*.plb|Symbol Libraries (*.slb)|*.slb|All Files (*.*)|*.*|
+00711290	Package Definitions (*.pkg)|*.pkg|All Files (*.*)|*.*|
+007112fe	Package Libraries (*.plb)|*.plb|All Files (*.*)|*.*|
+00711368	PhotoPlot Files (*.g??)|*.g??|All Files (*.*)|*.*|
+007113ce	PadStack Libraries (*.psl)|*.psl|All Files (*.*)|*.*|
+0071143a	CCT Routes Files (*.rte)|*.rte|All Files (*.*)|*.*|
+007114a2	Schematic Files (*.sch)|*.sch|All Files (*.*)|*.*|
+00711508	Testpoint Report Files (*.tps)|*.tps|All Files (*.*)|*.*|
+0071157c	Text Files (*.txt)|*.txt|All Files (*.*)|*.*|
+007115d8	Symbol Libraries (*.slb)|*.slb|All Files (*.*)|*.*|
+00711640	Model Libraries (*.lib)|*.lib|All Files (*.*)|*.*|
+007116a6	Stimulus Libraries (*.stl)|*.stl|All Files (*.*)|*.*|
+00711712	PSpice Include Files (*.inc)|*.inc|All Files (*.*)|*.*|
+00711782	Package Mapping file (*.ymp)|*.ymp|All Files (*.*)|*.*|
+007117f2	Footprint Mapping file (*.ypk)|*.ypk|All Files (*.*)|*.*|
+00711866	All Files (*.*)|*.*
+0071188e	Open
+00711898	Save As
+007118a8	Import
+007118b6	Export
+007118c4	Import Aperture Definitions
+007118fc	Export Aperture Definitions
+00711934	Open Netlist For Comparison
+00711970	Save PCBoards Layout As
+007119a0	Open PCBoards Layout
+007119ca	Write PCBoards Netlist As
+007119fe	Load PCBoards Netlist
+00711a2a	Save Package Definition Info As
+00711a6a	Open Package Library
+00711a94	Save Package Library As
+00711ac4	Open Model Library to Convert
+00711b00	Open Symbol Library for New Symbols
+00711b48	Open Symbol Template library
+00711b82	Package Libraries (*.plb)|*.plb|Footprint Libraries (*.flb)|*.flb|Symbol Libraries (*.slb)|*.slb|All Files (*.*)|*.*|
+00711c6e	Symbol Libraries (*.slb)|*.slb|Package Libraries (*.plb)|*.plb|Footprint Libraries (*.flb)|*.flb|All Files (*.*)|*.*|
+00711d5a	Footprint Libraries (*.flb)|*.flb|Symbol Libraries (*.slb)|*.slb|Package Libraries (*.plb)|*.plb|All Files (*.*)|*.*|
+00711e46	
+00711e48	
+00711e4a	
+00711e50	Import DXF
+00711e66	Export DXF
+00711e7c	Save Footprint Library As
+00711eb0	Open Footprint Library
+00711ede	Save Footprint Report As
+00711f10	Import PhotoPlot Graphics
+00711f44	Export Job Definitions
+00711f72	Import Job Definitions
+00711fa0	Export NC Drill Definitions
+00711fd8	Import NC Drill Definitions
+00712010	Save Netlist As
+00712030	Load Netlist For Comparison
+00712068	Load Netlist
+00712082	Import PADS Netlist
+007120aa	Load Padstack Library
+007120d6	Export Padstack Library As
+00712110	
+00712112	
+00712114	
+00712116	
+00712118	
+0071211a	
+0071211c	
+0071211e	
+00712120	
+00712122	Invalid Display.
+00712144	Can't find printer.
+0071216c	Can't start printing.
+00712198	Out of disk space for printing.
+007121d8	Out of memory for printing.
+00712210	Printing canceled from program.
+00712250	Printing canceled from Print Manager.
+007122a0	
+007122a2	Invalid arc data
+007122c4	Invalid line data
+007122e8	Invalid circle data
+00712310	Invalid rectangle data
+0071233e	Invalid format
+0071235c	
+0071235e	
+00712360	
+00712362	
+00712364	
+00712366	
+00712368	
+0071236a	
+0071236c	
+0071236e	
+00712370	
+00712372	Invalid scroll bar value. (DEBUG)
+007123b6	Attempt to allocate > 64k.
+007123ec	Corrupt pointer found.
+0071241a	Ran out of heaps to allocate from.
+00712460	'Delete' found with no matching 'new'. (DEBUG)
+007124be	NULL pointer found.
+007124e6	New/delete table overflow. (DEBUG)
+0071252c	Incorrect heap size calculated - corrupt heap.
+0071258a	Corrupt node size field. (DEBUG)
+007125cc	Can't find printer driver file. (printer not installed?)
+0071263e	Can't start Design Manager program.
+00712686	Can't find printer.
+007126ae	Can't start printing.
+007126da	Can't find file: 
+007126fe	Path not found
+00712720	CreatePalette: Unable to find color [%s] in database.\nUsing current foreground color\n
+007127cc	Invalid .EXE file format for file: 
+00712814	Can't run file: 
+00712836	There are no more timers available from the operating system.
+007128b2	Can't create status line?!
+007128e8	
+007128ea	
+007128ec	
+007128ee	
+007128f0	
+007128f2	
+007128f4	
+007128f6	
+007128f8	
+007128fa	
+007128fc	
+00712900	
+00712902	ExtDeviceMode
+0071291e	DeviceMode
+00712934	.drv
+0071293e	 Cmd: 
+0071294c	All Files (*.*)|*.*|
+00712976	Open
+00712980	Save As
+00712990	%s already exists.\nDo you want to replace it?
+007129ec	
+007129ee	
+007129f0	
+007129f2	
+007129f4	
+007129f6	
+007129f8	
+00712a00	
+00712a02	An error occured
+00712a24	An error occured
+00712a46	An error occured
+00712a68	An error occured
+00712a8a	
+00712a8c	
+00712a8e	
+00712a90	
+00712a92	
+00712a94	
+00712a96	
+00712a98	
+00712a9a	
+00712a9c	
+00712a9e	
+00712aa0	
+00712aa2	
+00712aa4	
+00712aa6	Out of memory
+00712ac2	Illegal duplicate object
+00712af4	
+00712af6	
+00712af8	
+00712afa	
+00712afc	
+00712afe	
+00712b00	
+00712b02	
+00712b04	
+00712b06	
+00712b08	
+00712b10	
+00712b12	win.ini
+00712b22	
+00712b24	
+00712b26	
+00712b28	
+00712b2a	
+00712b2c	
+00712b2e	
+00712b30	
+00712b32	
+00712b34	
+00712b36	
+00712b38	
+00712b3a	
+00712b3c	
+00712b40	
+00712b42	Unable to write to disk:  check if disk is full
+00712ba2	Unable to read from file - improper mode
+00712bf4	Unable to write to file - improper mode
+00712c44	Element in list exceeds maximum length: 
+00712c96	Cannot open file: 
+00712cbc	Cannot open directory for backup: 
+00712d02	File error, fseek failed
+00712d34	File error, ftell failed
+00712d66	File error, cannot reopen
+00712d9a	File error, cannot read requested items
+00712dea	Previous error in opening file
+00712e28	Backup failed: Permission denied to file
+00712e7a	Backup failed: Bad file number
+00712eb8	Backup failed: Cannot write to file
+00712f00	Extension can only have up to three characters: 
+00712f68	Filenames can have only up to eight characters: 
+00712fca	File name contains an invalid character: 
+0071301e	Blanks are not allowed in file names: 
+0071306c	No filename?!: 
+0071308c	File has already been opened: 
+007130ca	Directory in path does not exist: 
+00713110	Cannot open temporary file
+00713146	File name contains more than one period: 
+0071319a	Path component in file to long: 
+007131dc	Path and file name are to long: 
+0071321e	
+00713220	
+00713222	
+00713224	
+00713226	
+00713228	
+00713230	
+00713232	
+00713234	
+00713236	
+00713238	
+0071323a	
+0071323c	
+0071323e	
+00713240	
+00713242	Unable to read base part from current library: 
+007132a2	Backup failed
+007132be	Invalid entry in index subsection in library file: 
+00713326	Invalid pin name 
+0071334a	Invalid pin type
+0071336c	Package AKO definition readin error: 
+007133b8	Cannot open file with symbol data:
+00713400	Valid gates are: 
+00713424	Invalid attribute format (no name): 
+0071346e	The AKO name cannot be the same as the package name
+007134d6	Please specify a package name
+00713512	Gate name not recognized.\nEdit gate types first.
+00713574	At least two pin names must be selected for a pin swap
+007135e2	Unable to open component description file: 
+0071363a	Unable to open layout netlist file: 
+00713684	
+00713686	
+00713688	Invalid ECO command: 
+007136b4	Netlist Compare Warning:
+007136e6	Ambiguous components found (all connected pins match): old ref:%s, ambiguous ref:%s
+0071378e	Ambiguous nets found (all connected pins match): old net:%s, ambiguous net:%s
+0071382a	Unexpected end of line during file readin
+0071387e	Syntax error in PADS netlist:  No Compname
+007138d8	Internal Error: buffer too small. Report to MicroSim 714-770-3022
+0071395c	Library file format inconsistency: 
+007139a4	Duplicate gate name: 
+007139d0	This entry is already in the list
+00713a14	Warning:  duplicate pinumber 
+00713a50	Package type is already in the list
+00713a98	reading package %s
+00713abe	reading package %s (%s); line: %s
+00713b02	Libary exceeds the evaluation limit of 20 user symbols 
+00713b72	File already exists
+00713b9a	File initialization error reading package
+00713bee	Invalid gate 
+00713c0a	header
+00713c18	Invalid format: 
+00713c3a	Invalid gate 
+00713c56	Invalid gate type 
+00713c80	Invalid package type 
+00713cac	This is an AKO attribute and can be overridden, but not deleted
+00713d2c	Error loading library. Check if configured twice. 
+00713d92	Library not found: 
+00713dba	Unable to open library
+00713de8	Nested dialog must be closed before you can do this.
+00713e52	Please specify a name
+00713e7e	Unable to back up the old library: written to: 
+00713ede	Error reading block:  Blocks cannot be AKO.
+00713f36	Cannot open file: 
+00713f5c	Cannot open file for writing 
+00713f98	No default package type 
+00713fca	No file name 
+00713fe6	No gates defined for this package type
+00714034	No index 
+00714048	Missing library name
+00714078	Pin name is required
+007140a2	No package AKO definition found: 
+007140e6	Missing package type
+00714110	Part not found
+0071412e	No such pin 
+00714148	Not new 
+0071415a	Commas are not allowed in pin numbers
+007141a6	Error during package readin.
+007141e0	Missing gate type in pin out section
+0071422a	Error reading gate types
+0071425c	Error during symbol readin. See Current Errors  
+007142be	Cannot read index subsection in library file: 
+0071431c	Error reading @pins subsection
+0071435a	Error reading @type subsection
+00714398	Cannot read version in library file: 
+007143e4	Unexpected end of file, reading 
+00714428	Syntax error in PADS netlist:  Incorrect Refdes format
+00714496	Duplicate pin name:
+007144be	Pin names are not consistent between package types.
+00714526	Pin exists in more than one swap entry:
+00714576	Invalid swap entry:
+0071459e	AKO packages can not be modified.
+007145e2	Invalid pin number:
+0071460a	No such package type for this package:
+00714658	Cannot remove the last package type.
+007146a2	Incomplete pin definition(s) for package type: 
+00714702	
+00714704	Error processing ECO file: no ECO command.
+0071475a	Error processing ECO file: no time stamp.
+007147ae	Error processing ECO file: no old reference designator.
+0071481e	Error processing ECO file: no new reference designator.
+0071488e	Error processing ECO file: no old net name.
+007148e8	Error processing ECO file: no new net name.
+00714940	Error processing ECO file: no old pin number.
+0071499c	Error processing ECO file: no new pin number.
+007149f8	Error processing ECO file: no pin number.
+00714a4c	Error processing ECO file: no component type.
+00714aa8	Error processing ECO file: no footprint.
+00714afa	Error processing ECO file: no reference designator.
+00714b62	Error processing ECO file: no net name.
+00714bb2	Error processing ECO file: no attribute name.
+00714c0e	Error processing ECO file: no attribute value.
+00714c6c	Pins are not equivalent.
+00714c9e	Warning(s) encountered in package: 
+00714ce6	Shared pin names are not consistent between package types.
+00714d5c	Pin does not exist in all package types:
+00714dae	Pin does not contain assignments for all gates: 
+00714e10	Shared pin does not contain an assignment: 
+00714e68	Duplicate pin assignment: 
+00714e9e	Pins on the package do not match pins on corresponding symbol: 
+00714f1e	Package missing pin: 
+00714f4a	Symbol missing pin: 
+00714f74	Package missing shared pin: 
+00714fae	Symbol missing hidden pin: 
+00714fe6	Pin is hidden on symbol but non-shared on package: 
+0071504e	Pin is shared on package but not hidden on symbol: 
+007150b6	No symbol has been designated for gate type: 
+00715112	
+00715114	
+00715116	
+00715118	
+0071511a	
+0071511c	
+0071511e	
+00715120	
+00715122	PACKAGE TYPES
+0071513e	PACKAGE CLASSES
+0071515e	PACKAGE CLASS ORDER
+00715186	AKO:
+00715190	Pin name does not appear on symbol.  Save anyway?
+007151f4	Change AKO
+0071520a	Package types defined for this class will be deleted.
+00715276	Edit Gate Types
+00715296	Configure Package Classes
+007152ca	Edit Package Types
+007152f0	Continue saving package definition ?
+0071533a	All pin assignments for this gate type will be deleted.  Continue?
+007153c0	Package Class
+007153dc	Save pin assignment?
+00715406	 Pin Assignments
+00715428	 Pin Assignments - Gate Type 
+00715464	Pin assignments for this package type will be deleted.  Continue?
+007154e8	Save
+007154f2	 Shared Pin Assignments
+00715522	Add new gate type?
+00715548	Add new package type?
+00715574	Save changes to current attribute?
+007155ba	Save changes to current gate type?
+00715600	Save changes to current package type?
+0071564c	Save current pin assignment?
+00715686	Enter name of error file
+007156b8	
+007156ba	
+007156bc	
+007156be	
+007156c0	Add pin swap for currently selected pins?
+00715718	Add file name?
+00715736	All Files (*.*)
+00715756	*.*
+0071575e	Rename component with ref %s to %s.
+007157a6	Rename net %s to %s%s.
+007157d4	Swap pin %s.%s and %s.%s.
+00715808	Swap gate on part %s with pin# %s and gate on part %s with pin# %s.
+00715890	Add component %s in a %s package and ref %s.
+007158ea	Delete component with ref %s.
+00715926	Add pin %s.%s to net %s%s.
+0071595c	Delete pin %s.%s from net %s%s.
+0071599c	Add attribute %s=%s to net %s%s.
+007159de	Delete attribute %s from net %s%s.
+00715a24	Change attribute %s=%s on net %s%s.
+00715a6c	Change packaging on the component with ref %s to %s.
+00715ad6	Change component with ref %s to %s in a %s package.
+00715b40	Add the attribute %s=%s to the component with ref %s.
+00715bac	Delete the attribute %s on the component with ref %s.
+00715c18	Change the attribute %s=%s on the component with ref %s.
+00715c8a	Add a net %s.
+00715ca6	Synchronized.
+00715cc2	*MicroSim Backward ECO Report\n
+00715d00	\nBackward ECO's incorporated: %s\n
+00715d44	Please make these changes, save the schematic and generate a layout netlist.\n
+00715de0	Beginning of discarded changes.\n
+00715e22	End of discarded changes.\n\n
+00715e5a	Beginning of automatic changes.\n
+00715e9c	End of automatic changes.\n\n
+00715ed4	Beginning of manual changes required.\n
+00715f22	End of manual changes.\n\n
+00715f54	Beginning of invalid changes.\n
+00715f92	End of invalid changes.\n\n
+00715fc8	*MicroSim Forward ECO Report\n
+00716004	\nForward ECO's incorporated: %s\n
+00716046	Unable to apply the following forward ECO's.  \nPlease verify changes against the original schematic.\n
+00716112	Enter name of eco browse file
+0071614e	Enter name of eco preview file
+0071618c	Forward Engineering Change Orders
+007161d0	Forward Engineering Change Orders Generated by Netlist Compare
+0071624e	Backward Engineering Change Orders
+00716294	ECO Browse Report
+007162b8	ECO Preview Report
+007162de	Bill of Materials Report
+00716310	Package Definition Report
+00716344	No differences found.
+00716370	Warnings were generated.  View them?
+007163ba	.txt
+007163c4	Text Files (*.txt)|*.txt|All Files (*.*)|*.*|
+00716420	Layout database:\n  %s\n  Created:  %s\n\nLayout netlist:\n  %s\n  Created:  %s\n\n%s\n
+007164be	The layout and schematic are out of sync.
+00716512	Forward ECO's should be applied to the layout database.
+00716582	Back annotation should be applied to the schematic.
+007165ea	There are no differences between the layout and the netlist.
+00716664	Compare Layout Database to Netlist
+007166aa	Forward ECO
+007166c2	Back Annotation
+007166e2	There are differences between the layout and the netlist.
+00716756	pads
+00716760	Netlist Compare
+00716780	SMT
+00716788	THRU
+00716792	ALL
+0071679a	.flb
+007167a4	Full List
+007167b8	Partial List - %s
+007167dc	Save BOM %s output as
+00716808	Bill Of Materials:  Save As
+00716840	Bill of Materials
+00716864	Select File for Writing
+00716894	Line #%d in %s:  %s
+007168bc	Loading Indexes for %s
+007168ea	Enter a package class before proceeding by pressing the Edit Classes button
+00716982	
+00716984	
+00716986	
+00716988	
+0071698a	
+0071698c	
+0071698e	
+00716990	
+00716998	
+0071699a	
+0071699c	NULL argument to function 
+007169d2	signal multiply specified in name: 
+00716a1a	Cannot allocate memory block, size ( 
+00716a66	Name too long: 
+00716a86	resolution can only be specified to two decimal places:  
+00716afa	size must be in .25 millimeter increments:  
+00716b54	Blanks are not allowed
+00716b82	Mismatched brace
+00716ba4	Mismatched overbar character
+00716bde	[] are not allowed in PSpice names
+00716c24	Spaces are not allowed in symbol or package names
+00716c88	No name specified
+00716cac	Missing interface description 
+00716cea	Family is not configured
+00716d20	Annotation Graphics
+00716d48	Attribute Text
+00716d66	Background
+00716d7c	Buses
+00716d88	Foreground
+00716d9e	Grid
+00716da8	Hidden Pins
+00716dc0	Junctions
+00716dd4	Markers and Viewpoints
+00716e02	Page Boundary
+00716e1e	Pins
+00716e28	Pin Names
+00716e3c	Pin Numbers
+00716e54	PLSyn
+00716e60	Ports
+00716e6c	Port Labels
+00716e88	Refdes
+00716e96	Rubberband
+00716eac	Selection
+00716ec0	Simulation Currents
+00716ee8	Simulation Voltages
+00716f10	Stimulus
+00716f22	Symbols
+00716f32	Symbol Text
+00716f4a	Part Names
+00716f60	Title Block
+00716f78	Unconnected Pins
+00716f9a	<unknown>
+00716fae	Text
+00716fb8	Text Box
+00716fca	User Text #1
+00716fe4	User Text #2
+00717000	Wires
+0071700c	Labels
+0071701a	Obsolete Sim. Voltages
+00717048	Obsolete Sim. Currents
+00717076	
+00717078	
+0071707a	
+0071707c	
+0071707e	
+00717080	
+00717082	
+00717084	
+00717086	
+00717088	
+0071708a	
+0071708c	
+00717090	
+00717092	Netlist assertion failed
+007170c4	ERC:
+007170ce	Bad prefix
+007170e4	No such pin
+007170fc	Junction
+0071710e	Attr expansion loop
+00717136	Netlist syntax error
+00717160	Buffer overflow
+00717180	Attribute
+00717194	Multiple names for net
+007171c2	Part not annotated
+007171e8	Duplicate part name
+00717210	Improper label or pin name: 
+0071724a	Missing parenthesis(es)
+0071727a	Duplicate gate: 
+007172a0	Duplicate reference designator:  
+007172e4	Bad reference designator - no alpha base: 
+0071733a	Sorry, the packager can only handle numbers less than 65000 
+007173b4	No REF or REFDES attribute on the symbol definition: 
+00717420	Improper reference designator: 
+00717460	No package definition found for part. 
+007174ae	No GATETYPE attribute found. 
+007174ea	
+007174ec	Improper GATETYPE. 
+00717514	Shared pins cannot be bus pins! 
+00717556	I/O error: 
+0071756e	Gate implied by pin() attribute, and gate specified don't match
+007175ee	No PART or COMPONENT attribute 
+0071762e	Warnings occurred during read in of page 
+00717682	
+00717684	Netlisting aborted.
+007176b0	
+007176b2	Unsupported Back Annotation function: 
+00717700	ECO File Syntax Error: 
+00717730	Unable to make ECO updates
+00717766	Could not start back annotation, check cross reference file
+007177de	Back Annotation Error: 
+0071780e	Unable to create page for adding parts
+0071785c	Back annotation not done.
+00717890	Unable to delete page 
+007178be	Unable to create unique net name for net 
+00717912	
+00717914	
+00717916	
+00717918	
+0071791a	
+0071791c	
+00717920	Evaluation version net limit exceeded.  Netlist incomplete
+00717996	Evaluation version component limit exceeded.  Netlist incomplete
+00717a18	Missing PLMODEL attribute on DSL block
+00717a66	Net not found
+00717a82	DSL procedure not found 
+00717ab4	Bad format for DSL procedure header 
+00717afe	Interfaces in DSL procedure do not match pins
+00717b5a	DSL file not found 
+00717b82	Checking DSL procedure 
+00717bb2	PLSyn part '%s:%s' connected to analog ground.  Use LO instead.
+00717c32	DSL files cannot have the same name as the schematic in which they are used.
+00717ccc	Maximum number of PLD nets exceeded.
+00717d16	
+00717d18	Unsupported PCB format specified
+00717d5a	No part/device map table generated
+00717da0	
+00717da8	OPTPARAM symbol already found.  Ignoring this OPTPARAM symbol
+00717e24	OPTPARAM symbol must be in top schematic.  Ignoring this OPTARAM symbol
+00717eb4	Invalid or undefined package type 
+00717efa	Fixed floating pin 
+00717f22	No model available for component 
+00717f66	ERC Warning:
+00717f80	Alternate pin model file not found
+00717fc6	Net: %s Attribute %s=%s conflicts with %s=%s
+00718020	Invalid format in .apm file
+00718058	In Polaris external mode, there must be a layout database specified
+007180e0	In Polaris external mode, schematic and layout file names cannot be the same
+0071817a	Net has more than one global port: %s and %s.
+007181d6	Net %s has multiple labels assigned to it
+0071822a	Global port name '%s' and label name '%s' differ
+0071828c	Self-referencing attribute
+007182c2	Hierarchical view cannot reference parent schematic: 
+00718330	Net %s has both HI and LO attached.
+00718378	No package type specified.  Using default pin numbers
+007183e4	No current layout format description
+0071842e	Missing TEMPLATE attribute for part 
+00718478	No corresponding I/F port in subschematic for pin 
+007184de	  Part 
+007184ee	Multiple outputs driving the same net:
+0071853c	Output(s) and tristate(s) mixed:
+0071857e	Output(s) and power supplies (HI or LO) mixed:
+007185dc	Pin of unknown ERC type encountered:
+00718626	Ignoring corrupted junction
+0071865e	
+00718660	Skipping unlabeled bus
+0071868e	
+00718690	Ignoring simulation only part 
+007186ce	Missing pin numbers
+007186f8	Blank pin numbers
+0071871c	Missing PKGTYPE attribute on 
+00718758	Signal name %s contains characters not valid for this type of netlist
+007187e4	No pin assignment for package type %s for symbol %s
+0071884c	Part does not have a REFDES attribute
+00718898	Signal name %s conflicts with the netlister's automatic assigning of signal names
+0071893c	Interface port %s has no corresponding pin
+00718992	Unlabeled wire or signal is connected to bus 
+007189ee	Signal name is being used for different signals: 
+00718a52	Warning:  Part %s pin %s is unmodeled
+00718a9e	%s has no footprint (PKGTYPE) defined.  Defaulting to %s.
+00718b12	%s uses package type "%s" which is not in its package definition
+00718b94	Floating pin: %s pin %s
+00718bc4	Port has no pin
+00718be4	Invalid pin type for PLD
+00718c16	Unable to open .cnl file
+00718c48	EOS after \
+00718c60	Translating illegal name %s to %s
+00718ca4	Ignoring single pin net
+00718cd4	
+00718cd6	Cannot find subschematic
+00718d08	Simulation only part will not be packaged
+00718d5c	Part '%s' not included in simulation.  Has a MODEL but no TEMPLATE attribute.
+00718df8	Pin %s:%s is unconnected
+00718e2a	Reference designators cannot contain spaces
+00718e82	Global Ports not supported in Xilinx designs
+00718edc	Not a Xilinx part (%s), missing IMPL=XILINX attribute
+00718f48	Ignoring targetted attribute 
+00718f84	This part (%s) can not be mixed with XILINX family %s
+00718ff0	Missing Pin Number assignment for pin (%s) in package %s
+00719062	Can't create directory 
+00719092	
+00719098	Part '%s' uses schematic '%s' which is implemented as '%s' not '%s'
+00719120	Part '%s' does not have XILINX netlist
+0071916e	Part '%s' has a XILINX netlist (.xnf) older than its schematic
+007191ec	Part '%s' - cannot find XILINX XACT files for schematic '%s'
+00719266	Part '%s' has a XILINX netlist newer than its XACT files
+007192d8	Part '%s' has a XILINX netlist newer than its XACT files
+0071934a	Part '%s' - regenerating simulation model from XILINX
+007193b6	Part '%s' - generating simulation model from XILINX
+0071941e	Not implemented as a Xilinx Schematic (%s)
+00719474	Mismatch of families:  This Schematic (%s) is of family %s, top-level schematiic (%s) is of family %s
+00719540	Stimulus was not setup for part %s
+00719586	Part '%s' and '%s' are both '%s's but use different package definions (%s and %s)
+0071962a	Evaluation version simulation limit of 70 devices exceeded.  Netlist incomplete
+007196ca	Part '%s' does not have a simulation model
+00719720	One or more local libraries not found.  Unable to load subschematic: 
+007197ac	Part %s: has illegal PSpice net name '%s'  
+00719808	Part %s: has illegal PSpice pin name '%s'  
+00719860	Blank schematic name
+0071988a	Page %d is invalid - Check for missing symbols.
+007198ea	Part '%s' not included in simulation. Template attribute is undefined.
+00719978	Design is packaged. Cross probing may not work properly for hierarchical netlist.
+00719a1c	Cannot open file 
+00719a40	
+00719a42	
+00719a44	
+00719a46	
+00719a48	
+00719a4a	
+00719a4c	
+00719a4e	
+00719a50	
+00719a52	
+00719a58	
+00719a5a	
+00719a5c	
+00719a5e	
+00719a60	
+00719a62	
+00719a64	
+00719a66	
+00719a68	
+00719a6a	Unable to open %s: Writing cross references to: %s
+00719ad0	Add pin %s to net %s
+00719afa	Short nets %s and %s
+00719b24	Splitting net %s: 
+00719b4a	Pin list for new subnet %s:\n%s
+00719b88	Rename net %s to %s
+00719bb0	Add part type %s reference designator %s
+00719c08	Delete part %s
+00719c26	Change part %s from type %s to type %s
+00719c74	line %d, A *SIGNAL* header line follows a *NET* statment
+00719ce6	line %d: Encountered keyword, expecting identifier
+00719d4c	line %d: Encountred %s, expecting *SIGNAL*
+00719da2	line %d: Too many *SIGNAL* statements in *SPLITNET*
+00719e0a	Delete pin %s from net %s
+00719e3e	Renaming part %s to %s
+00719e6c	Swapping gate on part %s with pin# %s with gate on part %s with pin# %s
+00719efc	Pins %s and %s on part %s not swapped
+00719f48	Starting back annotation...
+00719f80	Back annotation ended.
+00719fae	Deleting page %d
+00719fd0	Collecting parts...
+00719ff8	Netlisting...
+0071a014	Packaging...
+0071a030	Writing netlist...
+0071a056	Refdes '%s' not acceptable to the configured layout editor
+0071a0cc	%s: COMPONENT and PART undefined
+0071a10e	Part '%s' has unnumbered pin(s)
+0071a14e	Part '%s' has blank pin(s)
+0071a184	Part '%s' - missing PKGTYPE or pin#
+0071a1cc	Warning: '%s' is a simulation-only part
+0071a21c	Signal name '%s' not acceptable to %s
+0071a268	Can't use logical net '%s'
+0071a29e	Can't read hierarchical file '%s'
+0071a2e2	Pin out not defined for package type %s used by part %s
+0071a352	No pin corresponding to interface port '%s'
+0071a3aa	Attribute %s is self-referencing
+0071a3ec	Hierarchical view cannot reference parent schematic: %s 
+0071a45e	Collecting parts:\nPage %d of %s
+0071a49e	Netlisting:\nPage %d of %s
+0071a4d8	Collecting parts:\nExpanding hierarchy
+0071a524	Netlisting:\nExpanding hierarchy
+0071a564	Collecting parts:\nChecking names
+0071a5a6	Netlisting:\nChecking names
+0071a5dc	Collecting parts:\nPart connectivity (for shared pins)
+0071a648	Netlisting:\nPart connectivity
+0071a684	Can't find schematic page
+0071a6b8	Net '%s' has both HI and LO attached
+0071a702	Warning:  Port '%s' is unconnected
+0071a748	Unconnected bus
+0071a768	Unlabeled bus
+0071a784	%s has no PKGTYPE attribute
+0071a7bc	No unprocessed back annotation were found.
+0071a812	Successful back annotation.
+0071a84a	Back Annotate Preview
+0071a876	Skipping page %d
+0071a898	Netlist/ERC warnings occurred
+0071a8d4	Netlist/ERC errors - netlist not created.
+0071a928	Adding %s as %s
+0071a948	Netlisting:\nChecking %s
+0071a978	.edf
+0071a982	.cnl
+0071a98c	.cnr
+0071a996	Creating %s netlist...
+0071a9c4	Creating subcircuit...
+0071a9f2	Netlist completed.
+0071aa18	Could not preview/start back annotation. \r\nThe cross reference file may be unavailable. \r\nRegenerate the layout netlist and try again.
+0071ab26	
+0071ab28	
+0071ab2a	
+0071ab2c	
+0071ab2e	
+0071ab30	
+0071ab32	
+0071ab34	
+0071ab36	
+0071ab38	
+0071ab3a	
+0071ab3c	
+0071ab3e	
+0071ab40	
+0071ab42	Annotation parts, etc. not supported yet
+0071ab94	
+0071ab96	Unable to start simulation
+0071abcc	Unable to start Probe
+0071abf8	Unrecognized part type
+0071ac26	Unable to restore attribute. Owner no longer exists
+0071ac8e	Please define an editor in your configuration file
+0071acf8	This version of the software only allows A Size pages
+0071ad64	This version of the software limits schematics to one page
+0071adda	The file is being used by another application 
+0071ae38	The schematic is currently being simulated
+0071ae8e	Use the Markers menu to place marker symbols
+0071aee8	Check your libraries. Marker symbol missing: 
+0071af44	The symbol must be a marker type symbol:  
+0071af9a	PSpice is already running.    
+0071afd8	Probe is already running
+0071b00a	Unable to automatically unload the data file from Probe.    
+0071b084	The list of libraries has changed.  The current schematic will be reloaded
+0071b11a	End of search
+0071b136	Cannot write all the pin names to the TEMPLATE attribute directly: try @ and complete manually
+0071b1f4	Cannot find file: starting anew
+0071b234	No layout editor has been configured
+0071b27e	Undefined layout format chosen: 
+0071b2c0	Must save schematic (to name it) before editing a model
+0071b330	Warning:  no marker libraries are configured
+0071b38a	Warning:  markers are unavailable due to errors loading library
+0071b40a	Current markers must be placed on a 2,3 or 4 terminal PSpice device
+0071b492	This type of marker must be placed on a device pin
+0071b4f8	Node markers must be placed on a device pin or wire
+0071b560	Autosaving not enabled - no timer available
+0071b5b8	Placement not done. Items were about to be placed off the page.
+0071b638	Warning:  marker libraries should not be in configured list. Ignoring 
+0071b6c6	Edit Stimulus warning:
+0071b6f4	Invalid IPC message 
+0071b71e	
+0071b720	Schematic not loaded. OPT_PARAM symbol will be updated when schematic is loaded.
+0071b7c2	
+0071b7c4	Database check aborted.
+0071b7f4	Database check failed.
+0071b828	
+0071b82a	Unable to start application
+0071b862	Unable to start PLogic
+0071b890	Could not find an OPT_PARAM symbol. Please place one on the top schematic.
+0071b926	Only DSL blocks are supported in this version
+0071b982	The schematic for this block is already displayed for another block 
+0071ba0c	
+0071ba0e	Unable to open schematic: 
+0071ba44	A schematic of this name is currently being edited
+0071baaa	
+0071baac	This library is currently being edited in the Symbol Editor
+0071bb24	Transmission line file (.tln) missing
+0071bb70	Cannot find DLL 
+0071bb92	Cannot execute DLL function
+0071bbca	This is part of a hierarchical schematic that is being displayed.  You must close the design first
+0071bc90	Error during translation.\nCheck the log file in the Text Editor for errors
+0071bd28	Previous layout netlist was not found
+0071bd74	Back annotation log not supported with 
+0071bdc4	Back annotation log not found: 
+0071be04	No parts found matching the criteria.    
+0071be58	Warning:  you will need to re-package if you've replaced or added parts
+0071bee8	Warning: mixed page modes (English/Metric).  Results will be unpredictable. 
+0071bf82	Export file name specified is not legal for the intended application. 
+0071c010	Could not load page for display/print/export
+0071c06a	The IMPL attribute value (%s) of the parent symbol or block does not match the implementation of this schematic (%s).  Use Tools/FPGA Settings to specify the correct target and family.
+0071c1dc	This schematic's does not have an implementation that matches the parent symbol or block.  Use Tools/FPGA Settings to specify the correct target and family.
+0071c316	The family you specified is being ignored.  The schematic uses family 
+0071c3a4	
+0071c3a6	XILINX is not one of the configured interfaces.
+0071c406	Operation canceled by user
+0071c43c	This design does not contain any XILINX subdesigns.  Use Tools/FPGA Settings to specify the correct target and family.
+0071c52a	The XACT timing info file is not available:
+0071c588	The XACT info file is not available:
+0071c5d2	Error(s) occured during XNF translation
+0071c622	The XNF netlist is later than 
+0071c660	Cannot find XNF file 
+0071c68c	Only parts and wires connected to parts can be cross-probed.
+0071c706	Unable to start Stimulus Editor
+0071c746	Unable to generate XFF file 
+0071c780	There were %d top level input/bidirectional interface port(s) without stimulus.  Do you want to Run StmEd, Continue or Cancel?
+0071c87e	The Library Path is not specified in Options/Editor Configuration...
+0071c908	There were %d errors in the XNFMERGE log file (%s)\nPlease check the merge file in the TextEditor.
+0071c9cc	This schematic specifies an unknown Xilinx Family 
+0071ca32	Xilinx net '%s' not found
+0071ca66	Markers are not supported on Xilinx schematics.
+0071cac6	Warning:  You are using a long filename.  Xilinx XACTStep does not support long filenames.  Continue?
+0071cb92	The limit of 10 configured libraries for this version of the software has been exceeded. Only the first 10 have been loaded.
+0071cc8c	Rotation not done:\nall or part of the item would be off the page.
+0071cd10	Rotation not done for some items:\nthey would be off the page.
+0071cd8c	Rotation not done:\nselected area would be outside of drawing origin.
+0071ce16	Flipping not done:\nall or part of the item would be off the page.
+0071ce9a	Flipping not done for some items:\nthey would be off the page.
+0071cf16	Flipping not done:\nselected area would be outside of drawing origin.
+0071cfa0	Non-existent directory specified for the subschematic .\nUse Edit/Views to correct: \n
+0071d04a	Non-existent directory specified for the subschematic.\nEdit the symbol and use Edit/Set Schematic to correct: \n 
+0071d12c	No command line is configured for 
+0071d172	.ini file specified on command line does not exist: 
+0071d1dc	Graphics Format Not Supported
+0071d218	Error Reading in Graphics File
+0071d256	Error Processing Picture Data
+0071d292	Unable to run XNFMERGE.EXE\nPlease check to see that Xilinx XACTStep is installed and in your PATH\n\n
+0071d35a	Unable to delete because there are multiple windows open for this page.\nPlease close all but this windows.
+0071d430	Rotation not done:\nall or part of some item(s) would be off the page.
+0071d4bc	Flip not done:\nall or part of some item(s) would be off the page.
+0071d540	There is no physical representation of the node or device\nin the Schematic(s) that make up this design. 
+0071d612	The Restricted Operation 'Append Page number to wire labels' option is enabled.\nThis option should not be enabled for schematics that are to be simulated.\nUse Options\Restricted Operations to disable this option.
+0071d7bc	There was no configured libraries or no library section, [PART LIBS], in the .INI file
+0071d86a	
+0071d86c	Unable to save cached package indexes to file %s, this will slow down future invokations of Schematics.  Make sure there is enough disk space and the BACKUP directory exists
+0071d9c8	Unable to save cached symbol indexes to file %s, this will slow down future invokations of Schematics. Make sure there is enough disk space and the BACKUP directory exists
+0071db20	
+0071db22	
+0071db24	
+0071db26	
+0071db28	
+0071db2a	
+0071db2c	
+0071db2e	
+0071db30	
+0071db32	
+0071db38	
+0071db3a	
+0071db3c	
+0071db3e	
+0071db40	
+0071db42	
+0071db44	
+0071db46	
+0071db48	
+0071db4a	Select point to zoom in about
+0071db86	Select point to zoom out about
+0071dbc4	Drag the mouse to select the area to zoom
+0071dc18	Select point to start segment or <ESC> to abort
+0071dc78	Select point at end segment or <ESC> to abort
+0071dcd4	Select point on a segment or <ESC> to abort
+0071dd2c	Select new location
+0071dd58	Warning:  The current data file will be unloaded from Probe. Continue?    
+0071ddee	Connect to a pin or wire
+0071de20	Connect first side to a pin or wire
+0071de68	Connect second side to a pin or wire
+0071deb2	Connect to a pin on a 2,3 or 4 terminal semiconductor device
+0071df2c	Select point to start a box
+0071df64	Select point to end the box
+0071df9c	Select point to start an arc
+0071dfd6	Select second point as end of the arc
+0071e022	Select thrid point on the arc
+0071e05e	Select point to start a polyline
+0071e0a0	Select point to end the segment
+0071e0e0	Creating netlist...
+0071e108	Starting PSpice...
+0071e12e	Starting Probe...
+0071e152	Netlist complete.
+0071e178	
+0071e17a	
+0071e17c	Select point to start a circle
+0071e1ba	Select point to end the circle
+0071e1f8	Ready for text entry.  Press <ESC> or click outside to finish
+0071e274	Creating LVS netlist...
+0071e2a4	
+0071e2a6	
+0071e2a8	
+0071e2aa	
+0071e2ac	
+0071e2ae	
+0071e2b0	
+0071e2b2	
+0071e2b4	
+0071e2b6	
+0071e2b8	All changes will be saved.  Continue?
+0071e304	Save %s before packaging?
+0071e338	This operation cannot be undone.\r\nContinue?
+0071e390	This operation cannot be undone and undo information will be lost.\r\nContinue?
+0071e42c	'%s' not '%s'.  Changing the implementation to match the schematic.
+0071e4b4	The specified page is in use and cannot be copied:\r\n%s p.%.1d\r\nPlease close all views before copying.
+0071e580	Do you want to update the netlist?    
+0071e5ce	Select a component or net to hilite in PCBoards
+0071e62e	Close other windows showing other  instances of this subschematc.
+0071e6b2	Instance Editing Only
+0071e6de	Exporting...
+0071e6f8	Export complete. 
+0071e71c	Exporting page %d
+0071e740	Creating FPGA simulation models...
+0071e786	Creating FPGA simulation model: '%s'
+0071e7d0	Translation of FPGAs completed
+0071e810	Annotating schematic...
+0071e840	Annotation complete.
+0071e86a	Running ERC...
+0071e888	ERC complete.
+0071e8a4	Loading schematic...
+0071e8ce	Saving schematic...
+0071e8f6	Schematic loaded.
+0071e91a	Schematic saved.
+0071e93c	Loading page...
+0071e95c	Saving page...
+0071e97a	Page loaded.
+0071e994	Page saved.
+0071e9ac	Switching to symbol editor...
+0071e9e8	Switching to schematic editor...
+0071ea2a	Text stay on grid mode is now on.
+0071ea6e	Text stay on grid mode is now off.
+0071eab8	Orthogonal mode is now on.
+0071eaee	Orthogonal mode is now off.
+0071eb26	Stay on grid mode is now on.
+0071eb60	Stay on grid mode is now off.
+0071eb9c	Auto label mode is now on.
+0071ebd2	Auto label mode is now off.
+0071ec0a	Auto repeat mode is now on.
+0071ec42	Auto repeat mode is now off.
+0071ec7c	Rubberband mode is now on.
+0071ecb2	Rubberband mode is now off.
+0071ecea	Enter file name to save as...
+0071ed26	Save As
+0071ed36	Save changes to current page?    
+0071ed7a	New Page
+0071ed8c	Save all changes to %s?    
+0071edc4	Schematics
+0071ede0	Edit Symbol
+0071edf8	Load Page
+0071ee0c	Title Block
+0071ee24	Page Border
+0071ee3c	<none>:
+0071ee4c	(simulating)
+0071ee66	(current)
+0071ee7a	(stale)
+0071ee8a	(simulation error)
+0071eeb0	%s: %c%s  p.%d         %s   Part: %s  
+0071eefe	<new>
+0071ef0a	Can only run one SchEd at a time.
+0071ef4e	Schematic Editor
+0071ef70	Loading library %s...
+0071ef9c	SchEd must be run in protected mode.
+0071efe6	Place Text
+0071f000	Schematics
+0071f016	Schematics
+0071f02c	Continue editing selected items?    
+0071f076	Save changes to current page?    
+0071f0ba	Edit Symbol
+0071f0d2	No symbol selected for editing
+0071f110	Choose Library to Save Block
+0071f14a	Choose Library for Schematic Symbol
+0071f192	Creating hierarchical netlist...
+0071f1d4	Read-in error, creating new library
+0071f21c	Warning:  simulation data may be out of date
+0071f276	Searching libraries, please wait...
+0071f2be	Model Name
+0071f2d4	Enter New Model Name:
+0071f300	Use Edit/Attributes to edit instance attributes
+0071f360	No part is selected with package info
+0071f3b0	Autosaving...
+0071f3cc	Autosaving complete.
+0071f3f6	Errors occured during autosaving.
+0071f43a	An autosave file with a later date exists.Replace existing file?    
+0071f4c4	Backing up %s...
+0071f4e6	Copying %s to %s...
+0071f50e	Copy complete.
+0071f52c	Starting Polaris...
+0071f554	Parasitic extraction complete: Reload schematic?    
+0071f5be	PSpice Schematics
+0071f5e2	About Schematics
+0071f604	Mark Advanced...
+0071f626	Packaging schematic...
+0071f654	Unannotating schematic...
+0071f688	Packaging complete.
+0071f6b0	Unannotation complete.
+0071f6e0	Any packaging information will be deleted.Continue?    
+0071f750	Searching for markers...
+0071f782	Warning:  the schematic has not been packaged.Do you want to package it?    
+0071f81c	Autopan mode is now off.
+0071f84e	Autopan mode is now on.
+0071f87e	Changes to all subschematics will be saved prior to netlisting.Continue?    
+0071f918	Select point to pan in to
+0071f94c	Stimulus %s ignored.Stimulus model %s not found
+0071f9ac	Stimulus %s ignored.No transient stimulus model defined
+0071fa1c	Starting Stimulus Editor...
+0071fa54	
+0071fa56	
+0071fa58	Checking PLSyn database...
+0071fa8e	Compiling DSL...
+0071fab0	Globally edit attributes of all selected items?    
+0071fb18	Edit Attributes
+0071fb38	Starting PLogic...
+0071fb5e	Stimulus Name
+0071fb7a	Edit Stimulus
+0071fb96	New schematics must be saved prior to netlisting
+0071fbf8	New schematics must be saved so that a stimulus library can be created
+0071fc86	The schematic must be saved prior to netlist from a sub-level
+0071fd02	Starting PLSyn...
+0071fd26	Netlisting aborted.
+0071fd4e	Checking netlist...
+0071fd76	Editing a schematic instance.Only attributes may be changed.
+0071fdf0	Continue back annotation?    
+0071fe2c	Schematics Netlister
+0071fe56	Continue checking netlist?    
+0071fe94	PLSyn database checking aborted.
+0071fed6	New schematics must first be saved.
+0071ff1e	Syntax check successful.
+0071ff50	Errors occurred during syntax check.
+0071ff9a	PLSyn database up-to-date.
+0071ffd0	Errors occurred during checking of PLSyn database.
+00720036	Symbol Editor
+00720052	Warning: this whole hierarchy of schematics will be closed. Continue ?    
+007200e8	
+007200ea	
+007200ec	Starting Optimizer...
+00720118	Close all intermediate schematics in hierarchy?    
+00720180	Warning:  this is a base part symbol.Use anyways?    
+007201ec	Save new schematic?    
+0072021c	Starting Parts...
+00720240	Searching for a unique instance model name.
+00720298	Searching for model: %s.
+007202ca	new
+007202d2	&Run PCBoards
+007202f0	PCBOARDS
+00720302	&Run Layout Editor
+00720328	Starting PCBoards...
+00720352	Save changes made during conversion?     (The original schematic will be saved to your backup directory)
+00720424	Translating Symbol Library...
+00720460	Translating Schematic...
+00720492	 
+00720496	Translation complete. Check the log file in the Text Editor
+0072050e	This schematic is being edited.Continue?    
+00720568	The schematic and layout may not be in sync.\r\nBack annotation has been found which may not include \r\nchanges made since the latest layout netlist was generated.\r\nPreview the back annotation?
+007206e6	Changes have been made since the layout netlist.
+00720748	The schematic and layout may not be in sync.\r\nBack annotation has been found which does not include \r\npossible changes in the latest layout netlist.\r\nPreview the back annotation?
+007208ae	The latest layout netlist was not compared against.
+00720916	Starting Part Browser
+00720942	Schematic Files (*.sch)
+00720972	Starting the text editor...
+007209b0	
+007209b2	One or more XILINX schematics have changed.  Re-netlist?
+00720a24	
+00720a26	Creating Xilinx timing simulation model...
+00720a7c	Creating Xilinx functional simulation model...
+00720ada	Creating Xilinx simulation model from user-specified XNF file...
+00720b5c	Schematic
+00720b70	DSL
+00720b78	XNF Netlist
+00720b90	Making changes to a library used by any displayed pages will result in undo/redo information being lost.  Continue?
+00720c78	Error reading backannotation file.  See message viewer.
+00720ce8	%d item(s) selected on %d page(s).
+00720d2e	Part %s not found
+00720d52	Part %s.%s not found
+00720d7c	There are %d Input or Bi-directional Interface port(s) on the Top-Level Schematic that don't have Stimulus.
+00720e54	Run StmED
+00720e68	Warning:  libraries will be re-configured.  If you have used symbols specific to family %s, you will get 'Symbol Not Found' errors and have to fix up the schematic.
+00720fb2	  Auto-generate stimulus for port(s)?
+00720ffe	Generating XFF file with XNFMERGE...\n%s
+0072104e	
+00721050	Xilinx net found '%s'
+0072107c	The Translator is already running.
+007210c2	
+007210c4	Updating Schematic with Bias Information.\nYou can customize the display to show selected\n voltages and currents; from the Analysis menu,\nSelect Display Results on Schematic
+0072121e	Updating Schematic with Bias Information.
+00721272	You are attempting to push into an XNF (Xilinx Netlist Format) file view.\n\nDo you want to view the netlist?
+0072134a	Cannot align segments (only symbols and attributes.)
+007213b4	Loading Cached Symbol Indexes
+007213f0	Saving Cached Symbol Indexes
+0072142a	Loading Cached Package Indexes
+00721468	Saving Cached Package Indexes
+007214a4	
+007214a8	
+007214aa	
+007214ac	
+007214ae	
+007214b0	.sch
+007214ba	Schematic Files (*.sch)|*.sch|All Files (*.*)|*.*|
+00721520	.slb
+0072152a	Symbol Library Files (*.slb)|*.slb|All Files (*.*)|*.*|
+0072159a	.plb
+007215a4	Package Library Files (*.plb)|*.plb|All Files (*.*)|*.*|
+00721616	.lib
+00721620	Model Library Files (*.lib)|*.lib|All Files (*.*)|*.*|
+0072168e	Symbol Library Files (*.slb)|*.slb|Package Library Files (*.plb)|*.plb|All Files (*.*)|*.*|
+00721746	.inc
+00721750	.stl
+0072175a	Model Library Files (*.lib)|*.lib|Include Files (*.inc)|*.inc|Stimulus Library Files (*.stl)|*.stl|All Files (*.*)|*.*|
+00721850	Schematic Files (*.sch)|*.sch|DSL Files (*.dsl)|*.dsl|All Files (*.*)|*.*|
+007218e6	.par
+007218f0	Routed PCB Files (*.pca; *.asc; *.pdf; *.dbx; *.cdi)|*.pca;*.asc;*.pdf;*.dbx;*.cdi|All Files (*.*)|*.*|
+007219c0	Board Stack Files (*.bst)|*.bst|All Files (*.*)|*.*|
+00721a2a	Back Annotation Files (*.bco; *.eco; *.rin; *.sif)|*.bco;*.eco;*.rin;*.sif|All Files (*.*)|*.*|
+00721aea	.dxf
+00721af4	AutoCAD Files (*.dxf)|*.dxf|
+00721b2e	.xtf
+00721b38	XACT Files (*.xtf)|*.xtf|All Files (*.*)|*.*|
+00721b94	.dsl
+00721b9e	DSL Files (*.dsl)|*.dsl|All Files (*.*)|*.*|
+00721bf8	XNF Netlist Files (*.xnf,*.xtf,*.xff)|*.xnf;*.xff;*.xtf|
+00721c6a	.bmp
+00721c74	.dib
+00721c7e	.wmf
+00721c88	.emf
+00721c98	
+00721c9a	Invalid format 
+00721cba	
+00721cbc	Unable to open file
+00721ce4	Cannot open file for writing 
+00721d20	Internal data corruption, 
+00721d56	Odd number of connections in junction specification, line: 
+00721dce	Unexpected end of file, reading schematic: 
+00721e26	Cannot open file: 
+00721e4c	Invalid connection(s) occured during readin. Connection deleted.
+00721ece	Unable to back up the old schematic: schematic written to file: 
+00721f50	This schematic was created with a newer version of Schematics.
+00721fce	
+00721fd0	Duplicate annotation name 
+00722006	Cannot find symbol:
+0072202e	Invalid part format
+00722058	Invalid port format
+00722080	
+00722082	
+00722084	
+00722086	Page does not exist
+007220ae	Unable to open temporary page file
+007220f4	Invalid wire or segment format
+00722132	Unable to find symbol for unknown symbols
+00722186	This label is already in use on the page
+007221d8	This label specifies more than one signal for a wire
+00722242	This reference designator is being used
+00722292	Use the Cut command to delete text
+007222d8	Improper analysis section format 
+0072231c	Analysis section: Improper format or missing
+00722376	Corrupt output file
+0072239e	Invalid status line
+007223c8	
+007223ca	
+007223cc	Wire not in bus's list of signals
+00722410	Acceptable bus labels must be A[0-5] or CLK,CLKA,CLKD
+0072247c	Bus is different width than connected pin or port
+007224e0	Port is different width than connected bus or pin
+00722544	Bad format in wire label
+00722576	One or more symbols could not be found.
+007225c6	Source device does not exist:
+00722602	Restricted version: 
+0072262c	The restricted version can only be used on one page schematics
+007226aa	The restricted version can only be used on A Size pages
+0072271a	The 50 parts per page limit for the restricted version has been exceeded
+007227ac	Marker will be ignored.  It must be connected to a wire or a pin
+0072282e	Current marker will be ignored (not on a 2,3 or 4 terminal PSpice device).
+007228c4	Markers will be ignored unless wire or bus is labeled or connected to a pin.
+00722960	The other side of the marker pair is missing
+007229ba	Markers must connect to a part with a reference designator
+00722a30	One or more local library(ies) not found
+00722a82	Cannot open temporary file!
+00722aba	Pin not found: 
+00722ada	Reconnecting due to possible pin change(s): 
+00722b34	Internal error - invalid pin offset
+00722b7c	Error writing schematic header information!
+00722bd4	Error writing to file!
+00722c02	Error writing netlist file!
+00722c3a	No symbol definition for this part!
+00722c82	Wire or bus contains no segments - ignoring
+00722cda	Internal error: bad pin offset in junction!
+00722d32	Invalid AC/Noise format in analysis section: 
+00722d8e	Invalid Transient/Fourier format in analysis section: 
+00722dfc	Invalid DC/SENS format in analysis section: 
+00722e58	Invalid MC/WCASE format in analysis section: 
+00722eb4	Invalid SAVEBIAS format in analysis section: 
+00722f10	Invalid LOADBIAS format in analysis section: 
+00722f6c	Invalid STEP format in analysis section: 
+00722fc0	Invalid TEMP format in analysis section: 
+00723014	Cannot open temporary page file!
+00723056	Invalid block format
+00723080	
+00723082	Invalid TF format in analysis section: 
+007230d2	Invalid OP format in analysis section: 
+00723122	Invalid Probe format in analysis section: 
+00723178	Symbol is not a global port: 
+007231b4	Symbol is not an interface port: 
+007231f8	Pin has moved: 
+00723218	Pin name has changed:
+00723244	Internal warning:  not deleting obsolete bus
+007232a0	Invalid SENS format in analysis section:
+007232f2	Internal error: Section mismatch
+00723334	Internal error: Invalid attribute
+00723378	No XRF file found
+0072339c	No entry in XRF file
+007233c6	Invalid XRF format
+007233ec	This operation not allowed while editing an instance
+00723456	Invalid .LIB or .INCL format in analysis section:  
+007234be	Can't find this model/subcircuit name in any lib or include file:  
+00723546	This part does not have a MODEL attribute:  
+007235a0	Labels should not have spaces
+007235dc	Only pins in the same gate may be swapped
+00723630	(No part name or label)
+00723660	Attribute value cannot be changed: 
+007236a8	Incorrect setting(s) for parasitic extraction, using default(s)
+00723728	Device markers must connect to a pin on a part
+00723788	Errors occurred during conversion.  Conversion not done.
+007237fa	
+007237fc	Error loading library. Check if configured twice or is a marker library. 
+00723890	Page has unknown symbols.  Replace or delete them prior to saving.
+00723916	
+00723918	Part not found 
+00723938	Invalid Implementation setup format: 
+00723984	Duplicate pin name 
+007239ac	Invalid Optimizer Parameters format: 
+007239f8	Multiple optparam symbols ignored
+00723a3c	optparam symbol ignored. It must be in top schematic.
+00723aa8	Symbol definition changed.
+00723ade	Unlabeled port.
+00723afe	Pin number does not exist on the part
+00723b4a	Cannot edit an instance while the definition is being modified
+00723bc8	ERC errors occurred
+00723bf0	ERC warnings occurred
+00723c1c	Unlabeled bus
+00723c38	Port label format
+00723c5c	Unlabeled wire connected to a bus
+00723ca0	Parts possibly overlying each other
+00723ce8	Bus with no connections 
+00723d1a	Port %s is not connected to anything
+00723d64	Analysis setup - line too long
+00723da2	Analysis setup - missing field
+00723de0	Reference designators can not have spaces in them
+00723e44	There is no port corresponding to pin 
+00723e92	There is no pin corresponding to port 
+00723ee0	There is no view %s for part %s
+00723f20	Invalid XILINX setup format: 
+00723f5c	Hierarchical port '%s' erc doesn't match '%s' pin erc 
+00723fca	Wire is connected to multi-signal pin of a port or part
+00724040	Current version is %d.%d, schematic last modified by version %d.%d
+007240c6	in %s section in file %s, line:'%s'
+0072410e	to schematic file %s!
+0072413a	There is no stimulus on Interface port '%s', schematic 
+007241aa	Unabled to generate digital stimulus for unlabeled port.
+0072421c	Single signal pin is connected to multi-signal pin of another part
+007242a2	Directly connecting two different buses is not supported. Ignoring connection between '%s' and '%s'
+0072436a	Local library '%s' not found for '%s'
+007243b6	
+007243b8	Part '%s' has a hidden pin '%s' that is not assigned to any net
+00724438	Errors occurred while symbolizing, symbolization is not done.
+007244b4	Bus signal order is different than port signal order.  Shorts may unexpectedly occur.
+00724560	Labeled wires merged.
+0072458c	Symbol type(s) have changed.  Fixup was done
+007245e6	Pins '%s' and '%s' tied together by segment overlying block outline.
+00724670	To Cross-Probe hierarchical blocks and symbols and their connected nets,\npush into the block or symbol and cross probe on the subschematic's I/F port.
+007247a0	Viewpoint will be ignored.  It must be connected to a wire or a pin
+00724828	
+0072482a	
+0072482c	
+0072482e	
+00724830	
+00724832	
+00724834	
+00724836	
+00724838	
+0072483a	
+0072483c	
+0072483e	
+00724840	
+00724842	
+00724844	
+00724848	Invalid Page Offset
+00724870	Invalid end of page
+00724898	
+0072489a	
+0072489c	
+0072489e	
+007248a0	
+007248a2	
+007248a4	
+007248a6	
+007248a8	
+007248aa	
+007248ac	
+007248ae	
+007248b0	
+007248b2	
+007248b8	
+007248ba	%s   PartName: %s
+007248de	Edit Text
+007248f2	Edit Block Pin Name
+0072491a	Enter block's schematic name
+00724954	Push
+0072495e	Pin Name:
+00724972	SIMULATION ONLY PAGE
+0072499c	Warning - duplicate pin name.  Continue?
+007249ee	%s was created by an earlier version of Schematics.  Conversion may be required for attributes to display at correct positions.  Convert?
+00724b02	Checking...
+00724b1a	processing page %d\n
+00724b42	Checking page %d of %d
+00724b70	Check the warnings before saving conversion changes.
+00724bda	%d attributes relocated.
+00724c0c	Conversion aborted.  No changes were made.
+00724c68	Conversion complete.  Changes will be made permanent the next time the schematic is saved.
+00724d1e	Label: %s - not used.
+00724d4a	Label: %s - selected as resulting label.
+00724d9c	Symbol '%s' referenced by part '%s' changed from a part to port.
+00724e1e	Symbol '%s' referenced by port '%s' changed from a port to part.
+00724ea0	
+00724ea2	
+00724ea4	
+00724ea6	
+00724ea8	
+00724eaa	
+00724eac	
+00724eae	
+00724eb0	
+00724eb2	
+00724eb4	
+00724eb8	
+00724eba	
+00724ebc	
+00724ebe	
+00724ec0	
+00724ec2	
+00724ec4	
+00724ec6	
+00724ec8	
+00724eca	
+00724ecc	Library initialization error: restart
+00724f18	This function is disabled for this version of the software
+00724f8e	The Schematics Symbol Editor is still active.  Use File Exit to shut it down.
+0072502a	Cannot modify pins or graphics - current symbol is A Kind Of (AKO): 
+007250b4	This library is at the limit of 20 user entries for this version of the software
+00725156	Stimulus not found in configured list of stimulus libraries: 
+007251d8	Unable to open symbol library: 
+00725218	Cannot find schematic: 
+00725248	Duplicate pin name\n\n
+00725272	Duplicate pin number\n\n
+007252a0	Too many pins to add at one time
+007252e2	Pin Number is required
+00725310	Please Fix before progressing to next screen\n\nDuplicate pin name\n\n
+00725396	Please Fix before progressing to next screen\n\nDuplicate pin number\n\n
+00725420	WARNING:  Duplicate pin name\n\n
+0072545e	WARNING:  Duplicate pin number\n\n
+007254a0	Can't increment/decrement name\n\n
+007254e2	Can't add multiple pins with a pin name containing multiple signals\n\n
+0072556e	Can't increment/decrement number\n\n
+007255b4	The symbol you are copying from is the same as the symbol you are trying to copy to
+0072565c	The PARAM: or TEXT: item contains a | character. The symbol wizard will skip it: 
+00725700	Not all of the subcircuits terminals are matched to symbol pins.\nMatch them or click the Set Default Pin Names button.
+007257f0	You must specify a valid model library name.
+0072584a	You must specify a symbol library name.
+0072589a	Model attribute name must be specified first
+007258f4	Graphics Format Not Supported
+00725930	Error Reading in Graphics File
+0072596e	Error Processing Picture Data
+007259aa	Commas are not allowed in pin names in the symbol wizard
+00725a1c	You have to select some graphics to perform this operation.
+00725a94	Selected items cannot share the same properties dialog.
+00725b04	
+00725b06	
+00725b08	
+00725b0a	
+00725b0c	
+00725b0e	
+00725b10	
+00725b18	
+00725b1a	Save changes to current symbol?
+00725b5a	New Symbol
+00725b70	This name matches one already in the library: Continue?
+00725be0	Duplicate Name
+00725bfe	A symbol with this name is an AKO base part: Continue?
+00725c6c	AKO Base Part
+00725c88	Enter name for current symbol:
+00725cc6	
+00725cc8	Pins not integral grids from origin or not in bbox (%s).  See Message Viewer for details.\nContinue save?
+00725d9a	Duplicate pin name (%s).  See Message Viewer for details.\n Continue save?
+00725e2e	Duplicate pin number (%s). See Message Viewer for details.\n Continue save?
+00725ec4	Coincident pin connection points (%s). See Message Viewer for details.\n Continue save?
+00725f72	WARNING
+00725f82	Save changes to part %s?
+00725fb4	Save
+00725fc0	Enter file name to save as:
+00725ff8	Overwrite existing library?
+00726030	File Exists
+00726048	Save changes to library %s?
+00726080	Schematics Symbol Editor
+007260b2	Select point to zoom in on
+007260e8	Select point to zoom out about
+00726126	Select point to zoom in on
+0072615c	Select point to zoom out about
+0072619a	Drag the mouse to select the area to zoom
+007261ee	Push Into Schematic
+00726216	Schematic OK - Schematic ports correspond to symbol pins
+00726288	
+0072628a	Directory does not exist! Use current directory?
+007262ec	New Package Definition
+0072631a	No package definition exists.  Create?
+00726368	Edit Package Definition
+00726398	Use symbol information to create default pin assignments?
+0072640c	Do you want to AKO another definition?
+0072645a	Package Definition
+00726480	Configure
+00726494	Add to list of Schematics' configured libraries?
+007264f6	Select a point to pan in to
+0072652e	Updating schematics to use new symbols...
+00726582	Updated schematics to use new symbols.
+007265d0	Save new library?
+007265f4	Save new part?
+00726612	Libraries have not been modified -- not written
+00726672	
+00726674	<space>
+00726684	
+00726686	Pin Name (%s) not within two grid space units of its pin.  See Message Viewer for details.\nContinue save?
+00726760	If you go back from this point, you will lose all the\nsubcircuit symbols you have created.\n\nClick OK to go back, or click Cancel to return to\nthe Create Subcircuit Symbols screen.
+007268c8	Symbol Wizard: Really go back?
+00726906	Create New Symbol List
+00726934	Add to Symbol List
+0072695a	Search within Symbol List
+0072698e	Model doesn't exist! Do you want to create one?
+007269ee	Choose a model library.
+00726a1e	Choose a symbol library.
+00726a50	Autogenerating symbols...
+00726a84	Replace existing symbols for intrinsic models?
+00726ae2	Create a new symbol library?
+00726b1c	Building subcircuit lists...
+00726b56	Configuring libraries...
+00726b88	Libraries configured.
+00726bb4	Pick an existing symbol.
+00726be6	Map symbol pins to subcircuit terminals.
+00726c38	
+00726c3a	
+00726c3c	
+00726c3e	
+00726c40	
+00726c42	Creates a new symbol library
+00726c7c	Opens an existing symbol library
+00726cbe	Closes the symbol editor window
+00726cfe	Saves the active symbol library
+00726d3e	Saves the active symbol library under a new name
+00726da0	Prints the active symbol
+00726dd2	
+00726dd4	
+00726dd6	Selects a different printer for output
+00726e24	Shows errors
+00726e3e	Quits Schematics and prompts to save any open schematics or symbols
+00726ec8	Opens this library
+00726eee	Restores deleted object(s)
+00726f24	Cuts selected object(s) to paste buffer
+00726f74	Copies selected object(s) to paste buffer
+00726fc8	Pastes object(s) to paste buffer
+0072700a	Deletes selected object(s)
+00727040	Edits selected pin(s), text, attribute(s)
+00727094	Changes the type of selected pin(s) or sets default
+007270fc	Edits the simulation model for this symbol
+00727152	Invokes the Stimulus Editor
+0072718a	Edits the schematic this symbol represents
+007271e0	Changes the schematic name(s) for a hierarchical symbols
+00727252	Checks the pins against the schematic interface ports
+007272be	Rotates the selected object(s)
+007272fc	Flips the selected object(s)
+00727336	Aligns selected objects horizontally
+00727380	Aligns selected objects vertically
+007273c6	Draws an arc
+007273e0	Draws a box
+007273f8	Draws a circle
+00727416	Draws a polyline
+00727438	Adds a pin
+0072744e	Draws a text string
+00727476	Changes the bounding box of the symbol
+007274c4	Changes the origin of the symbol
+00727506	Repeats the last operation
+0072753c	Starts a new symbol
+00727564	Copies a symbol from a library
+007275a2	Edits a symbol in this library
+007275e0	Deletes symbol(s) from the current library
+00727636	Saves current symbol to a library
+0072767a	Edits symbol attributes
+007276b0	Displays how to use help
+007276e2	Displays the version and serial number
+00727730	Zooms in about center of window
+00727770	Zooms out about center of window
+007277b2	Starts the Symbol Creation Wizard
+007277f6	
+007277f8	. Elapsed time: %M:%S\n
+00727826	Reduce the list first to speed this up.
+00727876	Do you really want to search thru all %d symbols in the list?  This could take several\nminutes. If not, click cancel, reduce the list, and then search to speed this up.
+007279c8	Valid Symbols Only Search
+007279fc	Warnings occurred.  See Message Viewer for details.  Continue saving?
+00727a88	Symbol Wizard: No symbols created
+00727acc	You have not created any symbols.  The symbol library will\nnot be saved or configured.  Do you want to continue?
+00727bae	
+00727bb0	
+00727bb2	
+00727bb8	Changes the part name, base part, symbol type
+00727c14	Edits all pins on this symbol
+00727c50	Imports graphics from existing symbol
+00727c9c	Writes symbol definition(s) to a text file
+00727cf2	Reads symbol definition from a text file
+00727d44	Creates a new package definition
+00727d86	Copies a package definition from a library
+00727ddc	Edits a package definition in this library
+00727e32	Deletes package definition(s) from the current library
+00727ea0	Edits package information for the current symbol
+00727f02	Adds to the list of known packages and group them
+00727f66	Writes package definition(s) to a text file
+00727fbe	Reads package definition(s) from a text file
+00728018	Zooms to show all graphic components
+00728062	Zooms in on specified point
+0072809a	Zooms out from specified point
+007280d8	Zooms in on selected area
+0072810c	Zooms to the previous zoomed area
+00728150	Zooms to show the entire symbol
+00728190	Redraws the symbol editor window
+007281d2	Pans so that the selected point is the new center
+00728236	Selects screen display options
+00728274	Controls automatic spacing of duplicate objects
+007282d4	Controls display/print of text or components
+0072832e	Controls pan & zoom settings
+00728368	Creates a new schematic window
+007283a6	Closes the active window
+007283d8	Arranges all windows
+00728402	Displays Help Index
+0072842a	Lists special keys and their function
+00728476	Lists menu commands and their function
+007284c4	Displays how to perform various tasks
+00728510	Enter symbol description.
+00728544	Choose subcircuits to create symbols for.
+00728598	Save symbol library?
+007285c2	
+007285c4	
+007285c6	
+007285c8	
+007285ca	
+007285cc	
+007285ce	
+007285d0	
+007285d2	
+007285d4	
+007285d6	
+007285d8	
+007285da	
+007285e0	
+007285e2	Invalid format: 
+00728604	
+00728606	Library file format inconsistency: 
+0072864e	
+00728650	
+00728652	Cannot seek to begining of file: 
+00728696	Cannot read version in library file: 
+007286e2	Cannot read index subsection in library file: 
+00728740	
+00728742	
+00728744	Unexpected end of file, reading 
+00728786	Cannot open file: 
+007287ac	Polygons not yet implemented
+007287e6	Filled rectangles not yet implemented
+00728832	Filled circles not yet implemented
+00728878	Filled polygons not yet implemented
+007288c0	Unknown graphics keyword
+007288f2	
+007288f4	Unknown rotation: 
+0072891a	Part not found
+00728938	Symbol cannot be opened 
+0072896a	Not new 
+0072897c	File already exists
+007289a4	No file name 
+007289c0	AKO definition not found: 
+007289f6	Library exceeds the limit of 20 user symbols for this version of the software 
+00728a94	File initialization error reading symbol
+00728ae6	Error during symbol readin.
+00728b1e	Cannot open file with symbol data:
+00728b64	Invalid symbol type
+00728b8c	
+00728b90	Error reading @type subsection
+00728bce	Error reading @attributes subsection
+00728c18	Error reading @graphics subsection
+00728c5e	Error reading @pins subsection
+00728c9c	Invalid pin type
+00728cbe	No index 
+00728cd2	
+00728cd4	Error reading block:  Blocks cannot be AKO.
+00728d2c	No views 
+00728d40	Missing package type
+00728d6a	
+00728d6c	
+00728d6e	
+00728d70	
+00728d72	
+00728d74	
+00728d78	
+00728d7a	
+00728d7c	
+00728d7e	
+00728d80	
+00728d82	
+00728d84	No such pin 
+00728d9e	
+00728da0	
+00728da2	Invalid pin name 
+00728dc6	
+00728dc8	Invalid pin number 
+00728df0	
+00728df2	AKO definition readin error: 
+00728e2e	
+00728e30	
+00728e38	
+00728e3a	
+00728e3c	
+00728e3e	
+00728e40	
+00728e42	
+00728e44	
+00728e46	
+00728e48	
+00728e4a	Library ignored. It contains symbols not valid with the restricted version: 
+00728ee4	
+00728ee6	Duplicate pin name:
+00728f0e	Duplicate pin number: 
+00728f3c	Coincident pin connection points: 
+00728f82	Pins not integral grids from origin or not in bbox: 
+00728fec	Pin Name not within two grid space units of its pin : 
+00729060	
+00729062	
+00729064	
+00729066	
+00729068	
+0072906a	
+0072906c	
+0072906e	
+00729070	
+00729072	16-bit integer overflow.
+007290a4	Stack or queue overflow.
+007290d6	Stack or queue underflow.
+0072910a	Incorrect number format 
+0072913c	Invalid replacement pattern
+00729174	
+00729176	
+00729178	
+0072917a	Internal Error: Package information inconsistent.
+007291de	Package does not have any package types.
+00729230	Pin names are not consistent between package types.
+00729298	Shared pin names are not consistent between package types.
+0072930e	Pin names are not unique for this package.
+00729364	Gate names are not unique for this package.
+007293bc	Pin swaps are not unique for this package.
+00729412	Multi-gate packages must have at least 2 gates.
+00729472	The number of pins per gate must be greater than 0.
+007294da	Reducing the number of pins may discard some pin assignments.
+00729556	Reducing the number of gates may discard some pin assignments.
+007295d4	Duplicate pin assignment: 
+0072960a	Duplicate pin name: 
+00729634	The actual number of non-shared pins is less than the number requested in the setup dialog.
+007296ec	The actual number of non-shared pins is greater than the number requested in the setup dialog.
+007297b0	The packaging can not be used to edit AKO packages.
+00729818	No shared pins were specified.
+00729856	The current package library already contains a package with this name.
+007298e4	Spaces are not allowed in package types.
+00729936	Commas are not allowed in pin names.
+00729980	Shared pins may have only one number.
+007299cc	The pin number must have one pin assignment for each gate (e.g., 1,2,...).
+00729a62	Pin assignments may not contain spaces.
+00729ab2	Pin names may not contain spaces.
+00729af6	Pin name is required.
+00729b22	Pin number is required.
+00729b52	Package name is required.
+00729b86	Package name may not contain spaces.
+00729bd0	Package name may not contain commas.
+00729c1a	Incomplete pin assignment.
+00729c50	Duplicate number in assignment.
+00729c90	Footprint, %s, does not exist in the set of configured libraries.\nContinue anyway?
+00729d36	Footprint is required.
+00729d64	Commas are not allowed in pin numbers for single gate packages.
+00729de4	
+00729de6	
+00729de8	
+00729dea	
+00729dec	
+00729dee	
+00729df0	
+00729df2	
+00729df4	
+00729df6	
+00729df8	
+00729dfa	
+00729dfc	
+00729e00	
+00729e02	
+00729e04	
+00729e06	
+00729e08	
+00729e0a	
+00729e0c	
+00729e0e	
+00729e10	
+00729e12	  No corresponding pin for port 
+00729e54	  DSL procedure does not include pin 
+00729ea0	  Pin/port direction mismatch: pin '%s' (%s) does not match DSL port '%s' (%s)
+00729f3e	Checking DSL Procedure 
+00729f6e	  DSL file not found, 
+00729f9c	  DSL procedure '%s' is not found in '%s'
+00729ff0	
+00729ff8	  Unable to open DSL file: 
+0072a030	Mismatch between DSL procedure interface nodes and DSL pins.
+0072a0aa	
+0072a0ac	
+0072a0ae	
+0072a0b0	
+0072a0b2	
+0072a0b4	
+0072a0b6	
+0072a0b8	
+0072a0ba	
+0072a0bc	
+0072a0be	
+0072a0c0	
+0072a0c2	
+0072a0c4	
+ffdff1ac	
+ffdffc00	
+ffdfff50	00000000-0000-0000-0000-000000000000

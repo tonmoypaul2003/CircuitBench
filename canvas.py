@@ -1,0 +1,379 @@
+"""Schematic canvas using integer model coordinates."""
+from PyQt6.QtCore import QPointF, QRectF, Qt
+from PyQt6.QtGui import QColor, QPainter, QPen
+from PyQt6.QtWidgets import QWidget
+
+from circuit import MODELED_SYMBOLS, Part, SYMBOLS, on_wire
+from device_symbols import draw_device
+from spice_library import MODEL_PORTS
+
+
+class Canvas(QWidget):
+    def __init__(self, editor):
+        super().__init__()
+        self.editor = editor
+        self.cell = 18.0
+        self.offset = QPointF()
+        self.begin = None
+        self.drag = None
+        self.pointer = (0, 0)
+        self.setMouseTracking(True)
+        self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
+
+    def origin(self):
+        return QPointF(self.width()/2, self.height()/2) + self.offset
+
+    def grid(self, pos):
+        p = (pos - self.origin()) / self.cell
+        return round(p.x()), round(p.y())
+
+    def paintEvent(self, event):
+        painter = QPainter(self)
+        painter.fillRect(self.rect(), QColor("#edf2f0"))
+        origin = self.origin()
+        sheet = QRectF(origin.x()-26*self.cell, origin.y()-17*self.cell,
+                       52*self.cell, 34*self.cell)
+        painter.fillRect(sheet, QColor("#fcfdfc"))
+        painter.setPen(QColor("#cbd9d1"))
+        x = origin.x() % self.cell
+        while x < self.width():
+            y = origin.y() % self.cell
+            while y < self.height():
+                painter.drawPoint(QPointF(x, y))
+                y += self.cell
+            x += self.cell
+        painter.setPen(QColor("#86a49b"))
+        painter.drawRect(sheet)
+        for column in range(4):
+            center = sheet.left() + sheet.width()*(column+.5)/4
+            painter.drawText(QPointF(center-4, sheet.top()-6), str(column+1))
+        for row in range(3):
+            center = sheet.top() + sheet.height()*(row+.5)/3
+            painter.drawText(QPointF(sheet.left()-16, center+4), "ABC"[row])
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+        painter.translate(origin)
+        painter.scale(self.cell, self.cell)
+        project = self.editor.project
+        painter.setPen(QPen(QColor("#0f766e"), 0.09))
+        for index, (a, b) in enumerate(project.wires):
+            painter.setPen(QPen(QColor("#d46127" if index in self.editor.selected_wires else "#0f766e"), .09))
+            painter.drawLine(QPointF(*a), QPointF(*b))
+        painter.setPen(QPen(QColor("#0f766e"), .09))
+        if self.begin is not None:
+            bend = (self.pointer[0], self.begin[1])
+            painter.drawLine(QPointF(*self.begin), QPointF(*bend))
+            painter.drawLine(QPointF(*bend), QPointF(*self.pointer))
+        endpoints = {point for wire in project.wires for point in wire}
+        selected_junctions = {project.junctions[i] for i in self.editor.selected_junctions}
+        for p in sorted(endpoints | set(project.junctions)):
+            count = sum(1 if p in w else 2 for w in project.wires if on_wire(p, w))
+            if count >= 3 or p in project.junctions:
+                painter.setBrush(QColor("#d46127" if p in selected_junctions else "#0f766e"))
+                painter.drawEllipse(QPointF(*p), .13, .13)
+        painter.setBrush(Qt.BrushStyle.NoBrush)
+        for index, part in enumerate(project.parts):
+            selected = index in self.editor.selected_parts
+            painter.save()
+            painter.translate(part.x, part.y)
+            painter.rotate(part.rotation * 90)
+            if part.kind == "X":
+                self.draw_subcircuit(painter, part, selected)
+            elif part.kind in MODELED_SYMBOLS:
+                self.draw_modeled_symbol(painter, part, selected)
+            else:
+                self.draw_symbol(painter, part.kind, selected)
+            painter.restore()
+            if selected and part.kind in MODELED_SYMBOLS:
+                self.draw_pin_targets(painter, part)
+            painter.save()
+            painter.translate(part.x, part.y)
+            painter.scale(1/self.cell, 1/self.cell)
+            painter.setPen(QColor("#162e29"))
+            label_x = max(8, self.cell*1.6) if part.kind in MODELED_SYMBOLS else 8
+            if part.kind != "G":
+                painter.drawText(QPointF(label_x, -12), part.value if part.kind == "N" else part.ref)
+            if part.kind not in "GN":
+                painter.drawText(QPointF(label_x, 21), part.value)
+            painter.restore()
+        if self.editor.markers_visible:
+            self.draw_markers(painter)
+        if self.underMouse() and self.editor.mode in SYMBOLS:
+            self.draw_placement(painter)
+        if self.drag and self.drag[0] in ("box", "group"):
+            self.draw_selection_preview(painter)
+
+    def draw_selection_preview(self, painter):
+        mode, start, _ = self.drag
+        edge = QColor("#157c72")
+        painter.setPen(QPen(edge, .07, Qt.PenStyle.DashLine))
+        if mode == "box":
+            fill = QColor(edge)
+            fill.setAlpha(32)
+            painter.setBrush(fill)
+            painter.drawRect(QRectF(QPointF(*start), QPointF(*self.pointer)).normalized())
+            return
+        dx, dy = self.pointer[0]-start[0], self.pointer[1]-start[1]
+        if not (dx or dy):
+            return
+        editor = self.editor
+        for i in editor.selected_parts:
+            part = editor.project.parts[i]
+            points = [(part.x, part.y), *part.pins()]
+            xs, ys = zip(*points)
+            painter.drawRect(QRectF(min(xs)+dx-.45, min(ys)+dy-.45,
+                                    max(xs)-min(xs)+.9, max(ys)-min(ys)+.9))
+        for i in editor.selected_wires:
+            a, b = editor.project.wires[i]
+            delta = QPointF(dx, dy)
+            painter.drawLine(QPointF(*a)+delta, QPointF(*b)+delta)
+
+    def draw_placement(self, painter):
+        painter.save()
+        painter.translate(*self.pointer)
+        painter.setOpacity(.6)
+        kind = self.editor.mode
+        if kind == "X" or kind in MODELED_SYMBOLS:
+            models = self.editor.project.subcircuits if kind == "X" else self.editor.project.device_models
+            model = models.get(self.editor.placement_value)
+            if model:
+                ports = model["ports"] if kind == "X" else list(MODEL_PORTS[model["type"]][1])
+                preview = Part("", kind, 0, 0, self.editor.placement_value, port_names=ports)
+                if kind == "X":
+                    self.draw_subcircuit(painter, preview, True)
+                else:
+                    self.draw_modeled_symbol(painter, preview, True)
+        else:
+            self.draw_symbol(painter, kind, True)
+        painter.setOpacity(1)
+        painter.setPen(QPen(QColor("#d46127"), .06))
+        painter.drawEllipse(QPointF(0, 0), .22, .22)
+        painter.drawLine(QPointF(-.36, 0), QPointF(.36, 0))
+        painter.drawLine(QPointF(0, -.36), QPointF(0, .36))
+        painter.restore()
+
+    def enterEvent(self, event):
+        self.pointer = self.grid(event.position())
+        self.editor.coordinates.setText(f"X {self.pointer[0]}   Y {self.pointer[1]}")
+        self.update()
+        super().enterEvent(event)
+
+    def leaveEvent(self, event):
+        self.update()
+        super().leaveEvent(event)
+
+    def draw_markers(self, painter):
+        by_ref = {part.ref.upper(): part for part in self.editor.project.parts}
+        markers = []
+        for marker in self.editor.project.markers:
+            if marker["kind"] == "I":
+                part = by_ref.get(marker["ref"].upper())
+                pin = marker["pin"]
+                if part is not None and 0 <= pin < len(part.pins()):
+                    markers.append((part.pins()[pin], "I"))
+            elif marker["kind"] == "VD":
+                markers.extend(zip(marker["points"], ("+", "−")))
+            else:
+                markers.append((marker["points"][0], "V"))
+        if self.editor.marker_start is not None:
+            markers.append((self.editor.marker_start, "+"))
+        color = QColor("#80469c")
+        for point, text in markers:
+            painter.save()
+            painter.translate(*point)
+            painter.setPen(QPen(color, .08))
+            painter.drawEllipse(QPointF(0, 0), .2, .2)
+            painter.drawLine(QPointF(0, -.2), QPointF(0, -.85))
+            painter.translate(0, -.85)
+            painter.scale(1/self.cell, 1/self.cell)
+            painter.setPen(color)
+            painter.drawText(QPointF(3, 0), text)
+            painter.restore()
+
+    def draw_subcircuit(self, painter, part, selected=False):
+        ports = part.box_offsets()
+        height = max(abs(y) for _, y in ports) + 1
+        color = QColor("#d46127" if selected else "#173d37")
+        painter.setPen(QPen(color, .09))
+        painter.drawRect(QRectF(-2, -height, 4, 2*height))
+        for (x, y), name in zip(ports, part.port_names):
+            edge = -2 if x < 0 else 2
+            painter.drawLine(QPointF(x, y), QPointF(edge, y))
+            painter.save()
+            painter.translate(edge, y)
+            painter.scale(1/self.cell, 1/self.cell)
+            width = painter.fontMetrics().horizontalAdvance(name)
+            painter.setPen(color)
+            painter.drawText(QPointF(3 if x < 0 else -width-3, -3), name)
+            painter.restore()
+
+    def draw_modeled_symbol(self, painter, part, selected):
+        model = self.editor.project.device_models[part.value.upper()]
+        family = model["type"]
+        if family == "VDMOS" and "PCHAN" in model["flags"]:
+            family = "PVDMOS"
+        draw_device(painter, part, family, selected)
+
+    def draw_pin_targets(self, painter, part):
+        painter.save()
+        color = QColor("#b34b1d")
+        painter.setPen(QPen(color, .067))
+        for (x, y), name in zip(part.pins(), part.port_names):
+            painter.drawEllipse(QPointF(x, y), .11, .11)
+            painter.save()
+            painter.translate(x, y)
+            painter.scale(1/self.cell, 1/self.cell)
+            painter.setPen(color)
+            left = x < part.x
+            width = painter.fontMetrics().horizontalAdvance(name)
+            painter.drawText(QPointF(-width-4 if left else 4, -4), name)
+            painter.restore()
+        painter.restore()
+
+    def draw_symbol(self, painter, kind, selected):
+        painter.setPen(QPen(QColor("#d46127" if selected else "#173d37"), .09))
+
+        def path(points):
+            for a, b in zip(points, points[1:]):
+                painter.drawLine(QPointF(*a), QPointF(*b))
+
+        if kind == "G":
+            path([(0, 0), (0, .4)])
+            for y, half in ((.4, .55), (.57, .35), (.74, .17)):
+                path([(-half, y), (half, y)])
+        elif kind == "N":
+            painter.drawEllipse(QPointF(0, 0), .16, .16)
+        else:
+            path([(-2, 0), (-.8, 0)])
+            path([(.8, 0), (2, 0)])
+            if kind == "R":
+                path([(-.8, 0), (-.6, -.3), (-.35, .3), (-.1, -.3),
+                      (.15, .3), (.4, -.3), (.65, .3), (.8, 0)])
+            elif kind == "C":
+                path([(-.8, 0), (-.2, 0)])
+                path([(.2, 0), (.8, 0)])
+                for x in (-.2, .2):
+                    path([(x, -.55), (x, .55)])
+            elif kind == "L":
+                for index in range(4):
+                    painter.drawArc(QRectF(-.8 + index*.4, -.34, .4, .68), 0, 180*16)
+            elif kind == "D":
+                path([(-.8, 0), (-.5, 0)])
+                path([(-.5, -.45), (.44, 0), (-.5, .45), (-.5, -.45)])
+                path([(.44, -.47), (.44, .47)])
+                path([(.44, 0), (.8, 0)])
+            else:
+                painter.drawEllipse(QPointF(0, 0), .8, .8)
+                path([(-.36, 0), (.35, 0)] if kind == "I" else [(-.52, 0), (-.22, 0)])
+                if kind == "I":
+                    path([(.12, -.22), (.35, 0), (.12, .22)])
+                else:
+                    path([(-.37, -.15), (-.37, .15)])
+                    path([(.22, 0), (.52, 0)])
+
+    def mousePressEvent(self, event):
+        self.setFocus()
+        pos = event.position()
+        point = self.grid(pos)
+        self.pointer = point
+        if event.button() == Qt.MouseButton.MiddleButton:
+            self.drag = ("pan", pos, self.offset)
+            return
+        if event.button() == Qt.MouseButton.RightButton:
+            self.editor.set_mode("Select")
+            return
+        if event.button() != Qt.MouseButton.LeftButton:
+            return
+        editor = self.editor
+        if editor.mode.startswith("Mark "):
+            editor.add_marker(point)
+        elif editor.mode == "Wire":
+            if self.begin is not None and self.begin != point:
+                bend = (point[0], self.begin[1])
+                editor.checkpoint()
+                editor.project.wires.extend((a, b) for a, b in
+                                            ((self.begin, bend), (bend, point)) if a != b)
+                editor.refresh()
+                self.begin = None
+            else:
+                self.begin = point
+        elif editor.mode == "Junction":
+            if point not in editor.project.junctions:
+                editor.checkpoint()
+                editor.project.junctions.append(point)
+                editor.refresh()
+        elif editor.mode != "Select":
+            editor.place_part(point)
+        else:
+            extend = bool(event.modifiers() & Qt.KeyboardModifier.ShiftModifier)
+            hit = self.selection_hit(point)
+            if extend or not any(hit):
+                self.drag = ("box", point, extend)
+            else:
+                groups = (editor.selected_parts, editor.selected_wires, editor.selected_junctions)
+                if not any(existing & incoming for existing, incoming in zip(groups, hit)):
+                    editor.set_selection(*hit)
+                self.drag = ("group", point, None)
+        self.update()
+
+    def selection_hit(self, point):
+        project = self.editor.project
+        for index in reversed(range(len(project.parts))):
+            part = project.parts[index]
+            if abs(point[0]-part.x) <= 1 and abs(point[1]-part.y) <= 1:
+                return {index}, set(), set()
+        for index, junction in enumerate(project.junctions):
+            if point == junction:
+                return set(), set(), {index}
+        for index, wire in enumerate(project.wires):
+            if on_wire(point, wire):
+                return set(), {index}, set()
+        return set(), set(), set()
+
+    def mouseMoveEvent(self, event):
+        self.pointer = self.grid(event.position())
+        if self.drag and self.drag[0] == "pan":
+            self.offset = self.drag[2] + event.position() - self.drag[1]
+        self.editor.coordinates.setText(f"X {self.pointer[0]}   Y {self.pointer[1]}")
+        self.update()
+
+    def mouseDoubleClickEvent(self, event):
+        if event.button() == Qt.MouseButton.LeftButton and self.editor.mode == "Select":
+            self.drag = None
+            self.editor.set_selection(*self.selection_hit(self.grid(event.position())))
+            self.editor.edit_selection()
+            return
+        super().mouseDoubleClickEvent(event)
+
+    def mouseReleaseEvent(self, event):
+        if self.drag and event.button() == Qt.MouseButton.LeftButton:
+            mode, start, extend = self.drag
+            end = self.grid(event.position())
+            if mode == "box":
+                if extend and start == end:
+                    groups = (self.editor.selected_parts, self.editor.selected_wires, self.editor.selected_junctions)
+                    self.editor.set_selection(*(existing ^ incoming for existing, incoming
+                                                in zip(groups, self.selection_hit(start))))
+                else:
+                    self.editor.select_box(start, end, extend)
+            elif mode == "group":
+                self.editor.move_group(end[0]-start[0], end[1]-start[1])
+        self.drag = None
+        self.update()
+
+    def keyPressEvent(self, event):
+        directions = {Qt.Key.Key_Left: (-1, 0), Qt.Key.Key_Right: (1, 0),
+                      Qt.Key.Key_Up: (0, -1), Qt.Key.Key_Down: (0, 1)}
+        editor = self.editor
+        delta = directions.get(event.key())
+        if (delta is not None and editor.mode == "Select"
+                and (editor.selected_parts or editor.selected_wires or editor.selected_junctions)):
+            editor.move_group(*delta)
+            return
+        super().keyPressEvent(event)
+
+    def wheelEvent(self, event):
+        pos = event.position()
+        before = (pos - self.origin()) / self.cell
+        self.cell = max(9., min(78., self.cell * (1.15 if event.angleDelta().y() > 0 else 1/1.15)))
+        self.offset = pos - QPointF(self.width()/2, self.height()/2) - before*self.cell
+        self.update()

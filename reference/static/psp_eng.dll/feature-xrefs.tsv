@@ -1,0 +1,51 @@
+data_address	value	source	ref_type	function_entry
+10102364	Unable to finish Transient Analysis	100ee5eb	DATA	100ee470
+10102364	Unable to finish Transient Analysis	100ee6cb	DATA	100ee470
+10102364	Unable to finish Transient Analysis	100eff69	DATA	100ee470
+10102364	Unable to finish Transient Analysis	100effd3	DATA	100ee470
+10102364	Unable to finish Transient Analysis	100eff8d	DATA	100ee470
+10102364	Unable to finish Transient Analysis	100eff09	DATA	100ee470
+10102364	Unable to finish Transient Analysis	100efeaf	DATA	100ee470
+10102364	Unable to finish Transient Analysis	100ee717	DATA	100ee470
+1010829a	PSP_ENG.dll	1010806c	DATA	
+101098fc	TRANSIENT ANALYSIS	100025ec	DATA	10002030
+101098fc	TRANSIENT ANALYSIS	10002615	DATA	10002030
+101098fc	TRANSIENT ANALYSIS	1003e219	DATA	1003e180
+101098fc	TRANSIENT ANALYSIS	100b2539	DATA	100b24f0
+101098fc	TRANSIENT ANALYSIS	100be5d0	DATA	100be560
+101098fc	TRANSIENT ANALYSIS	101122a0	DATA	
+1010a894	Transient Analysis (TRAN)	1010a78c	DATA	
+1010a9ec	Calculating bias point for Transient Analysis	1000cf40	DATA	1000ced0
+1010ab8c	TRANSIENT ANALYSIS CIRCUIT NODE VALUES AT TIME =	1000e10b	DATA	1000db00
+1010bbf8	.TRAN	10015e6c	DATA	10015c70
+1010bbf8	.TRAN	10015e26	DATA	10015c70
+10110ee8	Transient analysis terminated by logic simulator	1003579e	DATA	10035330
+101111ac	| To use this waveform file, issue these commands:\n	1003661c	DATA	100365e0
+101120a4	NetList.  genp = NULL	1003a906	DATA	1003a6f0
+1011272c	Invalid outside of .SUBCKT	1003b732	DATA	1003b560
+10112dd0	.TRAN step ceiling	1003e562	DATA	1003e370
+10112f9c	Only .AC .DC and .TRAN valid	1003e833	DATA	1003e6b0
+1011a3ec	Transient Analysis must be at least 1/frequency seconds long.\nFourier analysis aborted	10058a0d	DATA	10058870
+1011e4fc	AMBIGUITY RECONVERGENCE	1011b4f0	DATA	
+1011e514	AMBIGUITY CONVERGENCE	1011b4ec	DATA	
+1011e5d8	CONVERGENCE	1011b468	DATA	
+1011ef7c	Discontinuing simulation due to convergence problem	10069b22	DATA	10069710
+10122cac	.SUBCKT	10073919	DATA	10073310
+10126584	LAMBDA for MOSFET model %s is unusually\n           large and might cause nonconvergence\n	1007bca6	DATA	1007a1e0
+10129f10	Watch alarm in Transient Analysis at TIME%s for %s	100b9db9	DATA	100b99b0
+10129ff8	Transient Analysis	100bb71e	READ	100bb1b0
+10129ff8	Transient Analysis	100ee769	DATA	100ee470
+10129ff8	Transient Analysis	100bb702	DATA	100bb1b0
+10129ff8	Transient Analysis	10129fd4	DATA	
+1012ab8c	TIME keyword permitted only with TRANsient analysis.	100c0e56	DATA	100c0590
+1012abc4	REPEAT keyword permitted only with TRANsient analysis.	100c0e01	DATA	100c0590
+1012acc0	Digital change format only allowed for TRANSIENT analysis	100c06f1	DATA	100c0590
+1012ced4	Invalid node number in .SUBCKT statement	100dd586	DATA	100dbb10
+1012cf00	Name on .ENDS does not match .SUBCKT	100dd55e	DATA	100dbb10
+1012cf4c	.ENDS in .SUBCKT	100dd400	DATA	100dbb10
+1012d0c4	%s is %s type in .SUBCKT, but %s type in %s	100dec3d	DATA	100de690
+1012db00	Transient Analysis finished	100f005c	DATA	100ee470
+1012db1c	Transient Analysis iterations exceed limit of %d at time = %s\nThis limit may be overridden by using the ITL5 on the .OPTION statement	100eff53	DATA	100ee470
+1012dba4	CPU Time limit exceeded in Transient Analysis at time = %s	100efef3	DATA	100ee470
+1012dc18	Time step = %s is too small in Transient Analysis at\nTime = %s.  Minimum allowable step size = %s.\n	100ef16e	DATA	100ee470
+1012dcb8	Convergence problem in transient analysis at Time = %s\n	100ef098	DATA	100ee470
