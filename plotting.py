@@ -3,20 +3,28 @@ import math
 from pathlib import Path
 
 from PyQt6.QtCore import QIODevice, QPointF, QRectF, QSaveFile, Qt, pyqtSignal
-from PyQt6.QtGui import QColor, QImage, QPageSize, QPainter, QPainterPath, QPdfWriter, QPen
+from PyQt6.QtGui import QColor, QImage, QPageSize, QPainter, QPainterPath, QPdfWriter, QPen, QPolygonF
 from PyQt6.QtWidgets import (QApplication, QColorDialog, QComboBox, QDialog, QDialogButtonBox, QFileDialog,
-                             QFormLayout, QHBoxLayout, QInputDialog, QLabel, QLineEdit,
-                             QListWidget, QListWidgetItem, QPushButton, QScrollArea, QSlider,
+                             QCheckBox, QDoubleSpinBox, QFormLayout, QGridLayout, QHBoxLayout, QInputDialog, QLabel, QLineEdit,
+                             QListWidget, QListWidgetItem, QPushButton, QScrollArea, QSlider, QSpinBox, QToolButton, QMenu,
                              QVBoxLayout, QWidget)
 
+from circuit import number
 from plot_math import evaluate
 from results import Plot
+
+
+LINE_STYLES = {"Solid": Qt.PenStyle.SolidLine, "Dashed": Qt.PenStyle.DashLine,
+               "Dotted": Qt.PenStyle.DotLine, "Dash-dot": Qt.PenStyle.DashDotLine}
+PIN_SHAPES = ("Circle", "Square", "Triangle", "Diamond", "Cross")
 
 
 class Waveform(QWidget):
     colors = ["#087e74", "#c85528", "#5157ad", "#9b3b70", "#426925"]
     readout = pyqtSignal(str)
     cursor_changed = pyqtSignal()
+    zoom_requested = pyqtSignal(int, float, float)
+    activated = pyqtSignal()
 
     def __init__(self):
         super().__init__()
@@ -24,6 +32,16 @@ class Waveform(QWidget):
         self.columns = []
         self.presentation = 0
         self.trace_colors = {}
+        self.trace_styles = {}
+        self.pin_shapes = []
+        self.grid_color = None
+        self.x_column = 0
+        self.x_scale = "Automatic"
+        self.tick_count = 5
+        self.tick_precision = 4
+        self.zoom = 100
+        self.zoom_origin = (0., 0.)
+        self.data_bounds = None
         self.cursor = None
         self.cursor_column = None
         self.title = ""
@@ -32,7 +50,6 @@ class Waveform(QWidget):
         self.pins = []
         self.grid_visible = True
         self.grid_density = 4
-        self.custom_height = None
         self.background = None
         self.x_limits = None
         self.y_limits = None
@@ -40,6 +57,7 @@ class Waveform(QWidget):
         self.setMinimumHeight(230)
 
     def mousePressEvent(self, event):
+        self.activated.emit()
         if event.button() == Qt.MouseButton.LeftButton:
             self.move_cursor(event.position().x(), event.position().y())
         elif event.button() == Qt.MouseButton.RightButton:
@@ -53,6 +71,42 @@ class Waveform(QWidget):
         if event.buttons() & Qt.MouseButton.LeftButton:
             self.move_cursor(event.position().x(), event.position().y())
 
+    def wheelEvent(self, event):
+        if self.screen_axes:
+            rect = self.screen_axes[0]
+            if rect.contains(event.position()):
+                x = (event.position().x()-rect.left())/rect.width()
+                y = (rect.bottom()-event.position().y())/rect.height()
+                self.zoom_requested.emit(1 if event.angleDelta().y() > 0 else -1, x, y)
+                event.accept()
+                return
+        event.ignore()
+
+    def raw_x(self):
+        return [row[self.x_column].real for row in self.plot.rows]
+
+    def logarithmic(self):
+        return self.x_scale == "Logarithmic" or (
+            self.x_scale == "Automatic" and self.plot.names[self.x_column].lower() == "frequency")
+
+    def trace_pen(self, column, background):
+        style, width = self.trace_styles.get(column, ("Solid", 1.5))
+        return QPen(self.color(column, background), width, LINE_STYLES[style])
+
+    def draw_pin(self, painter, point, shape):
+        x, y = point.x(), point.y()
+        if shape == "Circle":
+            painter.drawEllipse(point, 4, 4)
+        elif shape == "Square":
+            painter.drawRect(QRectF(x-4, y-4, 8, 8))
+        elif shape == "Cross":
+            painter.drawLine(QPointF(x-4, y), QPointF(x+4, y))
+            painter.drawLine(QPointF(x, y-4), QPointF(x, y+4))
+        else:
+            vertices = ((0, -5), (5, 4), (-5, 4)) if shape == "Triangle" else (
+                (0, -5), (5, 0), (0, 5), (-5, 0))
+            painter.drawPolygon(QPolygonF([QPointF(x+dx, y+dy) for dx, dy in vertices]))
+
     def move_cursor(self, x, y=None):
         if self.screen_axes is None:
             return
@@ -63,12 +117,21 @@ class Waveform(QWidget):
         x_target = xmin + ratio*(xmax-xmin)
         candidates = (i for i in range(len(xs))
                       if xmin <= xs[i] <= xmax and any(ymin <= values[i] <= ymax for values in columns))
-        sample = min(candidates, key=lambda i: abs(xs[i]-x_target), default=None)
-        if sample is None:
-            return
         y_target = ymin if y is None else ymin + (bounds.bottom()-y)/bounds.height()*(ymax-ymin)
-        index = min((i for i, values in enumerate(columns) if ymin <= values[sample] <= ymax),
-                    key=lambda i: abs(columns[i][sample]-y_target))
+        if self.x_column == 0:
+            sample = min(candidates, key=lambda i: abs(xs[i]-x_target), default=None)
+            if sample is None:
+                return
+            index = min((i for i, values in enumerate(columns) if ymin <= values[sample] <= ymax),
+                        key=lambda i: abs(columns[i][sample]-y_target))
+        else:
+            nearest = min(((i, j) for i in candidates for j, values in enumerate(columns)
+                           if ymin <= values[i] <= ymax),
+                          key=lambda pair: math.hypot((xs[pair[0]]-x_target)/(xmax-xmin),
+                              (columns[pair[1]][pair[0]]-y_target)/(ymax-ymin)), default=None)
+            if nearest is None:
+                return
+            sample, index = nearest
         self.cursor, self.cursor_column = sample, plotted[index]
         self.cursor_changed.emit()
         self.update()
@@ -97,6 +160,7 @@ class Waveform(QWidget):
     def draw_chart(self, painter, width, height, report):
         if not report:
             self.screen_axes = None
+            self.data_bounds = None
         rect = QRectF(0, 0, width, height)
         background = self.chart_background(report)
         ink = QColor("#173d37" if background.lightness() >= 128 else "#f0f7f4")
@@ -115,8 +179,10 @@ class Waveform(QWidget):
                 painter.drawText(QPointF(18, 38+index*18),
                                  f"{label}   {rows[0][column].real:.7g} {self.plot.units[column]}")
             return
-        logarithmic = self.plot.names[0].lower() == "frequency" and all(r[0].real > 0 for r in rows)
-        xs = [math.log10(row[0].real) if logarithmic else row[0].real for row in rows]
+        logarithmic = self.logarithmic()
+        raw_x = self.raw_x()
+        xs = [math.log10(x) if x > 0 else math.nan for x in raw_x] if logarithmic else raw_x
+        frequency_sweep = self.plot.names[0].lower() == "frequency" and self.x_column == 0
         columns = []
         for column in self.columns:
             values = [row[column] for row in rows]
@@ -127,7 +193,7 @@ class Waveform(QWidget):
                 values = [math.degrees(math.atan2(value.imag, value.real)) for value in values]
             elif self.presentation == 2:
                 values = [20*math.log10(max(abs(value), 1e-300)) for value in values]
-            elif logarithmic:
+            elif frequency_sweep:
                 values = [abs(value) for value in values]
             else:
                 values = [value.real for value in values]
@@ -143,31 +209,46 @@ class Waveform(QWidget):
                 painter.setPen(ink)
                 painter.drawText(QPointF(12, legend_y), "Additional traces…")
                 break
-            painter.setPen(QPen(self.color(column, background), 2))
+            painter.setPen(self.trace_pen(column, background))
             painter.drawLine(QPointF(legend_x, legend_y-4), QPointF(legend_x+13, legend_y-4))
             painter.drawText(QPointF(legend_x+17, legend_y), name)
             legend_x += label_width
         cursor_footer = 18 if report and self.cursor is not None else 0
         left, right, top, bottom = 74, width-26, legend_y+27, height-43-cursor_footer
-        bounds = [(min(valid), max(valid)) for values in columns
-                  if (valid := [value for value in values if math.isfinite(value)])]
-        if not bounds or right <= left or bottom <= top:
+        valid_x = [x for x in xs if math.isfinite(x)]
+        valid_y = [y for values in columns for x, y in zip(xs, values)
+                   if math.isfinite(x) and math.isfinite(y)]
+        if not valid_x or not valid_y:
+            painter.drawText(rect, Qt.AlignmentFlag.AlignCenter,
+                             "No finite samples for these axes")
             return
-        ymin, ymax = self.y_limits or (min(x[0] for x in bounds), max(x[1] for x in bounds))
-        xmin, xmax = min(xs), max(xs)
-        if self.x_limits:
-            xmin, xmax = self.x_limits
-            if logarithmic:
-                xmin, xmax = math.log10(xmin), math.log10(xmax)
-        if ymax == ymin:
-            pad = max(abs(ymin)*.05, 1e-12)
-            ymin, ymax = ymin-pad, ymax+pad
+        if right <= left or bottom <= top:
+            return
+
+        def padded(low, high):
+            pad = max(abs(low)*.05, 1e-12) if low == high else 0
+            return low-pad, high+pad
+
+        auto_x = padded(min(valid_x), max(valid_x))
+        auto_y = padded(min(valid_y), max(valid_y))
+        xmin, xmax = self.x_limits or auto_x
+        if self.x_limits and logarithmic:
+            xmin, xmax = math.log10(xmin), math.log10(xmax)
+        ymin, ymax = self.y_limits or auto_y
+        if not report:
+            self.data_bounds = (tuple(10**v for v in auto_x) if logarithmic else auto_x, auto_y)
+        factor = 100/self.zoom
+        fx, fy = self.zoom_origin
+        x_span, y_span = xmax-xmin, ymax-ymin
+        xmin, xmax = xmin+x_span*fx, xmin+x_span*(fx+factor)
+        ymin, ymax = ymin+y_span*fy, ymin+y_span*(fy+factor)
         if not report:
             self.screen_axes = (QRectF(left, top, right-left, bottom-top), xs, columns,
                                 self.columns.copy(), xmin, xmax, ymin, ymax)
         if self.grid_visible:
             grid_color = QColor(ink)
             grid_color.setAlpha(42)
+            grid_color = self.grid_color or grid_color
             painter.setPen(QPen(grid_color, 1))
             for tick in range(1, self.grid_density):
                 x = left+(right-left)*tick/self.grid_density
@@ -176,17 +257,20 @@ class Waveform(QWidget):
                 painter.drawLine(QPointF(left, y), QPointF(right, y))
         painter.setPen(ink)
         painter.drawRect(QRectF(left, top, right-left, bottom-top))
-        for i in range(5):
-            x = left + (right-left)*i/4
-            y = bottom - (bottom-top)*i/4
-            xlabel = xmin + (xmax-xmin)*i/4
+        for i in range(self.tick_count):
+            fraction = i/(self.tick_count-1)
+            x = left + (right-left)*fraction
+            y = bottom - (bottom-top)*fraction
+            xlabel = xmin + (xmax-xmin)*fraction
             if logarithmic:
                 xlabel = 10**xlabel
-            painter.drawText(QPointF(x-10, bottom+17), f"{xlabel:.3g}")
-            painter.drawText(QPointF(6, y+4), f"{ymin+(ymax-ymin)*i/4:.3g}")
-        xlabel = self.x_label or f"{self.plot.names[0]} ({self.plot.units[0]})"
+            text = f"{xlabel:.{self.tick_precision}g}"
+            painter.drawText(QPointF(x-metrics.horizontalAdvance(text)/2, bottom+17), text)
+            painter.drawText(QPointF(6, y+4), f"{ymin+(ymax-ymin)*fraction:.{self.tick_precision}g}")
+        xlabel = self.x_label or f"{self.plot.names[self.x_column]} ({self.plot.units[self.x_column]})"
         ylabel = self.y_label or (("Magnitude", "Phase (°)", "Magnitude (dB)")[self.presentation]
-                                  if logarithmic else "")
+                                  if frequency_sweep else (self.plot.names[self.columns[0]]
+                                  if len(self.columns) == 1 else ""))
         painter.drawText(QPointF(left, height-9-cursor_footer), xlabel)
         painter.drawText(QPointF(left, top-6), ylabel)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
@@ -199,11 +283,11 @@ class Waveform(QWidget):
         painter.save()
         painter.setClipRect(graph)
         for index, values in enumerate(columns):
-            painter.setPen(QPen(self.color(self.columns[index], background), 1.5))
+            painter.setPen(self.trace_pen(self.columns[index], background))
             path = QPainterPath()
             connected = False
             for x, y in zip(xs, values):
-                if not math.isfinite(y):
+                if not (math.isfinite(x) and math.isfinite(y)):
                     connected = False
                     continue
                 point = location(x, y)
@@ -222,7 +306,7 @@ class Waveform(QWidget):
                 if ymin <= values[sample] <= ymax:
                     painter.drawEllipse(location(xs[sample], values[sample]), 3, 3)
             readout = "  |  ".join(
-                [f"{self.plot.names[0]} = {rows[sample][0].real:.10g} {self.plot.units[0]}"]
+                [f"{self.plot.names[self.x_column]} = {raw_x[sample]:.10g} {self.plot.units[self.x_column]}"]
                 + [f"{self.plot.names[col]} = {values[sample]:.10g}"
                    for col, values in zip(self.columns, columns)])
             if report:
@@ -230,7 +314,7 @@ class Waveform(QWidget):
                 painter.drawText(QPointF(12, height-7), visible)
             else:
                 self.readout.emit(readout)
-        for column, sample, label in self.pins:
+        for pin_index, (column, sample, label) in enumerate(self.pins):
             if column not in self.columns:
                 continue
             value = columns[self.columns.index(column)][sample]
@@ -238,8 +322,9 @@ class Waveform(QWidget):
                 continue
             point = location(xs[sample], value)
             painter.setPen(QPen(self.color(column, background), 1.5))
-            painter.drawEllipse(point, 4, 4)
-            text = f"{label or self.plot.names[column]} ({rows[sample][0].real:.6g}, {value:.6g})"
+            shape = self.pin_shapes[pin_index] if pin_index < len(self.pin_shapes) else "Circle"
+            self.draw_pin(painter, point, shape)
+            text = f"{label or self.plot.names[column]} ({raw_x[sample]:.6g}, {value:.6g})"
             text = metrics.elidedText(text, Qt.TextElideMode.ElideRight, max(30, right-left-12))
             text_width = metrics.horizontalAdvance(text)
             text_x = max(left+4, min(point.x()+7, right-text_width-4))
@@ -255,7 +340,8 @@ class PlotPage(QWidget):
         self.wave = Waveform()
         self.wave.plot = plot
         self.traces = QListWidget()
-        self.traces.setMaximumWidth(230)
+        self.traces.setMaximumWidth(130)
+        self.traces.setMinimumWidth(82)
         self.presentation = QComboBox()
         self.presentation.addItems(["Magnitude / real", "Phase (degrees)", "Magnitude (dB)"])
         self.presentation.setEnabled(plot.names[0].lower() == "frequency")
@@ -263,14 +349,10 @@ class PlotPage(QWidget):
         readout.setReadOnly(True)
         readout.setPlaceholderText("Click or drag on the plot to read a sample · right-click to clear")
         self.wave.readout.connect(readout.setText)
-        color = QPushButton("Trace color…")
-        color.clicked.connect(self.choose_color)
         add = QPushButton("Add trace…")
         add.clicked.connect(self.add_trace)
         drop = QPushButton("Remove trace")
         drop.clicked.connect(self.remove_trace)
-        labels = QPushButton("Labels…")
-        labels.clicked.connect(self.edit_labels)
         self.auto_pin_button = QPushButton("Pin on graph")
         self.auto_pin_button.setToolTip("Pin the sample at the cursor's last position")
         self.auto_pin_button.clicked.connect(self.pin_cursor)
@@ -286,51 +368,89 @@ class PlotPage(QWidget):
         self.grid_density = QSlider(Qt.Orientation.Horizontal)
         self.grid_density.setRange(2, 16)
         self.grid_density.setValue(self.wave.grid_density)
-        self.grid_density.setFixedWidth(90)
+        self.grid_density.setFixedWidth(64)
         self.grid_density.setAccessibleName("Grid density")
         self.grid_density.valueChanged.connect(self.set_grid_density)
         self.limits_button = QPushButton("Axis limits…")
         self.limits_button.clicked.connect(self.edit_limits)
-        background = QPushButton("Background…")
-        background.clicked.connect(self.choose_background)
+        self.pin_shape = QComboBox()
+        self.pin_shape.addItems(PIN_SHAPES)
+        self.pin_shape.setAccessibleName("Pin marker shape")
+        self.x_axis = QComboBox()
+        self.x_axis.addItems(plot.names)
+        self.x_axis.setAccessibleName("Horizontal axis signal")
+        self.x_axis.setMaximumWidth(155)
+        self.x_axis.currentIndexChanged.connect(self.set_x_axis)
         layout = QVBoxLayout(self)
         toolbar = QHBoxLayout()
         toolbar.addWidget(add)
         toolbar.addWidget(drop)
-        toolbar.addWidget(color)
         toolbar.addWidget(self.presentation)
+        x_label = QLabel("X signal")
+        x_label.setBuddy(self.x_axis)
+        toolbar.addWidget(x_label)
+        toolbar.addWidget(self.x_axis)
         toolbar.addStretch()
         layout.addLayout(toolbar)
         graph_tools = QHBoxLayout()
-        for button in (labels, self.limits_button, background, self.auto_pin_button, pin, remove_pin,
-                       self.grid_button):
+        fit = QPushButton("Fit data")
+        fit.setToolTip("Reset axis limits and zoom to show all data")
+        fit.clicked.connect(lambda: self.set_axis_limits(None, None))
+        appearance = QToolButton()
+        appearance.setText("Appearance")
+        appearance.setPopupMode(QToolButton.ToolButtonPopupMode.InstantPopup)
+        appearance_menu = QMenu(appearance)
+        for label, callback in (("Trace style…", self.edit_trace_style), ("Labels…", self.edit_labels),
+                                ("Background…", self.choose_background), ("Grid color…", self.choose_grid_color)):
+            appearance_menu.addAction(label, callback)
+        appearance.setMenu(appearance_menu)
+        for button in (self.limits_button, fit, appearance, self.grid_button):
             graph_tools.addWidget(button)
         graph_tools.addWidget(self.grid_density)
         graph_tools.addStretch()
         layout.addLayout(graph_tools)
+        pin_tools = QHBoxLayout()
+        for item in (self.auto_pin_button, self.pin_shape, pin, remove_pin):
+            pin_tools.addWidget(item)
+        pin_tools.addStretch()
+        layout.addLayout(pin_tools)
         content = QHBoxLayout()
         content.addWidget(self.traces)
         content.addWidget(self.wave, 1)
-        resize = QVBoxLayout()
-        heading = QLabel("Height")
-        heading.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.height_slider = QSlider(Qt.Orientation.Vertical)
-        self.height_slider.setRange(229, 900)
-        self.height_slider.setSingleStep(10)
-        self.height_slider.setPageStep(50)
-        self.height_slider.setAccessibleName("Graph height")
-        self.height_slider.setToolTip("Plot height. The bottom position uses automatic height.")
-        self.height_slider.setValue(229)
-        self.height_slider.valueChanged.connect(self.set_graph_height)
-        self.height_readout = QLabel("Auto")
-        self.height_readout.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        resize.addWidget(heading)
-        resize.addWidget(self.height_slider, 1, Qt.AlignmentFlag.AlignHCenter)
-        resize.addWidget(self.height_readout)
-        content.addLayout(resize)
+        zoom_tools = QVBoxLayout()
+        self.zoom_slider = QSlider(Qt.Orientation.Vertical)
+        self.zoom_slider.setRange(25, 800)
+        self.zoom_slider.setInvertedControls(False)
+        self.zoom_slider.setSingleStep(25)
+        self.zoom_slider.setPageStep(100)
+        self.zoom_slider.setAccessibleName("Plot zoom")
+        self.zoom_slider.setToolTip("Zoom the axes. Use the wheel over the plot to zoom around the pointer.")
+        self.zoom_slider.setValue(100)
+        self.zoom_anchor = (.5, .5)
+        self.zoom_slider.valueChanged.connect(self.set_zoom)
+        self.wave.zoom_requested.connect(self.wheel_zoom)
+        self.zoom_readout = QLabel("100%")
+        self.zoom_in_button = QPushButton("+")
+        self.zoom_out_button = QPushButton("−")
+        for button, label, direction in ((self.zoom_in_button, "Zoom in", 1),
+                                         (self.zoom_out_button, "Zoom out", -1)):
+            button.setAccessibleName(label)
+            button.setToolTip(label)
+            button.setFixedWidth(28)
+            button.clicked.connect(lambda checked=False, step=direction: self.wheel_zoom(step, .5, .5))
+        can_zoom = "operating point" not in plot.title.lower()
+        for control in (self.zoom_in_button, self.zoom_out_button, self.zoom_slider):
+            control.setEnabled(can_zoom)
+        zoom_tools.addWidget(QLabel("Zoom"), alignment=Qt.AlignmentFlag.AlignHCenter)
+        zoom_tools.addWidget(self.zoom_in_button, alignment=Qt.AlignmentFlag.AlignHCenter)
+        zoom_tools.addWidget(self.zoom_slider, 1, Qt.AlignmentFlag.AlignHCenter)
+        zoom_tools.addWidget(self.zoom_out_button, alignment=Qt.AlignmentFlag.AlignHCenter)
+        zoom_tools.addWidget(self.zoom_readout, alignment=Qt.AlignmentFlag.AlignHCenter)
+        content.addLayout(zoom_tools)
         layout.addLayout(content, 1)
         layout.addWidget(readout)
         operating_point = "operating point" in plot.title.lower()
+        self.x_axis.setEnabled(not operating_point)
         start = 0 if operating_point else 1
         preferred = next((i for i in range(start, len(plot.names)) if plot.names[i].lower() == "v(out)"), start)
         default = set(selected if selected is not None else
@@ -345,6 +465,8 @@ class PlotPage(QWidget):
         self.update_plot()
 
     def append_trace(self, column, visible):
+        if column >= self.x_axis.count():
+            self.x_axis.addItem(self.wave.plot.names[column])
         item = QListWidgetItem(self.wave.plot.names[column])
         item.setData(Qt.ItemDataRole.UserRole, column)
         item.setCheckState(Qt.CheckState.Checked if visible else Qt.CheckState.Unchecked)
@@ -362,6 +484,7 @@ class PlotPage(QWidget):
         sample, column = self.wave.cursor, self.wave.cursor_column
         if sample is not None and column in self.wave.columns:
             self.wave.pins.append((column, sample, ""))
+            self.wave.pin_shapes.append(self.pin_shape.currentText())
             self.wave.update()
 
     def toggle_grid(self, enabled):
@@ -373,13 +496,47 @@ class PlotPage(QWidget):
         self.wave.grid_density = density
         self.wave.update()
 
-    def set_graph_height(self, height):
-        height = None if height == self.height_slider.minimum() else height
-        self.wave.custom_height = height
-        self.height_readout.setText(f"{height} px" if height else "Auto")
-        self.wave.setMinimumHeight(height or 230)
-        self.wave.setMaximumHeight(height or 16777215)
+    def set_zoom(self, value):
+        old_span, span = 100/self.wave.zoom, 100/value
+        low, high = sorted((0., 1-span))
+        self.wave.zoom_origin = tuple(
+            max(low, min(high, origin + anchor*(old_span-span)))
+            for origin, anchor in zip(self.wave.zoom_origin, self.zoom_anchor))
+        self.wave.zoom = value
+        self.zoom_readout.setText(f"{value}%")
+        self.zoom_in_button.setEnabled(self.zoom_slider.isEnabled() and value < self.zoom_slider.maximum())
+        self.zoom_out_button.setEnabled(self.zoom_slider.isEnabled() and value > self.zoom_slider.minimum())
         self.wave.update()
+
+    def wheel_zoom(self, direction, x, y):
+        current = self.wave.zoom
+        value = round(current*1.25**direction)
+        if (current-100)*(value-100) < 0:
+            value = 100
+        self.zoom_anchor = (x, y)
+        try:
+            self.zoom_slider.setValue(value)
+        finally:
+            self.zoom_anchor = (.5, .5)
+
+    def set_x_axis(self, index):
+        if index < 0:
+            return
+        self.wave.x_column = index
+        self.wave.x_scale = "Automatic"
+        if index:
+            self.presentation.setCurrentIndex(0)
+        self.presentation.setEnabled(index == 0 and self.wave.plot.names[0].lower() == "frequency")
+        self.wave.cursor = self.wave.cursor_column = None
+        self.wave.readout.emit("")
+        self.update_pin_button()
+        self.set_axis_limits(None, None)
+
+    def choose_grid_color(self):
+        color = QColorDialog.getColor(self.wave.grid_color or QColor("#9aada4"), self, "Grid color")
+        if color.isValid():
+            self.wave.grid_color = color
+            self.wave.update()
 
     def choose_background(self):
         color = QColorDialog.getColor(self.wave.chart_background(), self, "Plot background")
@@ -388,8 +545,7 @@ class PlotPage(QWidget):
             self.wave.update()
 
     def set_axis_limits(self, x_limits, y_limits):
-        logarithmic = (self.wave.plot.names[0].lower() == "frequency"
-                       and all(row[0].real > 0 for row in self.wave.plot.rows))
+        logarithmic = self.wave.logarithmic()
         for axis, limits in (("X", x_limits), ("Y", y_limits)):
             if limits is None:
                 continue
@@ -400,21 +556,44 @@ class PlotPage(QWidget):
             if axis == "X" and logarithmic and (lower <= 0 or math.log10(lower) >= math.log10(upper)):
                 raise ValueError("Frequency limits must be positive and distinct on the logarithmic scale.")
         self.wave.x_limits, self.wave.y_limits = x_limits, y_limits
+        self.wave.zoom_origin = (0., 0.)
+        self.zoom_slider.setValue(100)
         self.wave.update()
 
     def edit_limits(self):
         dialog = QDialog(self)
-        dialog.setWindowTitle("Axis limits")
+        dialog.setWindowTitle("Axes")
         form = QFormLayout(dialog)
+        scale = QComboBox()
+        scale.addItems(["Automatic", "Linear", "Logarithmic"])
+        scale.setCurrentText(self.wave.x_scale)
+        form.addRow("X scale", scale)
         inputs = []
-        for axis, limits in (("X", self.wave.x_limits), ("Y", self.wave.y_limits)):
-            values = limits or (None, None)
-            for edge, value in zip(("minimum", "maximum"), values):
-                field = QLineEdit("" if value is None else str(value))
-                field.setPlaceholderText("Auto")
-                inputs.append(field)
-                form.addRow(f"{axis} {edge}", field)
-        message = QLabel("Leave both limits of an axis blank to use its automatic range.")
+        fallback = self.wave.data_bounds or ((0, 1), (0, 1))
+        visible = self.wave.screen_axes
+        view = None
+        if visible:
+            left, right, bottom, top = visible[4:]
+            view = ((10**left, 10**right) if self.wave.logarithmic() else (left, right),
+                    (bottom, top))
+        for index, (axis, limits) in enumerate((("X", self.wave.x_limits), ("Y", self.wave.y_limits))):
+            auto = QCheckBox(f"Fit {axis} to data")
+            auto.setChecked(limits is None)
+            form.addRow(auto)
+            low, high = (QLineEdit(f"{value:.12g}") for value in (view or fallback)[index])
+            for field, label in ((low, "minimum"), (high, "maximum")):
+                field.setEnabled(not auto.isChecked())
+                auto.toggled.connect(lambda enabled, field=field: field.setDisabled(enabled))
+                form.addRow(f"{axis} {label}", field)
+            inputs.append((auto, low, high))
+        ticks, precision = QSpinBox(), QSpinBox()
+        ticks.setRange(2, 9)
+        ticks.setValue(self.wave.tick_count)
+        precision.setRange(2, 7)
+        precision.setValue(self.wave.tick_precision)
+        form.addRow("Ticks per axis", ticks)
+        form.addRow("Tick significant digits", precision)
+        message = QLabel("SPICE suffixes work in limits, for example 1k or 10m. Use Linear for an X range that starts at zero.")
         message.setWordWrap(True)
         form.addRow(message)
         buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
@@ -422,19 +601,19 @@ class PlotPage(QWidget):
         form.addRow(buttons)
 
         def accept():
-            limits = []
-            for first, last in zip(inputs[::2], inputs[1::2]):
-                lower, upper = first.text().strip(), last.text().strip()
-                try:
-                    limits.append((float(lower), float(upper)) if lower or upper else None)
-                except ValueError:
-                    message.setText("Enter two numeric limits for an axis, or leave both blank.")
-                    return
+            old = self.wave.x_scale
+            self.wave.x_scale = scale.currentText()
             try:
+                if self.wave.logarithmic() and not any(x > 0 and math.isfinite(x) for x in self.wave.raw_x()):
+                    raise ValueError("Logarithmic X requires at least one positive sample.")
+                limits = [None if auto.isChecked() else (number(low.text().strip()), number(high.text().strip()))
+                          for auto, low, high in inputs]
                 self.set_axis_limits(*limits)
             except ValueError as error:
+                self.wave.x_scale = old
                 message.setText(str(error))
                 return
+            self.wave.tick_count, self.wave.tick_precision = ticks.value(), precision.value()
             dialog.accept()
 
         buttons.accepted.connect(accept)
@@ -468,10 +647,15 @@ class PlotPage(QWidget):
                    and math.isfinite(row[column].imag)]
         if not indices:
             raise ValueError("This trace has no finite samples")
-        sample = min(indices, key=lambda index: abs(rows[index][0].real-x))
+        indices = [i for i in indices if math.isfinite(rows[i][self.wave.x_column].real)
+                   and (not self.wave.logarithmic() or rows[i][self.wave.x_column].real > 0)]
+        if not indices:
+            raise ValueError("This trace has no samples on the chosen X scale")
+        sample = min(indices, key=lambda index: abs(rows[index][self.wave.x_column].real-x))
         self.wave.pins.append((column, sample, label.strip()))
+        self.wave.pin_shapes.append(self.pin_shape.currentText())
         self.wave.update()
-        return rows[sample][0].real
+        return rows[sample][self.wave.x_column].real
 
     def pin_point(self):
         item = self.traces.currentItem()
@@ -481,9 +665,9 @@ class PlotPage(QWidget):
         dialog.setWindowTitle(f"Pin {item.text()}")
         form = QFormLayout(dialog)
         coordinate, label = QLineEdit(), QLineEdit()
-        coordinate.setText(f"{self.wave.plot.rows[0][0].real:g}")
+        coordinate.setText(f"{self.wave.plot.rows[0][self.wave.x_column].real:g}")
         label.setMaxLength(80)
-        form.addRow(f"{self.wave.plot.names[0]} value", coordinate)
+        form.addRow(f"{self.wave.plot.names[self.wave.x_column]} value", coordinate)
         form.addRow("Point label (optional)", label)
         message = QLabel("Snaps to the nearest available sample.")
         form.addRow(message)
@@ -493,7 +677,7 @@ class PlotPage(QWidget):
 
         def apply():
             try:
-                self.pin_at(item.data(Qt.ItemDataRole.UserRole), float(coordinate.text()), label.text())
+                self.pin_at(item.data(Qt.ItemDataRole.UserRole), number(coordinate.text().strip()), label.text())
             except ValueError as error:
                 message.setText(str(error))
                 return
@@ -505,6 +689,8 @@ class PlotPage(QWidget):
     def remove_pin(self):
         if self.wave.pins:
             self.wave.pins.pop()
+            if self.wave.pin_shapes:
+                self.wave.pin_shapes.pop()
             self.wave.update()
 
     def update_plot(self):
@@ -537,15 +723,47 @@ class PlotPage(QWidget):
         if item is not None:
             item.setCheckState(Qt.CheckState.Unchecked)
 
-    def choose_color(self):
+    def edit_trace_style(self):
         item = self.traces.currentItem()
-        if item is not None and item.checkState() == Qt.CheckState.Checked:
-            column = item.data(Qt.ItemDataRole.UserRole)
-            color = QColorDialog.getColor(self.wave.trace_colors.get(column, QColor("#087e74")), self)
-            if color.isValid():
+        if item is None or item.checkState() != Qt.CheckState.Checked:
+            return
+        column = item.data(Qt.ItemDataRole.UserRole)
+        dialog = QDialog(self)
+        dialog.setWindowTitle(f"Trace style · {item.text()}")
+        form = QFormLayout(dialog)
+        style, width = self.wave.trace_styles.get(column, ("Solid", 1.5))
+        pattern = QComboBox()
+        pattern.addItems(LINE_STYLES)
+        pattern.setCurrentText(style)
+        weight = QDoubleSpinBox()
+        weight.setRange(.5, 8)
+        weight.setSingleStep(.5)
+        weight.setValue(width)
+        weight.setSuffix(" px")
+        color = self.wave.trace_colors.get(column)
+        color_button = QPushButton(color.name() if color else "Choose color…")
+
+        def choose_color():
+            nonlocal color
+            selected = QColorDialog.getColor(color or self.wave.color(column), dialog, "Trace color")
+            if selected.isValid():
+                color = selected
+                color_button.setText(color.name())
+
+        color_button.clicked.connect(choose_color)
+        form.addRow("Line pattern", pattern)
+        form.addRow("Line width", weight)
+        form.addRow("Color", color_button)
+        buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
+        buttons.accepted.connect(dialog.accept)
+        buttons.rejected.connect(dialog.reject)
+        form.addRow(buttons)
+        if dialog.exec():
+            self.wave.trace_styles[column] = pattern.currentText(), weight.value()
+            if color:
                 self.wave.trace_colors[column] = color
                 item.setForeground(color)
-                self.wave.update()
+            self.wave.update()
 
 
 class PlotReportPage(QWidget):
@@ -571,7 +789,12 @@ class PlotReportPage(QWidget):
         scroller = QScrollArea()
         scroller.setWidgetResizable(True)
         content = QWidget()
-        self.stack = QVBoxLayout(content)
+        self.stack = QGridLayout(content)
+        self.tiles = QComboBox()
+        self.tiles.addItems(["Stacked", "Two columns"])
+        self.tiles.setAccessibleName("Subplot layout")
+        self.tiles.currentIndexChanged.connect(self.arrange_subplots)
+        controls.insertWidget(1, self.tiles)
         scroller.setWidget(content)
         layout.addWidget(scroller, 1)
         insert_bar = QHBoxLayout()
@@ -608,10 +831,18 @@ class PlotReportPage(QWidget):
         subplot = PlotPage(self.plot, selected)
         subplot.wave.title = f"Plot {len(self.subplots)+1}"
         self.subplots.append(subplot)
-        self.stack.addWidget(subplot, 1)
+        subplot.wave.activated.connect(lambda: self.active.setCurrentIndex(self.subplots.index(subplot)))
+        self.arrange_subplots()
         self.active.addItem(f"Plot {len(self.subplots)}")
         self.active.setCurrentIndex(len(self.subplots)-1)
         return subplot
+
+    def arrange_subplots(self):
+        columns = self.tiles.currentIndex()+1
+        for index, subplot in enumerate(self.subplots):
+            self.stack.addWidget(subplot, index//columns, index%columns)
+        self.stack.setColumnStretch(0, 1)
+        self.stack.setColumnStretch(1, int(columns == 2))
 
     def remove_subplot(self):
         if len(self.subplots) == 1:
@@ -622,6 +853,7 @@ class PlotReportPage(QWidget):
         self.stack.removeWidget(subplot)
         subplot.deleteLater()
         self.active.removeItem(index)
+        self.arrange_subplots()
         for index in range(self.active.count()):
             self.active.setItemText(index, f"Plot {index+1}")
 
@@ -677,8 +909,9 @@ class PlotReportPage(QWidget):
         suffix = path.suffix.lower()
         if suffix not in (".png", ".pdf"):
             raise ValueError("Choose a PNG or PDF file")
-        width = 810
-        charts = [(wave, wave.custom_height or 365) for wave in waves]
+        width, chart_height = 810, 365
+        columns = min(len(waves), self.tiles.currentIndex()+1) if whole_page else 1
+        rows = [waves[i:i+columns] for i in range(0, len(waves), columns)]
         output = QSaveFile(str(path))
         if not output.open(QIODevice.OpenModeFlag.WriteOnly):
             raise OSError(output.errorString())
@@ -688,16 +921,11 @@ class PlotReportPage(QWidget):
             device.setTitle(self.title)
             device.setResolution(96)
             device.setPageSize(QPageSize(QPageSize.PageSizeId.A4))
-            chunks = [[]]
-            for wave, height in charts:
-                chunk = chunks[-1]
-                if chunk and (len(chunk) == 2 or sum(item[1] for item in chunk)+height > 950):
-                    chunks.append([])
-                chunks[-1].append((wave, height))
+            chunks = [rows[i:i+2] for i in range(0, len(rows), 2)]
         else:
-            device = QImage(width*2, (40+sum(height for _, height in charts))*2, QImage.Format.Format_RGB32)
+            device = QImage(width*2, (40+len(rows)*chart_height)*2, QImage.Format.Format_RGB32)
             device.fill(QColor("#ffffff"))
-            chunks = [charts]
+            chunks = [rows]
         if not painter.begin(device):
             raise OSError("Could not open the export paint device")
         try:
@@ -709,17 +937,17 @@ class PlotReportPage(QWidget):
                     raise OSError("Could not create a PDF page")
                 painter.save()
                 scale = min(painter.viewport().width()/width,
-                            painter.viewport().height()/(40+sum(height for _, height in chunk)))
+                            painter.viewport().height()/(40+len(chunk)*chart_height))
                 painter.scale(scale, scale)
                 painter.drawText(QPointF(12, 24), self.title if len(chunks) == 1
                                  else f"{self.title}  ·  {index}/{len(chunks)}")
-                top = 39
-                for wave, height in chunk:
-                    painter.save()
-                    painter.translate(0, top)
-                    wave.draw(painter, width, height-5)
-                    painter.restore()
-                    top += height
+                chart_width = width/columns
+                for row_index, row in enumerate(chunk):
+                    for column, wave in enumerate(row):
+                        painter.save()
+                        painter.translate(column*chart_width, 40+row_index*chart_height)
+                        wave.draw(painter, int(chart_width)-5, chart_height-5)
+                        painter.restore()
                 painter.restore()
         finally:
             painter.end()

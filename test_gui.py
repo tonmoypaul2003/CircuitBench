@@ -204,16 +204,17 @@ class GuiTests(unittest.TestCase):
         page.remove_subplot()
         self.assertEqual(page.subplots, [first])
 
-    def test_grid_resize_graph_pin_and_maximize(self):
+    def test_grid_zoom_graph_pin_and_maximize(self):
         plot = Plot("Transient", ["time", "v(low)", "v(high)"], ["time", "voltage", "voltage"],
                     [[0, 1, 8], [.5, 2, 9], [1, 3, 10]])
         self.window.show_plot(plot, self.window.project.dump())
         page = self.window.plot_pages.currentWidget()
         subplot = page.subplots[0]
         subplot.traces.item(1).setCheckState(Qt.CheckState.Checked)
-        subplot.height_slider.setValue(400)
+        subplot.zoom_slider.setValue(200)
         self.application.processEvents()
-        self.assertEqual(subplot.wave.height(), 400)
+        self.assertEqual(subplot.wave.zoom, 200)
+        self.assertEqual(subplot.zoom_readout.text(), "200%")
         with_grid = subplot.wave.grab().toImage()
         subplot.grid_density.setValue(12)
         self.assertEqual(subplot.wave.grid_density, 12)
@@ -233,7 +234,9 @@ class GuiTests(unittest.TestCase):
         QTest.mouseClick(subplot.wave, Qt.MouseButton.LeftButton, pos=point.toPoint())
         self.assertEqual(subplot.wave.cursor, 1)
         self.assertFalse(subplot.wave.pins)
+        subplot.pin_shape.setCurrentText("Triangle")
         subplot.auto_pin_button.click()
+        self.assertEqual(subplot.wave.pin_shapes[-1], "Triangle")
         self.assertEqual(subplot.wave.pins[-1], (2, 1, ""))
         self.assertEqual(subplot.wave.cursor, 1)
         self.assertEqual(subplot.pin_at(1, .97, "End"), 1)
@@ -242,7 +245,7 @@ class GuiTests(unittest.TestCase):
             path = Path(directory) / "resized.png"
             page.export(path, whole_page=False)
             image = QImage(str(path))
-            self.assertEqual(image.height(), 880)
+            self.assertEqual(image.height(), 810)
             self.assertEqual(image.pixelColor(10, 100), QColor("#27394d"))
         self.assertTrue(self.window.plot_window.windowFlags() & Qt.WindowType.WindowMaximizeButtonHint)
 
@@ -286,6 +289,45 @@ class GuiTests(unittest.TestCase):
         self.assertEqual(self.window.selected_markers, {0})
         QTest.keyClick(self.window.marker_list, Qt.Key.Key_Delete)
         self.assertEqual([marker["kind"] for marker in self.window.project.markers], ["VD", "I"])
+
+    def test_xy_axes_and_tiled_layout(self):
+        plot = Plot("DC sweep", ["sweep", "v(d)", "i(v1)"], ["voltage", "voltage", "current"],
+                    [[0j, 0j, 0j], [1+0j, .6+0j, .001+0j], [2+0j, .7+0j, .01+0j]])
+        page = self.window.add_plot_page(plot, None, [2])
+        subplot = page.subplots[0]
+        subplot.x_axis.setCurrentIndex(1)
+        subplot.wave.resize(550, 320)
+        subplot.wave.grab()
+        self.assertEqual(subplot.wave.screen_axes[1], [0, .6, .7])
+        self.assertEqual(subplot.pin_at(2, .58), .6)
+        subplot.wave.trace_styles[2] = ("Dashed", 3)
+        self.assertEqual(subplot.wave.trace_pen(2, None).widthF(), 3)
+        subplot.wheel_zoom(1, .75, .5)
+        self.assertEqual(subplot.wave.zoom, 125)
+        subplot.set_axis_limits(None, None)
+        self.assertEqual(subplot.wave.zoom, 100)
+        subplot.zoom_out_button.click()
+        self.assertEqual(subplot.wave.zoom, 80)
+        subplot.wave.grab()
+        self.assertLess(subplot.wave.screen_axes[4], 0)
+        self.assertGreater(subplot.wave.screen_axes[5], .7)
+        subplot.zoom_in_button.click()
+        self.assertEqual(subplot.wave.zoom, 100)
+        self.assertEqual(self.window.plot_window.windowTitle(), "CircuitBench Simulation")
+        page.add_subplot([1])
+        page.tiles.setCurrentIndex(1)
+        self.assertIs(page.stack.itemAtPosition(0, 1).widget(), page.subplots[1])
+
+    def test_drop_on_wire_inserts_component_and_keeps_undo(self):
+        project = self.window.project
+        project.wires.append(((0, -6), (0, 6)))
+        self.window.set_mode("R")
+        self.assertTrue(self.window.drop_part((0, 0)))
+        self.assertEqual(project.parts[0].pins(), [(0, -2), (0, 2)])
+        self.assertEqual(project.wires, [((0, -6), (0, -2)), ((0, 6), (0, 2))])
+        self.window.restore(self.window.undo_stack, self.window.redo_stack)
+        self.assertFalse(self.window.project.parts)
+        self.assertEqual(self.window.project.wires, [((0, -6), (0, 6))])
 
     def test_voltage_label_appearance_keeps_readings_and_round_trips(self):
         self.window.replace(example())

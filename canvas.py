@@ -34,6 +34,9 @@ class Canvas(QWidget):
         self.offset = QPointF()
         self.begin = None
         self.drag = None
+        self.move_preview = None
+        self.library_drag = False
+        self.setAcceptDrops(True)
         self.pointer = (0, 0)
         self.setMouseTracking(True)
         self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
@@ -120,7 +123,7 @@ class Canvas(QWidget):
             self.draw_bias(painter)
         if self.editor.markers_visible:
             self.draw_markers(painter)
-        if self.underMouse() and self.editor.mode in SYMBOLS:
+        if (self.underMouse() or self.library_drag) and self.editor.mode in SYMBOLS:
             self.draw_placement(painter)
         if self.drag and self.drag[0] in ("box", "group"):
             self.draw_selection_preview(painter)
@@ -139,20 +142,49 @@ class Canvas(QWidget):
         if not (dx or dy):
             return
         editor = self.editor
+        delta = dx, dy
+        if self.move_preview is None or self.move_preview[0] != delta:
+            self.move_preview = delta, editor.routed_move(*delta)[0]
+        ghost = self.move_preview[1]
+        if ghost is None:
+            painter.setPen(QPen(self.ink("#d46127"), .1, Qt.PenStyle.DashLine))
+        else:
+            original = set(editor.project.wires)
+            for a, b in ghost.wires:
+                if (a, b) not in original:
+                    painter.drawLine(QPointF(*a), QPointF(*b))
+        painter.setBrush(Qt.BrushStyle.NoBrush)
         for i in editor.selected_parts:
             part = editor.project.parts[i]
-            points = [(part.x, part.y), *part.pins()]
-            xs, ys = zip(*points)
-            painter.drawRect(QRectF(min(xs)+dx-.45, min(ys)+dy-.45,
-                                    max(xs)-min(xs)+.9, max(ys)-min(ys)+.9))
-        for i in editor.selected_wires:
-            a, b = editor.project.wires[i]
-            delta = QPointF(dx, dy)
-            painter.drawLine(QPointF(*a)+delta, QPointF(*b)+delta)
+            center = QPointF(part.x+dx, part.y+dy)
+            painter.drawRect(QRectF(center.x()-1.1, center.y()-1.1, 2.2, 2.2))
+            if ghost is None:
+                continue
+            painter.save()
+            painter.translate(center)
+            painter.rotate(part.rotation*90)
+            if part.kind == "X":
+                self.draw_subcircuit(painter, part, True)
+            elif part.kind in MODELED_SYMBOLS:
+                self.draw_modeled_symbol(painter, part, True)
+            else:
+                self.draw_symbol(painter, part.kind, True)
+            painter.restore()
+            for j, target in enumerate(editor.project.parts):
+                if j in editor.selected_parts:
+                    continue
+                if target.x == center.x() and abs(target.y-center.y()) <= 24:
+                    painter.drawLine(center, QPointF(target.x, target.y))
+                if target.y == center.y() and abs(target.x-center.x()) <= 24:
+                    painter.drawLine(center, QPointF(target.x, target.y))
 
     def draw_placement(self, painter):
         painter.save()
         painter.translate(*self.pointer)
+        if self.library_drag and self.editor.mode in ("R", "C", "L", "V", "I", "D"):
+            wire = next((wire for wire in self.editor.project.wires if on_wire(self.pointer, wire)), None)
+            if wire and wire[0][0] == wire[1][0]:
+                painter.rotate(90)
         painter.setOpacity(.6)
         kind = self.editor.mode
         if kind == "X" or kind in MODELED_SYMBOLS:
@@ -354,6 +386,33 @@ class Canvas(QWidget):
                     path([(-.37, -.15), (-.37, .15)])
                     path([(.22, 0), (.52, 0)])
 
+    def dragEnterEvent(self, event):
+        library = self.editor.library
+        if event.source() is library and library.currentItem() is not None:
+            self.editor.choose_part(library.currentItem())
+            self.library_drag = True
+            event.acceptProposedAction()
+
+    def dragMoveEvent(self, event):
+        if self.library_drag:
+            self.pointer = self.grid(event.position())
+            self.update()
+            event.acceptProposedAction()
+
+    def dragLeaveEvent(self, event):
+        self.library_drag = False
+        self.editor.set_mode("Select")
+        self.update()
+        event.accept()
+
+    def dropEvent(self, event):
+        if self.library_drag:
+            self.library_drag = False
+            placed = self.editor.drop_part(self.grid(event.position()))
+            self.editor.set_mode("Select")
+            if placed:
+                event.acceptProposedAction()
+
     def mousePressEvent(self, event):
         self.setFocus()
         pos = event.position()
@@ -403,6 +462,7 @@ class Canvas(QWidget):
                 groups = (editor.selected_parts, editor.selected_wires, editor.selected_junctions)
                 if not any(existing & incoming for existing, incoming in zip(groups, hit)):
                     editor.set_selection(*hit)
+                self.move_preview = None
                 self.drag = ("group", point, None)
         self.update()
 
@@ -457,6 +517,11 @@ class Canvas(QWidget):
         directions = {Qt.Key.Key_Left: (-1, 0), Qt.Key.Key_Right: (1, 0),
                       Qt.Key.Key_Up: (0, -1), Qt.Key.Key_Down: (0, 1)}
         editor = self.editor
+        if event.key() == Qt.Key.Key_Escape and self.drag is not None:
+            self.drag = None
+            self.move_preview = None
+            self.update()
+            return
         delta = directions.get(event.key())
         if (delta is not None and editor.mode == "Select"
                 and (editor.selected_parts or editor.selected_wires or editor.selected_junctions)):

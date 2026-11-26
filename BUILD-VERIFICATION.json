@@ -7,6 +7,6 @@
   "png_export": true,
   "pdf_export": true,
   "status": "passed",
-  "source_tests_passed": 35,
-  "executable_sha256": "001b41f996c43a8d55df4b5b22ccb4328616ad47ae5268e8e68637b8c3d8130a"
+  "source_tests_passed": 37,
+  "executable_sha256": "579141505414c59826d9a9a5c9313163a04bcf43f8d24300e38a8d185e6070d4"
 }

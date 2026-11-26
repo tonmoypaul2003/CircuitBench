@@ -25,6 +25,8 @@ from results import analysis_deck, bias_deck, bias_readings, load_plot, trim_bia
 from spice_library import MODEL_PORTS, read_library
 
 
+VERSION = "0.2-beta"
+
 RUNTIME = Path(__file__).resolve().parent / "runtime"
 BUNDLED_SOLVER = RUNTIME / "ngspice" / "bin" / "ngspice_con.exe"
 
@@ -133,6 +135,8 @@ class Editor(QMainWindow):
         self.action(simulation, "Show plot", "", self.open_plots)
         self.action(simulation, "Open saved waveform…", "", self.open_waveform)
         self.action(simulation, "Export waveform CSV…", "", self.export_waveform)
+        help_menu = self.menuBar().addMenu("&Help")
+        self.action(help_menu, "About CircuitBench…", "", self.show_about)
         markers = self.menuBar().addMenu("&Markers")
         for mode, title, key in (("Mark V", "Voltage", "Ctrl+M"),
                                  ("Mark VD", "Differential voltage", ""),
@@ -150,6 +154,7 @@ class Editor(QMainWindow):
         self.search = QLineEdit()
         self.search.setPlaceholderText("Find a part or model")
         self.library = QListWidget()
+        self.library.setDragEnabled(True)
         self.category = QComboBox()
         self.category.addItems(["All components", "Basic symbols", "Qucs-S models", "SPICE subcircuits",
                                 "SPICE device models"])
@@ -200,7 +205,7 @@ class Editor(QMainWindow):
         self.tabs.addTab(self.log, "Diagnostics")
         self.tabs.addTab(self.deck, "Netlist")
         self.plot_window = QDialog(self)
-        self.plot_window.setWindowTitle("Simulation plots")
+        self.plot_window.setWindowTitle("CircuitBench Simulation")
         self.plot_window.setWindowFlag(Qt.WindowType.WindowMaximizeButtonHint, True)
         self.plot_window.setWindowFlag(Qt.WindowType.WindowContextHelpButtonHint, False)
         self.plot_window.resize(950, 580)
@@ -248,6 +253,21 @@ class Editor(QMainWindow):
         self.refresh()
         self.set_mode("Select")
         QApplication.styleHints().colorSchemeChanged.connect(self.apply_theme)
+
+    def show_about(self):
+        box = QMessageBox(self)
+        box.setWindowTitle("About CircuitBench")
+        box.setText(f"CircuitBench {VERSION}")
+        box.setInformativeText(
+            "CircuitBench is a desktop schematic editor and circuit simulator. "
+            "Draw circuits, run DC, AC, and transient analyses with ngspice, "
+            "and inspect or export the results in CircuitBench Simulation.\n\n"
+            "Licensed under GPL-3.0-only.")
+        project = box.addButton("GitHub project", QMessageBox.ButtonRole.ActionRole)
+        box.addButton(QMessageBox.StandardButton.Close)
+        box.exec()
+        if box.clickedButton() is project:
+            QDesktopServices.openUrl(QUrl("https://github.com/tonmoypaul2003/CircuitBench"))
 
     def set_theme(self, preference):
         options = {"System": Qt.ColorScheme.Unknown, "Light": Qt.ColorScheme.Light, "Dark": Qt.ColorScheme.Dark}
@@ -557,7 +577,30 @@ class Editor(QMainWindow):
         self.filter_library(self.search.text())
         return count+len(models)+len(subcircuits), issues
 
-    def place_part(self, point):
+    def drop_part(self, point):
+        project = self.project
+        touching = [(index, wire) for index, wire in enumerate(project.wires) if on_wire(point, wire)]
+        splice = None
+        if touching and self.mode in ("R", "C", "L", "V", "I", "D"):
+            index, wire = touching[0]
+            vertical = wire[0][0] == wire[1][0]
+            dx, dy = (0, 2) if vertical else (2, 0)
+            pins = (point[0]-dx, point[1]-dy), (point[0]+dx, point[1]+dy)
+            anchors = {pin for part in project.parts for pin in part.pins()}
+            anchors.update(project.junctions)
+            anchors.update(end for i, segment in enumerate(project.wires) if i != index for end in segment)
+            anchors.update(tuple(p) for marker in project.markers if marker["kind"] != "I" for p in marker["points"])
+            if (len(touching) != 1 or any(not on_wire(pin, wire) for pin in pins)
+                    or any(on_wire(anchor, pins) and anchor not in pins for anchor in anchors)):
+                self.statusBar().showMessage("Drop onto a clear wire segment with room for both pins.", 5000)
+                return False
+            endpoints = sorted(wire)
+            segments = [(a, b) for a, b in zip(endpoints, pins) if a != b]
+            splice = index, segments, int(vertical)
+        self.place_part(point, splice)
+        return True
+
+    def place_part(self, point, splice=None):
         self.checkpoint()
         self.project.add(self.mode, point)
         part = self.project.parts[-1]
@@ -570,6 +613,9 @@ class Editor(QMainWindow):
             elif part.kind in "QMJS":
                 model = self.project.device_models[part.value]
                 part.port_names = list(MODEL_PORTS[model["type"]][1])
+        if splice:
+            index, segments, part.rotation = splice
+            self.project.wires[index:index+1] = segments
         self.select(part)
         self.refresh()
 
@@ -677,21 +723,31 @@ class Editor(QMainWindow):
             junctions |= self.selected_junctions
         self.set_selection(parts, wires, junctions, markers=self.selected_markers if extend else None)
 
+    def routed_move(self, dx, dy):
+        snapshot = self.project.dump()
+        for reroute, vertical in ((True, False), (True, True), (False, False), (False, True)):
+            project = Project.load(snapshot)
+            try:
+                translate_selection(project, self.selected_parts, self.selected_wires,
+                                    self.selected_junctions, dx, dy,
+                                    reroute_terminals=reroute, vertical_first=vertical)
+            except ValueError as error:
+                reason = str(error)
+            else:
+                return project, ""
+        return None, reason
+
     def move_group(self, dx, dy):
         if not (dx or dy) or not (self.selected_parts or self.selected_wires or self.selected_junctions):
             return
-        snapshot = self.project.dump()
-        try:
-            translate_selection(self.project, self.selected_parts, self.selected_wires,
-                                self.selected_junctions, dx, dy)
-        except ValueError as error:
-            self.project = Project.load(snapshot)
-            self.set_selection(self.selected_parts, self.selected_wires, self.selected_junctions,
-                               markers=self.selected_markers)
-            self.error(str(error))
+        project, error = self.routed_move(dx, dy)
+        if project is None:
+            self.statusBar().showMessage(error, 5000)
             return
-        self.undo_stack.append(snapshot)
-        self.redo_stack.clear()
+        self.checkpoint()
+        self.project = project
+        self.set_selection(self.selected_parts, self.selected_wires, self.selected_junctions,
+                           markers=self.selected_markers)
         self.refresh()
 
     def checkpoint(self):
@@ -1374,6 +1430,7 @@ if __name__ == "__main__":
     smoke_test = len(sys.argv) == 3 and sys.argv[1] == "--smoke-test"
     application = QApplication(sys.argv[:1] if smoke_test else sys.argv)
     application.setApplicationName("CircuitBench")
+    application.setApplicationVersion(VERSION)
     application.setStyle("Fusion")
     application.setWindowIcon(QIcon(str(RUNTIME / "CircuitBench.ico")))
     window = Editor()

@@ -399,7 +399,8 @@ def qucs_diode_model(name, parameters):
     return f".model {name} D({fields})"
 
 
-def translate_selection(project, selected_parts, selected_wires, selected_junctions, dx, dy):
+def translate_selection(project, selected_parts, selected_wires, selected_junctions, dx, dy,
+                        *, reroute_terminals=False, vertical_first=False):
     def shifted(point):
         return point[0]+dx, point[1]+dy
 
@@ -416,6 +417,25 @@ def translate_selection(project, selected_parts, selected_wires, selected_juncti
     fixed.update(p for i, p in enumerate(project.junctions) if i not in selected_junctions)
     contacts = {p for p in moving if p in fixed or any(on_wire(p, wire) for wire in fixed_wires)}
     contacts.update(p for p in fixed if any(on_wire(p, wire) for wire in moving_wires))
+    replacements = {}
+    if reroute_terminals:
+        stationary_pins = {pin for i, part in enumerate(project.parts) if i not in selected_parts
+                           for pin in part.pins()}
+        anchors = stationary_pins | set(project.junctions) | {
+            tuple(point) for marker in project.markers if marker["kind"] != "I"
+            for point in marker["points"]}
+        for point in sorted(contacts):
+            incident = [(i, wire) for i, wire in enumerate(wires) if on_wire(point, wire)]
+            if len(incident) != 1 or point in anchors:
+                continue
+            index, wire = incident[0]
+            if index in selected_wires or point not in wire:
+                continue
+            other = wire[1] if point == wire[0] else wire[0]
+            if other in moving or any(p != other and on_wire(p, wire) for p in (fixed | anchors | moving) - {point}):
+                continue
+            replacements[point] = index, other
+
     for i in selected_parts:
         part = project.parts[i]
         part.x, part.y = shifted((part.x, part.y))
@@ -424,10 +444,18 @@ def translate_selection(project, selected_parts, selected_wires, selected_juncti
     for i in selected_junctions:
         project.junctions[i] = shifted(project.junctions[i])
     existing = {frozenset(wire) for wire in project.wires}
-    for start in sorted(contacts):
-        end = shifted(start)
-        bend = end[0], start[1]
-        for a, b in ((start, bend), (bend, end)):
+    for contact in sorted(contacts):
+        end = shifted(contact)
+        replacement = replacements.get(contact)
+        start = replacement[1] if replacement else contact
+        bend = (start[0], end[1]) if vertical_first else (end[0], start[1])
+        segments = [(a, b) for a, b in ((start, bend), (bend, end)) if a != b]
+        if replacement and segments:
+            original = replacement[0]
+            existing.discard(frozenset(project.wires[original]))
+            project.wires[original] = segments.pop(0)
+            existing.add(frozenset(project.wires[original]))
+        for a, b in segments:
             key = frozenset((a, b))
             if a != b and key not in existing:
                 project.wires.append((a, b))
