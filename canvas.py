@@ -14,7 +14,7 @@ DARK_COLORS = {
     "#edf2f0": "#172421", "#fcfdfc": "#1b2d28", "#cbd9d1": "#3d5650",
     "#86a49b": "#8aaba1", "#0f766e": "#68c8ba", "#d46127": "#ffab72",
     "#162e29": "#e2eee9", "#157c72": "#76cfc2", "#80469c": "#d9a5ec",
-    "#173d37": "#c9e7dd", "#b34b1d": "#ffab72",
+    "#173d37": "#c9e7dd", "#b34b1d": "#ffab72", "#1d56b3": "#82baff",
 }
 
 
@@ -78,9 +78,14 @@ class Canvas(QWidget):
         painter.translate(origin)
         painter.scale(self.cell, self.cell)
         project = self.editor.project
-        painter.setPen(QPen(self.ink("#0f766e"), 0.09))
+        reading = self.editor.bias_list.selectedItems()
+        net, terminal = reading[0].data(Qt.ItemDataRole.UserRole) if reading else (None, None)
+        highlighted = {point for point, name in self.editor.reading_nets.items() if name == net}
+        highlight_ink = self.ink("#1d56b3")
         for index, (a, b) in enumerate(project.wires):
-            painter.setPen(QPen(self.ink("#d46127" if index in self.editor.selected_wires else "#0f766e"), .09))
+            wire_ink = self.ink("#d46127" if index in self.editor.selected_wires else "#0f766e")
+            painter.setPen(QPen(highlight_ink if a in highlighted else wire_ink,
+                               .20 if a in highlighted else .09))
             painter.drawLine(QPointF(*a), QPointF(*b))
         painter.setPen(QPen(self.ink("#0f766e"), .09))
         if self.begin is not None:
@@ -92,7 +97,9 @@ class Canvas(QWidget):
         for p in sorted(endpoints | set(project.junctions)):
             count = sum(1 if p in w else 2 for w in project.wires if on_wire(p, w))
             if count >= 3 or p in project.junctions:
-                painter.setBrush(self.ink("#d46127" if p in selected_junctions else "#0f766e"))
+                painter.setPen(Qt.PenStyle.NoPen)
+                painter.setBrush(highlight_ink if p in highlighted else
+                                 self.ink("#d46127" if p in selected_junctions else "#0f766e"))
                 painter.drawEllipse(QPointF(*p), .13, .13)
         painter.setBrush(Qt.BrushStyle.NoBrush)
         for index, part in enumerate(project.parts):
@@ -119,6 +126,11 @@ class Canvas(QWidget):
             if part.kind not in "GN":
                 painter.drawText(QPointF(label_x, 21), part.value)
             painter.restore()
+        if highlighted:
+            painter.setPen(QPen(highlight_ink, .09))
+            for point in {pin for part in project.parts for pin in part.pins()} & highlighted:
+                radius = .30 if point == terminal else .18
+                painter.drawEllipse(QPointF(*point), radius, radius)
         if self.editor.active_readings and self.editor.bias_action.isChecked():
             self.draw_bias(painter)
         if self.editor.markers_visible:
@@ -414,6 +426,7 @@ class Canvas(QWidget):
                 event.acceptProposedAction()
 
     def mousePressEvent(self, event):
+        self.editor.bias_list.clearSelection()
         self.setFocus()
         pos = event.position()
         point = self.grid(pos)

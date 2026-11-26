@@ -231,6 +231,8 @@ class Editor(QMainWindow):
         self.marker_list.installEventFilter(self)
         self.marker_dock = self.dock("Measurement markers", self.marker_list, Qt.DockWidgetArea.RightDockWidgetArea)
         self.bias_list = QListWidget()
+        self.bias_list.itemSelectionChanged.connect(self.canvas.update)
+        self.reading_nets = {}
         bias_panel = QWidget()
         bias_layout = QVBoxLayout(bias_panel)
         bias_layout.addWidget(self.bias_list)
@@ -334,17 +336,31 @@ class Editor(QMainWindow):
         self.active_readings = self.readings if revision == self.readings_revision else None
         self.bias_action.setEnabled(bool(self.active_readings))
         self.voltage_style_button.setEnabled(bool(self.active_readings))
+        selected = self.bias_list.selectedItems()
+        previous = selected[0].data(Qt.ItemDataRole.UserRole) if selected else None
         self.bias_list.clear()
-        if self.active_readings:
-            for node in self.active_readings["nodes"]:
-                name = "Ground" if node["net"] == "0" else node["net"]
-                self.bias_list.addItem(f"{name}    {engineering(node['value'], 'V')}")
-            for current in self.active_readings["currents"]:
-                part = self.project.parts[current["part"]]
-                pin, value = current["pin"], current["value"]
-                terminal = part.port_names[pin] if pin < len(part.port_names) else f"pin {pin+1}"
-                direction = " into" if value > 0 else " out of" if value < 0 else ""
-                self.bias_list.addItem(f"{part.ref} · {terminal}    {engineering(abs(value), 'A')}{direction}")
+        self.reading_nets = connectivity(self.project) if self.active_readings else {}
+        if not self.active_readings:
+            return
+
+        def add_reading(text, net, pin=None):
+            item = QListWidgetItem(text)
+            item.setData(Qt.ItemDataRole.UserRole, (net, pin))
+            self.bias_list.addItem(item)
+            if (net, pin) == previous:
+                self.bias_list.setCurrentItem(item)
+
+        for node in self.active_readings["nodes"]:
+            name = "Ground" if node["net"] == "0" else node["net"]
+            add_reading(f"{name}    {engineering(node['value'], 'V')}", node["net"])
+        for current in self.active_readings["currents"]:
+            part = self.project.parts[current["part"]]
+            pin, value = current["pin"], current["value"]
+            terminal = part.port_names[pin] if pin < len(part.port_names) else f"pin {pin+1}"
+            direction = " into" if value > 0 else " out of" if value < 0 else ""
+            point = part.pins()[pin]
+            add_reading(f"{part.ref} · {terminal}    {engineering(abs(value), 'A')}{direction}",
+                        self.reading_nets[point], point)
 
     def edit_voltage_labels(self):
         if not self.active_readings:

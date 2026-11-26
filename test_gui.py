@@ -375,6 +375,19 @@ class GuiTests(unittest.TestCase):
             readings = self.window.active_readings
             self.assertAlmostEqual(next(node["value"] for node in readings["nodes"] if node["net"] == "out"), 5)
             self.assertAlmostEqual(readings["currents"][0]["value"], -.005)
+            output_row = next(i for i, node in enumerate(readings["nodes"]) if node["net"] == "out")
+            before = self.window.canvas.grab().toImage()
+            self.window.bias_list.setCurrentRow(output_row)
+            self.assertEqual(self.window.bias_list.currentItem().data(Qt.ItemDataRole.UserRole), ("out", None))
+            self.assertNotEqual(before, self.window.canvas.grab().toImage())
+            self.click(18, 12)
+            self.assertFalse(self.window.bias_list.selectedItems())
+            self.assertEqual(before, self.window.canvas.grab().toImage())
+            part = self.window.project.parts[readings["currents"][0]["part"]]
+            pin = part.pins()[readings["currents"][0]["pin"]]
+            self.window.bias_list.setCurrentRow(len(readings["nodes"]))
+            self.assertEqual(self.window.bias_list.currentItem().data(Qt.ItemDataRole.UserRole),
+                             (self.window.reading_nets[pin], pin))
             self.assertFalse(self.window.plot_window.isVisible())
             self.window.open_plots()
             self.assertTrue(self.window.plot_window.isVisible())
