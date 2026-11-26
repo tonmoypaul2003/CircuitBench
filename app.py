@@ -135,8 +135,6 @@ class Editor(QMainWindow):
         self.action(simulation, "Show plot", "", self.open_plots)
         self.action(simulation, "Open saved waveform…", "", self.open_waveform)
         self.action(simulation, "Export waveform CSV…", "", self.export_waveform)
-        help_menu = self.menuBar().addMenu("&Help")
-        self.action(help_menu, "About CircuitBench…", "", self.show_about)
         markers = self.menuBar().addMenu("&Markers")
         for mode, title, key in (("Mark V", "Voltage", "Ctrl+M"),
                                  ("Mark VD", "Differential voltage", ""),
@@ -148,6 +146,8 @@ class Editor(QMainWindow):
         show.setChecked(True)
         self.action(markers, "Remove last marker", "", self.remove_last_marker)
         self.action(markers, "Clear all markers", "", self.clear_markers)
+        help_menu = self.menuBar().addMenu("&Help")
+        self.action(help_menu, "About CircuitBench…", "", self.show_about)
 
         library = QWidget()
         library_layout = QVBoxLayout(library)
@@ -262,6 +262,7 @@ class Editor(QMainWindow):
             "CircuitBench is a desktop schematic editor and circuit simulator. "
             "Draw circuits, run DC, AC, and transient analyses with ngspice, "
             "and inspect or export the results in CircuitBench Simulation.\n\n"
+            "Developer: Tonmoy Paul\n"
             "Licensed under GPL-3.0-only.")
         project = box.addButton("GitHub project", QMessageBox.ButtonRole.ActionRole)
         box.addButton(QMessageBox.StandardButton.Close)
