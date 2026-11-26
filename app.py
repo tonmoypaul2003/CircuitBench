@@ -6,27 +6,32 @@ import shutil
 import sys
 import tempfile
 
-from PyQt6.QtCore import QPointF, QProcess, Qt, QUrl
-from PyQt6.QtGui import QAction, QActionGroup, QDesktopServices, QIcon
+from PyQt6.QtCore import QEvent, QItemSelectionModel, QPointF, QProcess, QSettings, Qt, QUrl
+from PyQt6.QtGui import QAction, QActionGroup, QColor, QDesktopServices, QIcon
 from PyQt6.QtWidgets import (
-    QApplication, QComboBox, QDialog, QDialogButtonBox, QDockWidget, QFileDialog,
-    QFormLayout, QInputDialog, QLabel, QLineEdit, QListWidget, QListWidgetItem, QMainWindow,
+    QApplication, QCheckBox, QColorDialog, QComboBox, QDialog, QDialogButtonBox, QDockWidget, QFileDialog,
+    QFormLayout, QInputDialog, QLabel, QLineEdit, QListWidget, QListWidgetItem, QMainWindow, QAbstractItemView,
     QMessageBox, QPlainTextEdit, QPushButton, QSpinBox, QTabWidget, QToolBar,
     QHBoxLayout, QVBoxLayout, QWidget,
 )
 
-from canvas import Canvas
+from canvas import Canvas, engineering
 from circuit import (GENERIC_MODELS, Profile, Project, SOURCE_DEFAULTS, SYMBOLS, WAVE_FIELDS, connectivity,
                      diode_model, example, marker_node, netlist, number, on_wire, source_tokens,
                      source_value, translate_selection)
 from plotting import PlotReportPage, Waveform
 from qucs_library import import_diodes
-from results import analysis_deck, load_plot
+from results import analysis_deck, bias_deck, bias_readings, load_plot, trim_bias_vectors
 from spice_library import MODEL_PORTS, read_library
 
 
 RUNTIME = Path(__file__).resolve().parent / "runtime"
 BUNDLED_SOLVER = RUNTIME / "ngspice" / "bin" / "ngspice_con.exe"
+
+
+class MarkerList(QListWidget):
+    def selectionCommand(self, index, event=None):
+        return QItemSelectionModel.SelectionFlag.NoUpdate
 
 
 class Editor(QMainWindow):
@@ -39,6 +44,9 @@ class Editor(QMainWindow):
         self.mode = "Select"
         self.selected = None
         self.selected_parts, self.selected_wires, self.selected_junctions = set(), set(), set()
+        self.selected_markers = set()
+        self.readings = self.active_readings = None
+        self.readings_revision = None
         self.process = None
         self.cancelled = False
         self.run_dir = None
@@ -49,16 +57,6 @@ class Editor(QMainWindow):
         self.canvas = Canvas(self)
         self.setCentralWidget(self.canvas)
         self.resize(1260, 800)
-        self.setStyleSheet("""
-            QMainWindow { background: #e8eeeb; }
-            QToolBar { background: #edf3f0; spacing: 5px; padding: 5px; border: 0; }
-            QToolButton { border: 1px solid transparent; border-radius: 4px; padding: 5px 8px; }
-            QToolButton:hover { background: #d9e7e2; }
-            QToolButton:checked { color: #144e43; background: #d1e9df; border-color: #8bb5a7; }
-            QDockWidget::title { background: #e0ebe6; padding: 6px; }
-            QListWidget::item { padding: 5px 4px; }
-            QStatusBar { background: #e0ebe6; color: #294a42; }
-        """)
         self.setDockNestingEnabled(True)
         self.catalog = []
         self.placement_model = None
@@ -83,6 +81,7 @@ class Editor(QMainWindow):
         self.action(file_menu, "Save as…", "Ctrl+Shift+S", lambda: self.save(True))
         self.action(file_menu, "Load voltage divider example", "", lambda: self.replace(example()))
         self.action(file_menu, "Load RC filter AC example", "", self.load_ac_example)
+        self.action(file_menu, "Load RC transient example", "", lambda: self.load_ac_example(True))
         edit = self.menuBar().addMenu("&Edit")
         self.action(edit, "Undo", "Ctrl+Z", lambda: self.restore(self.undo_stack, self.redo_stack))
         self.action(edit, "Redo", "Ctrl+Y", lambda: self.restore(self.redo_stack, self.undo_stack))
@@ -110,6 +109,14 @@ class Editor(QMainWindow):
         view = self.menuBar().addMenu("&View")
         view.addAction(self.action(tools, "Fit schematic", "F", self.fit_view))
         self.action(view, "Reset zoom", "", self.reset_view)
+        theme_menu = view.addMenu("Theme")
+        self.theme_settings = QSettings("CircuitBench", "CircuitBench")
+        self.theme_options = QActionGroup(self)
+        for theme in ("System", "Light", "Dark"):
+            action = self.action(theme_menu, theme, "", lambda theme=theme: self.set_theme(theme))
+            action.setCheckable(True)
+            self.theme_options.addAction(action)
+        self.set_theme(self.theme_settings.value("theme", "System"))
         tools.addSeparator()
         self.action(tools, "Analysis setup…", "", self.edit_profile)
         self.action(tools, "Netlist", "", self.preview)
@@ -123,7 +130,7 @@ class Editor(QMainWindow):
         simulation.addSeparator()
         self.action(simulation, "Choose ngspice executable…", "", self.choose_solver)
         self.action(simulation, "Run history…", "", self.open_run_history)
-        self.action(simulation, "Plot window…", "", self.open_plots)
+        self.action(simulation, "Show plot", "", self.open_plots)
         self.action(simulation, "Open saved waveform…", "", self.open_waveform)
         self.action(simulation, "Export waveform CSV…", "", self.export_waveform)
         markers = self.menuBar().addMenu("&Markers")
@@ -213,9 +220,25 @@ class Editor(QMainWindow):
         self.plot_pages.tabBarDoubleClicked.connect(self.rename_plot_page)
         plots_layout.addWidget(self.plot_pages)
         self.wave = Waveform()
+        self.marker_list = MarkerList()
+        self.marker_list.setSelectionMode(QAbstractItemView.SelectionMode.ExtendedSelection)
+        self.marker_list.itemClicked.connect(self.select_marker_item)
+        self.marker_list.installEventFilter(self)
+        self.marker_dock = self.dock("Measurement markers", self.marker_list, Qt.DockWidgetArea.RightDockWidgetArea)
+        self.bias_list = QListWidget()
+        bias_panel = QWidget()
+        bias_layout = QVBoxLayout(bias_panel)
+        bias_layout.addWidget(self.bias_list)
+        self.voltage_style_button = QPushButton("Voltage label appearance…")
+        self.voltage_style_button.clicked.connect(self.edit_voltage_labels)
+        bias_layout.addWidget(self.voltage_style_button)
+        self.bias_dock = self.dock("Readings", bias_panel, Qt.DockWidgetArea.RightDockWidgetArea)
+        self.bias_action = self.action(view, "Show schematic readings", "", self.canvas.update)
+        self.bias_action.setCheckable(True)
+        self.bias_action.setChecked(True)
         self.output_dock = self.dock("Simulation output", self.tabs, Qt.DockWidgetArea.BottomDockWidgetArea)
         view.addSeparator()
-        for panel in (self.library_dock, self.properties_dock, self.output_dock):
+        for panel in (self.library_dock, self.properties_dock, self.marker_dock, self.bias_dock, self.output_dock):
             view.addAction(panel.toggleViewAction())
             panel.hide()
         self.coordinates = QLabel("X 0   Y 0")
@@ -224,6 +247,161 @@ class Editor(QMainWindow):
         self.select(None)
         self.refresh()
         self.set_mode("Select")
+        QApplication.styleHints().colorSchemeChanged.connect(self.apply_theme)
+
+    def set_theme(self, preference):
+        options = {"System": Qt.ColorScheme.Unknown, "Light": Qt.ColorScheme.Light, "Dark": Qt.ColorScheme.Dark}
+        if preference not in options:
+            preference = "System"
+        self.theme_preference = preference
+        self.theme_settings.setValue("theme", preference)
+        for action in self.theme_options.actions():
+            action.setChecked(action.text() == preference)
+        QApplication.styleHints().setColorScheme(options[preference])
+        self.apply_theme()
+
+    def apply_theme(self):
+        self.dark_theme = (self.theme_preference == "Dark" or
+                           (self.theme_preference == "System"
+                            and QApplication.styleHints().colorScheme() == Qt.ColorScheme.Dark))
+        QApplication.instance().setProperty("circuitbenchDark", self.dark_theme)
+        self.setStyleSheet("""
+            QMainWindow { background: #e8eeeb; }
+            QToolBar { background: #edf3f0; spacing: 5px; padding: 5px; border: 0; }
+            QToolButton { border: 1px solid transparent; border-radius: 4px; padding: 5px 8px; }
+            QToolButton:hover { background: #d9e7e2; }
+            QToolButton:checked { color: #144e43; background: #d1e9df; border-color: #8bb5a7; }
+            QDockWidget::title { background: #e0ebe6; padding: 6px; }
+            QListWidget::item { padding: 5px 4px; }
+            QStatusBar { background: #e0ebe6; color: #294a42; }
+        """ if not self.dark_theme else """
+            QToolBar { spacing: 5px; padding: 5px; }
+            QDockWidget::title { padding: 6px; }
+            QListWidget::item { padding: 5px 4px; }
+        """)
+        self.canvas.update()
+
+    def eventFilter(self, watched, event):
+        if watched is self.marker_list and event.type() == QEvent.Type.KeyPress and event.key() == Qt.Key.Key_Delete:
+            self.delete()
+            return True
+        return super().eventFilter(watched, event)
+
+    def select_marker_item(self, item):
+        self.set_mode("Select")
+        self.select_marker(self.marker_list.row(item),
+                           bool(QApplication.keyboardModifiers() & Qt.KeyboardModifier.ShiftModifier))
+
+    def select_marker(self, index, extend):
+        selected = self.selected_markers ^ {index} if extend else {index}
+        groups = (self.selected_parts, self.selected_wires, self.selected_junctions) if extend else (set(), set(), set())
+        self.set_selection(*groups, markers=selected)
+
+    def refresh_markers(self):
+        self.marker_list.clear()
+        for index, marker in enumerate(self.project.markers):
+            label = (f"I({marker['ref']}:{marker['pin']+1})" if marker["kind"] == "I" else
+                     marker["kind"] + " " + " / ".join(f"{x},{y}" for x, y in marker["points"]))
+            self.marker_list.addItem(f"{index+1}. {label}")
+        self.highlight_markers()
+
+    def highlight_markers(self):
+        for index in range(self.marker_list.count()):
+            self.marker_list.item(index).setSelected(index in self.selected_markers)
+
+    def refresh_readings(self, revision):
+        self.active_readings = self.readings if revision == self.readings_revision else None
+        self.bias_action.setEnabled(bool(self.active_readings))
+        self.voltage_style_button.setEnabled(bool(self.active_readings))
+        self.bias_list.clear()
+        if self.active_readings:
+            for node in self.active_readings["nodes"]:
+                name = "Ground" if node["net"] == "0" else node["net"]
+                self.bias_list.addItem(f"{name}    {engineering(node['value'], 'V')}")
+            for current in self.active_readings["currents"]:
+                part = self.project.parts[current["part"]]
+                pin, value = current["pin"], current["value"]
+                terminal = part.port_names[pin] if pin < len(part.port_names) else f"pin {pin+1}"
+                direction = " into" if value > 0 else " out of" if value < 0 else ""
+                self.bias_list.addItem(f"{part.ref} · {terminal}    {engineering(abs(value), 'A')}{direction}")
+
+    def edit_voltage_labels(self):
+        if not self.active_readings:
+            return
+        settings = self.project.voltage_labels
+        dialog = QDialog(self)
+        dialog.setWindowTitle("Voltage label appearance")
+        form = QFormLayout(dialog)
+        target = QComboBox()
+        target.addItem("Default for all nodes", "*")
+        for node in self.active_readings["nodes"]:
+            target.addItem("Ground" if node["net"] == "0" else node["net"], node["net"])
+        form.addRow("Apply to", target)
+        inherit = QCheckBox("Use default for this node")
+        form.addRow(inherit)
+        automatic = QCheckBox("Use theme color")
+        color_button = QPushButton()
+        form.addRow(automatic, color_button)
+        size, horizontal, vertical = QSpinBox(), QSpinBox(), QSpinBox()
+        for spin, title, low, high in ((size, "Text size", 8, 48),
+                                       (horizontal, "Horizontal offset", -500, 500),
+                                       (vertical, "Vertical offset", -500, 500)):
+            spin.setRange(low, high)
+            spin.setSuffix(" px")
+            form.addRow(title, spin)
+        help_text = QLabel("Positive offsets move the label right and down.")
+        form.addRow(help_text)
+        buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
+        buttons.accepted.connect(dialog.accept)
+        buttons.rejected.connect(dialog.reject)
+        form.addRow(buttons)
+        color = self.canvas.ink("#0f766e")
+
+        def update_controls():
+            custom = not inherit.isChecked()
+            for widget in (automatic, size, horizontal, vertical):
+                widget.setEnabled(custom)
+            color_button.setEnabled(custom and not automatic.isChecked())
+            color_button.setText(color.name())
+
+        def choose_color():
+            nonlocal color
+            chosen = QColorDialog.getColor(color, dialog, "Voltage label color")
+            if chosen.isValid():
+                color = chosen
+                automatic.setChecked(False)
+                update_controls()
+
+        def load_style():
+            nonlocal color
+            key = target.currentData()
+            style = settings.get(key, settings.get("*", {"color": None, "size": 12, "x": 0, "y": 0}))
+            color = QColor(style["color"]) if style["color"] else self.canvas.ink("#0f766e")
+            inherit.setVisible(key != "*")
+            inherit.setChecked(key != "*" and key not in settings)
+            automatic.setChecked(style["color"] is None)
+            size.setValue(style["size"])
+            horizontal.setValue(style["x"])
+            vertical.setValue(style["y"])
+            update_controls()
+
+        target.currentIndexChanged.connect(load_style)
+        inherit.toggled.connect(update_controls)
+        automatic.toggled.connect(update_controls)
+        color_button.clicked.connect(choose_color)
+        load_style()
+        if dialog.exec():
+            key = target.currentData()
+            style = (None if inherit.isChecked() else
+                     {"color": None if automatic.isChecked() else color.name(), "size": size.value(),
+                      "x": horizontal.value(), "y": vertical.value()})
+            if style != settings.get(key):
+                self.checkpoint()
+                if style is None:
+                    settings.pop(key, None)
+                else:
+                    settings[key] = style
+                self.refresh()
 
     def action(self, menu, title, key, callback):
         action = QAction(title, self)
@@ -406,11 +584,14 @@ class Editor(QMainWindow):
         self.profiles.setCurrentText(self.project.active)
         self.profiles.blockSignals(False)
         revision = self.project.dump()
+        self.refresh_markers()
+        simulation_revision = self.project.dump(include_label_styles=False)
+        self.refresh_readings(simulation_revision)
         title = self.path.stem if self.path else "Untitled"
         self.setWindowTitle(f"{title}{' *' if revision != self.saved else ''} — CircuitBench")
         for index in range(self.plot_pages.count()):
             page = self.plot_pages.widget(index)
-            suffix = "" if page.revision == revision else " · other revision"
+            suffix = "" if page.revision == simulation_revision else " · other revision"
             self.plot_pages.setTabText(index, page.title + suffix)
         self.canvas.update()
 
@@ -458,9 +639,11 @@ class Editor(QMainWindow):
         parts = {i for i, item in enumerate(self.project.parts) if item is part}
         self.set_selection(parts, {wire} if wire is not None else set(), set())
 
-    def set_selection(self, parts, wires, junctions):
+    def set_selection(self, parts, wires, junctions, *, markers=None):
+        self.selected_markers = markers if markers is not None else set()
+        self.highlight_markers()
         self.selected_parts, self.selected_wires, self.selected_junctions = parts, wires, junctions
-        count = len(parts)+len(wires)+len(junctions)
+        count = len(parts)+len(wires)+len(junctions)+len(self.selected_markers)
         part = self.project.parts[next(iter(parts))] if count == 1 and parts else None
         self.selected = part
         self.ref.setText(part.ref if part else "")
@@ -492,10 +675,10 @@ class Editor(QMainWindow):
             parts |= self.selected_parts
             wires |= self.selected_wires
             junctions |= self.selected_junctions
-        self.set_selection(parts, wires, junctions)
+        self.set_selection(parts, wires, junctions, markers=self.selected_markers if extend else None)
 
     def move_group(self, dx, dy):
-        if not (dx or dy):
+        if not (dx or dy) or not (self.selected_parts or self.selected_wires or self.selected_junctions):
             return
         snapshot = self.project.dump()
         try:
@@ -503,7 +686,8 @@ class Editor(QMainWindow):
                                 self.selected_junctions, dx, dy)
         except ValueError as error:
             self.project = Project.load(snapshot)
-            self.set_selection(self.selected_parts, self.selected_wires, self.selected_junctions)
+            self.set_selection(self.selected_parts, self.selected_wires, self.selected_junctions,
+                               markers=self.selected_markers)
             self.error(str(error))
             return
         self.undo_stack.append(snapshot)
@@ -676,12 +860,14 @@ class Editor(QMainWindow):
         if self.project.markers:
             self.checkpoint()
             self.project.markers.pop()
+            self.selected_markers.discard(len(self.project.markers))
             self.refresh()
 
     def clear_markers(self):
         if self.project.markers:
             self.checkpoint()
             self.project.markers.clear()
+            self.selected_markers.clear()
             self.refresh()
 
     def transform_selected(self, x, y, rotation):
@@ -728,11 +914,12 @@ class Editor(QMainWindow):
                 self.error(str(error))
 
     def delete(self):
-        if self.selected_parts or self.selected_wires or self.selected_junctions:
+        if self.selected_parts or self.selected_wires or self.selected_junctions or self.selected_markers:
             self.checkpoint()
             refs = {self.project.parts[index].ref.upper() for index in self.selected_parts}
-            self.project.markers = [marker for marker in self.project.markers
-                                    if marker["kind"] != "I" or marker["ref"].upper() not in refs]
+            self.project.markers = [marker for index, marker in enumerate(self.project.markers)
+                                    if index not in self.selected_markers
+                                    and (marker["kind"] != "I" or marker["ref"].upper() not in refs)]
             for name, selected in (("parts", self.selected_parts), ("wires", self.selected_wires),
                                    ("junctions", self.selected_junctions)):
                 setattr(self.project, name, [item for index, item in enumerate(getattr(self.project, name))
@@ -769,12 +956,12 @@ class Editor(QMainWindow):
             except (OSError, ValueError, TypeError, KeyError) as error:
                 self.error(str(error))
 
-    def load_ac_example(self):
+    def load_ac_example(self, transient=False):
         project = example()
         load = project.parts[2]
         load.kind, load.ref, load.value = "C", "C1", "1u"
-        project.parts[0].value = "DC 0 AC 1 0"
-        project.active = "AC sweep"
+        project.parts[0].value = "PULSE 0 1 0 1n 1n 10m 20m" if transient else "DC 0 AC 1 0"
+        project.active = "Transient" if transient else "AC sweep"
         self.replace(project)
 
     def save(self, save_as=False):
@@ -989,7 +1176,7 @@ class Editor(QMainWindow):
         self.tabs.setCurrentWidget(self.log)
         if (folder / "result.raw").is_file():
             snapshot = (folder / "project.cwb").read_text(encoding="utf-8")
-            self.show_plot(load_plot(folder / "result.raw"), snapshot)
+            self.show_run_result(folder, snapshot)
 
     def run(self):
         if self.process is not None:
@@ -1005,7 +1192,11 @@ class Editor(QMainWindow):
             parent.mkdir(exist_ok=True)
             folder = Path(tempfile.mkdtemp(prefix="run-", dir=parent))
             (folder / "schematic.cir").write_text(deck, encoding="ascii")
-            (folder / "circuit.cir").write_text(analysis_deck(deck), encoding="ascii")
+            solver_deck = deck
+            if self.project.profiles[self.project.active].mode == "OP":
+                solver_deck, metadata = bias_deck(self.project)
+                (folder / "operating-point.json").write_text(json.dumps(metadata), encoding="utf-8")
+            (folder / "circuit.cir").write_text(analysis_deck(solver_deck), encoding="ascii")
             revision = self.project.dump()
             (folder / "project.cwb").write_text(revision, encoding="utf-8")
         except (OSError, ValueError) as error:
@@ -1055,12 +1246,15 @@ class Editor(QMainWindow):
                     with path.open(encoding="utf-8", errors="replace") as log:
                         self.log.appendPlainText(log.read(60000))
             if code == 0 and not self.cancelled:
-                self.show_plot(load_plot(self.run_dir / "result.raw"), self.pending_revision)
+                self.show_run_result(self.run_dir, self.pending_revision)
                 status = "completed"
             else:
                 self.error(f"Simulation {status} (exit {code})")
         except (OSError, ValueError) as error:
             self.error(str(error))
+        if status != "completed":
+            self.readings = None
+            self.refresh()
         try:
             (self.run_dir / "status.json").write_text(json.dumps({
                 "status": status, "exit_code": code, "executable": self.run_executable,
@@ -1068,19 +1262,37 @@ class Editor(QMainWindow):
         except OSError as error:
             self.error(str(error))
 
-    def show_plot(self, plot, revision):
+    def show_run_result(self, folder, revision):
+        metadata = folder / "operating-point.json"
+        operating_point = json.loads(metadata.read_text(encoding="utf-8")) if metadata.is_file() else None
+        snapshot = Project.load(revision)
+        self.show_plot(load_plot(folder / "result.raw"), revision, operating_point=operating_point,
+                       open_window=snapshot.profiles[snapshot.active].mode not in ("OP", "DC"))
+        if self.active_readings:
+            self.bias_dock.show()
+
+    def show_plot(self, plot, revision, *, operating_point=None, open_window=True):
         measurements = []
         if revision is not None:
             try:
                 snapshot = Project.load(revision)
-                revision = snapshot.dump()
+                revision = snapshot.dump(include_label_styles=False)
                 netlist(snapshot, measurements)
             except (KeyError, TypeError, ValueError):
                 measurements.clear()
-        page = self.add_plot_page(plot, revision, plot.marker_columns(measurements) or None)
+        selected = plot.marker_columns(measurements)
+        self.readings_revision = revision
+        self.readings = None
+        if operating_point and len(plot.rows) == 1:
+            self.readings = bias_readings(plot, operating_point)
+            selected = trim_bias_vectors(plot, operating_point, selected)
+        page = self.add_plot_page(plot, revision, selected or None)
         self.wave, self.run_revision = page.wave, revision
         self.refresh()
-        self.open_plots()
+        if open_window:
+            self.open_plots()
+        else:
+            self.plot_window.hide()
 
     def open_plots(self):
         self.plot_window.show()
@@ -1127,7 +1339,11 @@ class Editor(QMainWindow):
             try:
                 path = Path(name)
                 snapshot = path.with_name("project.cwb")
-                self.show_plot(load_plot(path), snapshot.read_text(encoding="utf-8") if snapshot.exists() else None)
+                if path.name == "result.raw" and snapshot.exists() and path.with_name("operating-point.json").exists():
+                    self.show_run_result(path.parent, snapshot.read_text(encoding="utf-8"))
+                    self.open_plots()
+                else:
+                    self.show_plot(load_plot(path), snapshot.read_text(encoding="utf-8") if snapshot.exists() else None)
             except (OSError, ValueError) as error:
                 self.error(str(error))
 

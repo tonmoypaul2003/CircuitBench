@@ -8,9 +8,10 @@ from results import Plot
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 try:
-    from PyQt6.QtCore import QPoint, QPointF, Qt
+    from PyQt6.QtCore import QPoint, QPointF, Qt, QTimer
     from PyQt6.QtGui import QColor, QImage
     from PyQt6.QtTest import QTest
+    from PyQt6.QtWidgets import QCheckBox, QComboBox, QSpinBox
     from app import QApplication, Editor, example
 except ModuleNotFoundError as error:
     if error.name != "PyQt6":
@@ -260,6 +261,58 @@ class GuiTests(unittest.TestCase):
         self.window.restore(self.window.undo_stack, self.window.redo_stack)
         self.assertEqual(len(self.window.project.markers), 1)
 
+    def test_select_and_delete_measurement_markers(self):
+        self.window.replace(example())
+        self.window.project.markers = [
+            {"kind": "V", "points": [[5, -2]]},
+            {"kind": "VD", "points": [[-6, -2], [5, 2]]},
+            {"kind": "I", "ref": "R2", "pin": 0},
+        ]
+        self.window.refresh()
+        self.click(-6, -2)
+        self.assertEqual(self.window.selected_markers, {1})
+        self.assertTrue(self.window.marker_list.item(1).isSelected())
+        QTest.mouseClick(self.window.canvas, Qt.MouseButton.LeftButton, Qt.KeyboardModifier.ShiftModifier,
+                         self.pixel(5, -2))
+        self.assertEqual(len(self.window.selected_markers), 2)
+        QTest.keyClick(self.window.canvas, Qt.Key.Key_Delete)
+        self.assertEqual(len(self.window.project.markers), 1)
+        self.window.restore(self.window.undo_stack, self.window.redo_stack)
+        self.assertEqual(len(self.window.project.markers), 3)
+        self.window.marker_dock.show()
+        item = self.window.marker_list.item(0)
+        QTest.mouseClick(self.window.marker_list.viewport(), Qt.MouseButton.LeftButton,
+                         pos=self.window.marker_list.visualItemRect(item).center())
+        self.assertEqual(self.window.selected_markers, {0})
+        QTest.keyClick(self.window.marker_list, Qt.Key.Key_Delete)
+        self.assertEqual([marker["kind"] for marker in self.window.project.markers], ["VD", "I"])
+
+    def test_voltage_label_appearance_keeps_readings_and_round_trips(self):
+        self.window.replace(example())
+        project = self.window.project
+        self.window.readings = {"nodes": [{"net": "out", "point": [5, -2], "value": 5}], "currents": []}
+        self.window.readings_revision = project.dump(include_label_styles=False)
+        self.window.refresh()
+        style = {"color": "#ae2060", "size": 20, "x": 35, "y": -25}
+        project.voltage_labels["*"] = style.copy()
+
+        def set_node_style():
+            dialog = self.application.activeModalWidget()
+            dialog.findChild(QComboBox).setCurrentIndex(1)
+            dialog.findChildren(QCheckBox)[0].setChecked(False)
+            dialog.findChildren(QSpinBox)[0].setValue(24)
+            dialog.accept()
+
+        QTimer.singleShot(0, set_node_style)
+        self.window.edit_voltage_labels()
+        self.assertEqual(project.voltage_labels["out"], {**style, "size": 24})
+        self.assertEqual(self.window.active_readings["nodes"][0]["value"], 5)
+        self.assertFalse(self.window.canvas.grab().isNull())
+        self.assertEqual(type(project).load(project.dump()).voltage_labels, project.voltage_labels)
+        self.window.restore(self.window.undo_stack, self.window.redo_stack)
+        self.assertEqual(self.window.project.voltage_labels, {"*": style})
+        self.assertIsNotNone(self.window.active_readings)
+
     @unittest.skipUnless(SOLVER, "Set NGSPICE to run the GUI simulation workflow")
     def test_run_displays_result_and_persists_snapshot(self):
         self.window.replace(example())
@@ -277,6 +330,19 @@ class GuiTests(unittest.TestCase):
             plot = self.window.wave.plot
             self.assertIsNotNone(plot, self.window.log.toPlainText())
             self.assertAlmostEqual(plot.rows[0][plot.names.index("v(out)")].real, 5)
+            readings = self.window.active_readings
+            self.assertAlmostEqual(next(node["value"] for node in readings["nodes"] if node["net"] == "out"), 5)
+            self.assertAlmostEqual(readings["currents"][0]["value"], -.005)
+            self.assertFalse(self.window.plot_window.isVisible())
+            self.window.open_plots()
+            self.assertTrue(self.window.plot_window.isVisible())
+            self.assertFalse(self.window.canvas.grab().isNull())
+            self.window.checkpoint()
+            self.window.project.parts[1].value = "2k"
+            self.window.refresh()
+            self.assertIsNone(self.window.active_readings)
+            self.window.restore(self.window.undo_stack, self.window.redo_stack)
+            self.assertEqual(self.window.active_readings, readings)
             self.assertTrue((self.window.run_dir / "project.cwb").is_file())
             self.assertIn('"completed"', (self.window.run_dir / "status.json").read_text())
             self.window.wave.plot = None

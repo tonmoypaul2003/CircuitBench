@@ -1,12 +1,12 @@
 {
-    "frozen":  true,
-    "platform":  "windows",
-    "qucs_models_imported":  121,
-    "midpoint_volts":  5.0,
-    "ac_samples":  201,
-    "png_export":  true,
-    "pdf_export":  true,
-    "status":  "passed",
-    "source_tests_passed":  33,
-    "executable_sha256":  "693f3f4feb59acfbfdda373629c878d3e1367f86d3e9a258aa153fa77bd4f028"
+  "frozen": true,
+  "platform": "windows",
+  "qucs_models_imported": 121,
+  "midpoint_volts": 5.0,
+  "ac_samples": 201,
+  "png_export": true,
+  "pdf_export": true,
+  "status": "passed",
+  "source_tests_passed": 35,
+  "executable_sha256": "001b41f996c43a8d55df4b5b22ccb4328616ad47ae5268e8e68637b8c3d8130a"
 }

@@ -4,7 +4,7 @@ from pathlib import Path
 
 from PyQt6.QtCore import QIODevice, QPointF, QRectF, QSaveFile, Qt, pyqtSignal
 from PyQt6.QtGui import QColor, QImage, QPageSize, QPainter, QPainterPath, QPdfWriter, QPen
-from PyQt6.QtWidgets import (QColorDialog, QComboBox, QDialog, QDialogButtonBox, QFileDialog,
+from PyQt6.QtWidgets import (QApplication, QColorDialog, QComboBox, QDialog, QDialogButtonBox, QFileDialog,
                              QFormLayout, QHBoxLayout, QInputDialog, QLabel, QLineEdit,
                              QListWidget, QListWidgetItem, QPushButton, QScrollArea, QSlider,
                              QVBoxLayout, QWidget)
@@ -77,9 +77,13 @@ class Waveform(QWidget):
         painter = QPainter(self)
         self.draw(painter, self.width(), self.height(), report=False)
 
-    def color(self, column):
+    def chart_background(self, report=False):
+        dark = QApplication.instance().property("circuitbenchDark")
+        return self.background or QColor("#ffffff" if report else "#1b2d28" if dark else "#f7faf8")
+
+    def color(self, column, background=None):
         base = QColor(self.colors[(column-1) % len(self.colors)])
-        if self.background is not None and self.background.lightness() < 128:
+        if (background or self.chart_background()).lightness() < 128:
             base = base.lighter(165)
         return self.trace_colors.get(column, base)
 
@@ -94,7 +98,7 @@ class Waveform(QWidget):
         if not report:
             self.screen_axes = None
         rect = QRectF(0, 0, width, height)
-        background = self.background or QColor("#ffffff" if report else "#f7faf8")
+        background = self.chart_background(report)
         ink = QColor("#173d37" if background.lightness() >= 128 else "#f0f7f4")
         painter.fillRect(rect, background)
         painter.setPen(ink)
@@ -107,7 +111,7 @@ class Waveform(QWidget):
         if "operating point" in self.plot.title.lower():
             for index, column in enumerate(self.columns[:max(0, (height-42)//18)]):
                 label = self.plot.names[column]
-                painter.setPen(self.color(column))
+                painter.setPen(self.color(column, background))
                 painter.drawText(QPointF(18, 38+index*18),
                                  f"{label}   {rows[0][column].real:.7g} {self.plot.units[column]}")
             return
@@ -139,7 +143,7 @@ class Waveform(QWidget):
                 painter.setPen(ink)
                 painter.drawText(QPointF(12, legend_y), "Additional traces…")
                 break
-            painter.setPen(QPen(self.color(column), 2))
+            painter.setPen(QPen(self.color(column, background), 2))
             painter.drawLine(QPointF(legend_x, legend_y-4), QPointF(legend_x+13, legend_y-4))
             painter.drawText(QPointF(legend_x+17, legend_y), name)
             legend_x += label_width
@@ -195,7 +199,7 @@ class Waveform(QWidget):
         painter.save()
         painter.setClipRect(graph)
         for index, values in enumerate(columns):
-            painter.setPen(QPen(self.color(self.columns[index]), 1.5))
+            painter.setPen(QPen(self.color(self.columns[index], background), 1.5))
             path = QPainterPath()
             connected = False
             for x, y in zip(xs, values):
@@ -233,7 +237,7 @@ class Waveform(QWidget):
             if not (xmin <= xs[sample] <= xmax and ymin <= value <= ymax):
                 continue
             point = location(xs[sample], value)
-            painter.setPen(QPen(self.color(column), 1.5))
+            painter.setPen(QPen(self.color(column, background), 1.5))
             painter.drawEllipse(point, 4, 4)
             text = f"{label or self.plot.names[column]} ({rows[sample][0].real:.6g}, {value:.6g})"
             text = metrics.elidedText(text, Qt.TextElideMode.ElideRight, max(30, right-left-12))
@@ -378,7 +382,7 @@ class PlotPage(QWidget):
         self.wave.update()
 
     def choose_background(self):
-        color = QColorDialog.getColor(self.wave.background or QColor("#f7faf8"), self, "Plot background")
+        color = QColorDialog.getColor(self.wave.chart_background(), self, "Plot background")
         if color.isValid():
             self.wave.background = color
             self.wave.update()
