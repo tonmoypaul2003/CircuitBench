@@ -512,3 +512,12 @@ entries for substantive historical mistakes.
     50/50 with zero skips and zero inconsistent results in this sample.
     Three packaged Windows smoke runs passed. Matching root and versioned
     executables verified. Delivery: local build and source ready to push.
+
+2026-11-28 — Desktop v0.4.6 beta QA build republished
+    Pushed fix commit 4a81291 and updated the v0.4.6-beta tag and Windows
+    release executable. Verified the matching digest from an anonymous
+    download with a cache-busting URL after the standard URL returned
+    cached bytes. Removed the previous public asset after verification.
+    CircuitBench.qss remains available as a separate release asset.
+    Release: https://github.com/tonmoypaul2003/CircuitBench/releases/tag/v0.4.6-beta
+    Delivery: published.
