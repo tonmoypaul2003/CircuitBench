@@ -10,7 +10,7 @@ from PyQt6.QtWidgets import (QApplication, QColorDialog, QComboBox, QDialog, QDi
                              QVBoxLayout, QWidget)
 
 from circuit import number
-from plot_math import evaluate
+from plot_math import evaluate, FUNCTIONS
 from results import Plot
 
 
@@ -42,6 +42,9 @@ class Waveform(QWidget):
         self.zoom = 100
         self.zoom_origin = (0., 0.)
         self.data_bounds = None
+        self.reference = None
+        self.hidden_cursor = (None, None)
+        self.cursor_enabled = True
         self.cursor = None
         self.cursor_column = None
         self.title = ""
@@ -54,17 +57,45 @@ class Waveform(QWidget):
         self.x_limits = None
         self.y_limits = None
         self.screen_axes = None
+        self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
+        self.b_active = False
         self.setMinimumHeight(230)
+
+    def keyPressEvent(self,event):
+        steps = {Qt.Key.Key_Left:-1,Qt.Key.Key_Right:1}
+        if event.key() in steps and self.cursor_enabled and self.columns and self.plot.rows:
+            self.cursor = max(0,min(len(self.plot.rows)-1,(self.cursor or 0)+steps[event.key()]))
+            if self.cursor_column not in self.columns:
+                self.cursor_column = self.columns[0]
+            self.cursor_changed.emit()
+            self.update()
+            event.accept()
+            return
+        super().keyPressEvent(event)
 
     def mousePressEvent(self, event):
         self.activated.emit()
         if event.button() == Qt.MouseButton.LeftButton:
             self.move_cursor(event.position().x(), event.position().y())
         elif event.button() == Qt.MouseButton.RightButton:
-            self.cursor = None
-            self.cursor_column = None
+            self.reference = None
+            self.b_active = False
+            self.clear_cursor()
+
+    def clear_cursor(self):
+        self.cursor = self.cursor_column = None
+        self.cursor_changed.emit()
+        self.readout.emit("")
+        self.update()
+
+    def set_cursor_enabled(self, enabled):
+        self.cursor_enabled = enabled
+        if not enabled:
+            self.hidden_cursor = self.cursor, self.cursor_column
+            self.clear_cursor()
+        else:
+            self.cursor, self.cursor_column = self.hidden_cursor
             self.cursor_changed.emit()
-            self.readout.emit("")
             self.update()
 
     def mouseMoveEvent(self, event):
@@ -108,7 +139,7 @@ class Waveform(QWidget):
             painter.drawPolygon(QPolygonF([QPointF(x+dx, y+dy) for dx, dy in vertices]))
 
     def move_cursor(self, x, y=None):
-        if self.screen_axes is None:
+        if not self.cursor_enabled or self.screen_axes is None:
             return
         bounds, xs, columns, plotted, xmin, xmax, ymin, ymax = self.screen_axes
         if plotted != self.columns:
@@ -297,11 +328,20 @@ class Waveform(QWidget):
                     painter.drawEllipse(point, 3, 3)
             painter.drawPath(path)
         painter.restore()
+        if self.cursor_enabled and self.reference and self.reference[1] in self.columns:
+            ax = xs[self.reference[0]]
+            if xmin <= ax <= xmax:
+                position = location(ax,ymin).x()
+                painter.setPen(ink)
+                painter.drawLine(QPointF(position,top),QPointF(position,bottom))
+                painter.drawText(QPointF(position+3,top+13),"A")
         if self.cursor is not None and xmin <= xs[self.cursor] <= xmax:
             sample = self.cursor
             position = location(xs[sample], ymin).x()
             painter.setPen(ink)
             painter.drawLine(QPointF(position, top), QPointF(position, bottom))
+            if self.b_active:
+                painter.drawText(QPointF(position+3,bottom-5),"B")
             for values in columns:
                 if ymin <= values[sample] <= ymax:
                     painter.drawEllipse(location(xs[sample], values[sample]), 3, 3)
@@ -309,6 +349,14 @@ class Waveform(QWidget):
                 [f"{self.plot.names[self.x_column]} = {raw_x[sample]:.10g} {self.plot.units[self.x_column]}"]
                 + [f"{self.plot.names[col]} = {values[sample]:.10g}"
                    for col, values in zip(self.columns, columns)])
+            if self.reference is not None and self.reference[1] in self.columns:
+                a, col = self.reference
+                dx = raw_x[sample]-raw_x[a]
+                bcol = self.cursor_column if self.cursor_column in self.columns else col
+                dy = columns[self.columns.index(bcol)][sample]-columns[self.columns.index(col)][a]
+                readout = f"ΔX {dx:.7g}   ΔY {dy:.7g}   " + readout
+                if dx and self.plot.names[self.x_column].lower() == "time":
+                    readout = f"{1/abs(dx):.7g} Hz   " + readout
             if report:
                 visible = metrics.elidedText(readout, Qt.TextElideMode.ElideRight, width-24)
                 painter.drawText(QPointF(12, height-7), visible)
@@ -317,14 +365,20 @@ class Waveform(QWidget):
         for pin_index, (column, sample, label) in enumerate(self.pins):
             if column not in self.columns:
                 continue
-            value = columns[self.columns.index(column)][sample]
-            if not (xmin <= xs[sample] <= xmax and ymin <= value <= ymax):
+            series = columns[self.columns.index(column)]
+            i = int(sample)
+            frac = sample-i
+            px,value = xs[i],series[i]
+            if frac:
+                px += frac*(xs[i+1]-px)
+                value += frac*(series[i+1]-value)
+            if not (xmin <= px <= xmax and ymin <= value <= ymax):
                 continue
-            point = location(xs[sample], value)
+            point = location(px, value)
             painter.setPen(QPen(self.color(column, background), 1.5))
             shape = self.pin_shapes[pin_index] if pin_index < len(self.pin_shapes) else "Circle"
             self.draw_pin(painter, point, shape)
-            text = f"{label or self.plot.names[column]} ({raw_x[sample]:.6g}, {value:.6g})"
+            text = label or f"{self.plot.names[column]} ({(10**px if logarithmic else px):.8g}, {value:.8g})"
             text = metrics.elidedText(text, Qt.TextElideMode.ElideRight, max(30, right-left-12))
             text_width = metrics.horizontalAdvance(text)
             text_x = max(left+4, min(point.x()+7, right-text_width-4))
@@ -353,6 +407,12 @@ class PlotPage(QWidget):
         add.clicked.connect(self.add_trace)
         drop = QPushButton("Remove trace")
         drop.clicked.connect(self.remove_trace)
+        self.cursor_button = QPushButton("Cursor")
+        self.cursor_button.setCheckable(True)
+        self.cursor_button.setChecked(self.wave.cursor_enabled)
+        self.cursor_button.setEnabled("operating point" not in plot.title.lower())
+        self.cursor_button.setToolTip("Enable the sample cursor, or hide it from the plot and exports")
+        self.cursor_button.toggled.connect(self.wave.set_cursor_enabled)
         self.auto_pin_button = QPushButton("Pin on graph")
         self.auto_pin_button.setToolTip("Pin the sample at the cursor's last position")
         self.auto_pin_button.clicked.connect(self.pin_cursor)
@@ -383,6 +443,31 @@ class PlotPage(QWidget):
         self.x_axis.currentIndexChanged.connect(self.set_x_axis)
         layout = QVBoxLayout(self)
         toolbar = QHBoxLayout()
+        anchor = QPushButton("Set A")
+        anchor.setToolTip("Anchor the current sample as A, then click another point for B")
+        def set_anchor():
+            self.wave.setFocus()
+            if self.wave.reference is not None:
+                self.wave.reference = None
+                self.wave.update()
+            elif self.wave.cursor is not None:
+                self.wave.reference = self.wave.cursor, self.wave.cursor_column
+                self.wave.update()
+        anchor.clicked.connect(set_anchor)
+        toolbar.addWidget(anchor)
+        set_b = QPushButton("Set B")
+        set_b.setToolTip("Keep A fixed and select the second point on the trace")
+        def select_b():
+            self.cursor_button.setChecked(True)
+            self.wave.b_active = not self.wave.b_active
+            if self.wave.b_active:
+                self.wave.setFocus()
+                readout.setText("Click the waveform or use the arrow keys to place B")
+                self.wave.update()
+            else:
+                self.wave.clear_cursor()
+        set_b.clicked.connect(select_b)
+        toolbar.addWidget(set_b)
         toolbar.addWidget(add)
         toolbar.addWidget(drop)
         toolbar.addWidget(self.presentation)
@@ -410,8 +495,14 @@ class PlotPage(QWidget):
         graph_tools.addStretch()
         layout.addLayout(graph_tools)
         pin_tools = QHBoxLayout()
-        for item in (self.auto_pin_button, self.pin_shape, pin, remove_pin):
+        for item in (self.cursor_button, self.auto_pin_button, self.pin_shape, pin, remove_pin):
             pin_tools.addWidget(item)
+        manage = QPushButton("Pinned points…")
+        manage.clicked.connect(self.manage_points)
+        crossing = QPushButton("Intersections…")
+        crossing.clicked.connect(self.intersections)
+        pin_tools.addWidget(manage)
+        pin_tools.addWidget(crossing)
         pin_tools.addStretch()
         layout.addLayout(pin_tools)
         content = QHBoxLayout()
@@ -527,9 +618,7 @@ class PlotPage(QWidget):
         if index:
             self.presentation.setCurrentIndex(0)
         self.presentation.setEnabled(index == 0 and self.wave.plot.names[0].lower() == "frequency")
-        self.wave.cursor = self.wave.cursor_column = None
-        self.wave.readout.emit("")
-        self.update_pin_button()
+        self.wave.clear_cursor()
         self.set_axis_limits(None, None)
 
     def choose_grid_color(self):
@@ -686,6 +775,86 @@ class PlotPage(QWidget):
         buttons.accepted.connect(apply)
         dialog.exec()
 
+    def manage_points(self):
+        dialog = QDialog(self)
+        dialog.setWindowTitle("Pinned points")
+        layout = QVBoxLayout(dialog)
+        points = QListWidget()
+        label = QLineEdit()
+        layout.addWidget(points)
+        layout.addWidget(label)
+        def refresh():
+            points.clear()
+            for col,sample,name in self.wave.pins:
+                points.addItem(name or f"{self.wave.plot.names[col]} at sample {sample:g}")
+        refresh()
+        points.currentRowChanged.connect(lambda row: label.setText(self.wave.pins[row][2] if row>=0 else ""))
+        def edit(remove):
+            row = points.currentRow()
+            if row<0:
+                return
+            if remove:
+                self.wave.pins.pop(row)
+                if row<len(self.wave.pin_shapes):
+                    self.wave.pin_shapes.pop(row)
+            else:
+                col,sample,_ = self.wave.pins[row]
+                self.wave.pins[row] = col,sample,label.text()
+            refresh()
+            points.setCurrentRow(min(row,points.count()-1))
+            self.wave.update()
+        for title,remove in (("Apply label",False),("Delete selected point",True)):
+            button = QPushButton(title)
+            button.clicked.connect(lambda checked=False,r=remove:edit(r))
+            layout.addWidget(button)
+        points.setCurrentRow(0)
+        dialog.exec()
+
+    def intersections(self):
+        from PyQt6.QtWidgets import QMessageBox
+        w = self.wave
+        w.repaint()
+        if not w.screen_axes or len(w.columns)<2:
+            QMessageBox.information(self,"Intersections","Display two waveform traces first.")
+            return
+        _,xs,series,cols,*_ = w.screen_axes
+        names = [w.plot.names[c] for c in cols]
+        first,ok = QInputDialog.getItem(self,"Intersections","First trace",names,editable=False)
+        if not ok:
+            return
+        second,ok = QInputDialog.getItem(self,"Intersections","Second trace",[n for n in names if n!=first],editable=False)
+        if not ok:
+            return
+        a,b = names.index(first),names.index(second)
+        count = 0
+        existing = set(w.pins)
+        for i,(v,u) in enumerate(zip(series[a],series[b])):
+            d = v-u
+            if not math.isfinite(d) or not math.isfinite(xs[i]):
+                continue
+            f = 0.
+            if d:
+                if i+1>=len(xs) or not math.isfinite(xs[i+1]):
+                    continue
+                end = series[a][i+1]-series[b][i+1]
+                if not math.isfinite(end) or d*end>=0:
+                    continue
+                f = d/(d-end)
+            elif ((i and series[a][i-1]==series[b][i-1]) or
+                  (i+1<len(xs) and series[a][i+1]==series[b][i+1])):
+                continue
+            px = xs[i]+f*(xs[i+1]-xs[i]) if f else xs[i]
+            y = v+f*(series[a][i+1]-v) if f else v
+            x = 10**px if w.logarithmic() else px
+            pin = (cols[a],i+f,f"{first} = {second} ({x:.10g}, {y:.10g})")
+            if pin not in existing:
+                existing.add(pin)
+                w.pins.append(pin)
+                w.pin_shapes.append(self.pin_shape.currentText())
+                count+=1
+        w.update()
+        QMessageBox.information(self,"Intersections",f"Added {count} isolated crossing points.")
+
     def remove_pin(self):
         if self.wave.pins:
             self.wave.pins.pop()
@@ -772,6 +941,7 @@ class PlotReportPage(QWidget):
         self.title = plot.title
         self.revision = None
         self.plot = Plot(plot.title, plot.names.copy(), plot.units.copy(), [list(row) for row in plot.rows])
+        self.expressions = []
         self.subplots = []
         layout = QVBoxLayout(self)
         controls = QHBoxLayout()
@@ -804,6 +974,29 @@ class PlotReportPage(QWidget):
         self.expression.returnPressed.connect(self.insert_expression)
         insert = QPushButton("Add expression")
         insert.clicked.connect(self.insert_expression)
+        functions = QComboBox()
+        functions.addItems(["Function…","RMS","MAX","MIN","MEAN",*sorted(FUNCTIONS)])
+        def insert_function(index):
+            if index:
+                self.expression.insert(functions.itemText(index)+"()")
+                self.expression.cursorBackward(False,1)
+                self.expression.setFocus()
+                functions.setCurrentIndex(0)
+        functions.activated.connect(insert_function)
+        self.variable = QComboBox()
+        self.variable.setEditable(True)
+        self.variable.addItems(self.plot.names)
+        self.variable.setMaximumWidth(150)
+        variable_button = QPushButton("Insert variable")
+        def insert_variable():
+            name = self.variable.currentText().strip()
+            if name:
+                self.expression.insert("trace("+repr(name)+")")
+                self.expression.setFocus()
+        variable_button.clicked.connect(insert_variable)
+        insert_bar.addWidget(self.variable)
+        insert_bar.addWidget(variable_button)
+        insert_bar.addWidget(functions)
         insert_bar.addWidget(self.expression, 1)
         insert_bar.addWidget(insert)
         layout.addLayout(insert_bar)
@@ -811,6 +1004,8 @@ class PlotReportPage(QWidget):
         self.message.setWordWrap(True)
         layout.addWidget(self.message)
         self.add_subplot(selected)
+        for button in self.findChildren(QPushButton):
+            button.setAutoDefault(False)
 
     @property
     def wave(self):
@@ -829,6 +1024,8 @@ class PlotReportPage(QWidget):
             self.message.setText("A page can contain up to 12 subplots.")
             return
         subplot = PlotPage(self.plot, selected)
+        for button in subplot.findChildren(QPushButton):
+            button.setAutoDefault(False)
         subplot.wave.title = f"Plot {len(self.subplots)+1}"
         self.subplots.append(subplot)
         subplot.wave.activated.connect(lambda: self.active.setCurrentIndex(self.subplots.index(subplot)))
@@ -877,6 +1074,8 @@ class PlotReportPage(QWidget):
             row.append(value)
         for index, subplot in enumerate(self.subplots):
             subplot.append_trace(column, visible=index == self.active.currentIndex())
+        self.variable.addItem(name)
+        self.expressions.append(text)
         return column
 
     def insert_expression(self):
@@ -956,5 +1155,6 @@ class PlotReportPage(QWidget):
         del device
         if not output.commit():
             raise OSError(output.errorString())
+
 
 

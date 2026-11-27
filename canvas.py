@@ -3,9 +3,9 @@ import math
 
 from PyQt6.QtCore import QPointF, QRectF, Qt
 from PyQt6.QtGui import QColor, QPainter, QPen
-from PyQt6.QtWidgets import QWidget
+from PyQt6.QtWidgets import QApplication, QWidget
 
-from circuit import MODELED_SYMBOLS, Part, SYMBOLS, on_wire
+from circuit import MODELED_SYMBOLS, Part, SYMBOLS, on_wire, symbol_geometry
 from device_symbols import draw_device
 from spice_library import MODEL_PORTS
 
@@ -35,6 +35,7 @@ class Canvas(QWidget):
         self.begin = None
         self.drag = None
         self.move_preview = None
+        self.group_offset = (0, 0)
         self.library_drag = False
         self.setAcceptDrops(True)
         self.pointer = (0, 0)
@@ -60,7 +61,7 @@ class Canvas(QWidget):
         painter.fillRect(sheet, self.ink("#fcfdfc"))
         painter.setPen(self.ink("#cbd9d1"))
         x = origin.x() % self.cell
-        while x < self.width():
+        while getattr(self.editor,'show_dots',True) and x < self.width():
             y = origin.y() % self.cell
             while y < self.height():
                 painter.drawPoint(QPointF(x, y))
@@ -78,6 +79,13 @@ class Canvas(QWidget):
         painter.translate(origin)
         painter.scale(self.cell, self.cell)
         project = self.editor.project
+        for x,y,text in project.annotations:
+            painter.save()
+            painter.translate(x,y)
+            painter.scale(1/self.cell,1/self.cell)
+            painter.setPen(self.ink("#173d37"))
+            painter.drawText(QPointF(0,0),text)
+            painter.restore()
         reading = self.editor.bias_list.selectedItems()
         net, terminal = reading[0].data(Qt.ItemDataRole.UserRole) if reading else (None, None)
         highlighted = {point for point, name in self.editor.reading_nets.items() if name == net}
@@ -120,6 +128,19 @@ class Canvas(QWidget):
             painter.translate(part.x, part.y)
             painter.scale(1/self.cell, 1/self.cell)
             painter.setPen(self.ink("#162e29"))
+            powers = getattr(self.editor, "part_powers", {})
+            if getattr(self.editor, "power_visible", False) and self.editor.active_readings and index in powers:
+                painter.drawText(QPointF(8, 38), engineering(powers[index], "W"))
+            if part.port_sides:
+                painter.drawText(QPointF(-painter.fontMetrics().horizontalAdvance(part.ref)/2, -5), part.ref)
+                painter.drawText(QPointF(-painter.fontMetrics().horizontalAdvance(part.value)/2, 12), part.value)
+                painter.restore()
+                continue
+            if part.opamp_symbol:
+                painter.drawText(QPointF(self.cell*1.15, -25), part.ref)
+                painter.drawText(QPointF(self.cell*1.15, -11), part.value)
+                painter.restore()
+                continue
             label_x = max(8, self.cell*1.6) if part.kind in MODELED_SYMBOLS else 8
             if part.kind != "G":
                 painter.drawText(QPointF(label_x, -12), part.value if part.kind == "N" else part.ref)
@@ -150,7 +171,7 @@ class Canvas(QWidget):
             painter.setBrush(fill)
             painter.drawRect(QRectF(QPointF(*start), QPointF(*self.pointer)).normalized())
             return
-        dx, dy = self.pointer[0]-start[0], self.pointer[1]-start[1]
+        dx, dy = self.group_offset
         if not (dx or dy):
             return
         editor = self.editor
@@ -201,11 +222,14 @@ class Canvas(QWidget):
         kind = self.editor.mode
         if kind == "X" or kind in MODELED_SYMBOLS:
             models = self.editor.project.subcircuits if kind == "X" else self.editor.project.device_models
-            model = models.get(self.editor.placement_value)
+            model = (self.editor.placement_subcircuit() if kind == "X" else
+                     models.get(self.editor.placement_value))
             if model:
                 ports = model["ports"] if kind == "X" else list(MODEL_PORTS[model["type"]][1])
                 preview = Part("", kind, 0, 0, self.editor.placement_value, port_names=ports)
                 if kind == "X":
+                    preview.port_sides = model.get("sides", [])
+                    preview.opamp_symbol = preview.is_op07() and not preview.port_sides
                     self.draw_subcircuit(painter, preview, True)
                 else:
                     self.draw_modeled_symbol(painter, preview, True)
@@ -317,13 +341,59 @@ class Canvas(QWidget):
             painter.drawText(pin + QPointF(7, 16), engineering(abs(value), "A"))
         painter.restore()
 
+    def draw_opamp(self, painter, selected):
+        color = self.ink("#d46127" if selected else "#173d37")
+        painter.setPen(QPen(color, .09))
+        left, tip, height = -1.75, 1.75, 1.85
+        painter.drawLine(QPointF(left, -height), QPointF(tip, 0))
+        painter.drawLine(QPointF(tip, 0), QPointF(left, height))
+        painter.drawLine(QPointF(left, height), QPointF(left, -height))
+        for y in (-1, 1):
+            painter.drawLine(QPointF(-3, y), QPointF(left, y))
+        for sign in (-1, 1):
+            painter.drawLine(QPointF(0, sign*height/2), QPointF(0, sign*3))
+        painter.drawLine(QPointF(tip, 0), QPointF(3, 0))
+        painter.setPen(QPen(color, .075, cap=Qt.PenCapStyle.RoundCap))
+        for y in (-1, 1):
+            painter.drawLine(QPointF(-1.43, y), QPointF(-1.06, y))
+        painter.drawLine(QPointF(-1.245, -1.19), QPointF(-1.245, -.81))
+        for y, label in ((-2.2, "V+"), (2.5, "V−")):
+            painter.save()
+            painter.translate(.16, y)
+            painter.scale(1/self.cell, 1/self.cell)
+            painter.drawText(QPointF(1, 0), label)
+            painter.restore()
+
     def draw_subcircuit(self, painter, part, selected=False):
+        if part.opamp_symbol:
+            self.draw_opamp(painter, selected)
+            return
+        if part.port_sides:
+            width, height, ports = symbol_geometry(part.port_sides)
+            color = self.ink("#d46127" if selected else "#173d37")
+            painter.setPen(QPen(color, .09))
+            painter.drawRect(QRectF(-width, -height, 2*width, 2*height))
+            for (x, y), name, side in zip(ports, part.port_names, part.port_sides):
+                edge = max(-width, min(width, x)), max(-height, min(height, y))
+                painter.drawLine(QPointF(x, y), QPointF(*edge))
+                painter.save()
+                painter.translate(*edge)
+                painter.scale(1/self.cell, 1/self.cell)
+                text_width = painter.fontMetrics().horizontalAdvance(name)
+                shifts = {"Left": (5, -5), "Right": (-text_width-5, -5),
+                          "Top": (-text_width/2, 13), "Bottom": (-text_width/2, -4)}
+                painter.drawText(QPointF(*shifts[side]), name)
+                painter.restore()
+            return
         ports = part.box_offsets()
         height = max(abs(y) for _, y in ports) + 1
         color = self.ink("#d46127" if selected else "#173d37")
         painter.setPen(QPen(color, .09))
         painter.drawRect(QRectF(-2, -height, 4, 2*height))
-        for (x, y), name in zip(ports, part.port_names):
+        labels = part.port_names
+        if part.value == "OP07" and labels == ["3", "2", "7", "4", "6"]:
+            labels = ("IN+", "IN−", "V+", "V−", "OUT")
+        for (x, y), name in zip(ports, labels):
             edge = -2 if x < 0 else 2
             painter.drawLine(QPointF(x, y), QPointF(edge, y))
             painter.save()
@@ -430,6 +500,12 @@ class Canvas(QWidget):
         self.setFocus()
         pos = event.position()
         point = self.grid(pos)
+        if getattr(self.editor,"pending_text",None) and event.button()==Qt.MouseButton.LeftButton:
+            self.editor.checkpoint()
+            self.editor.project.annotations.append([*point,self.editor.pending_text])
+            self.editor.pending_text = None
+            self.editor.refresh()
+            return
         self.pointer = point
         modifiers = event.modifiers()
         if (event.button() == Qt.MouseButton.MiddleButton
@@ -476,7 +552,8 @@ class Canvas(QWidget):
                 if not any(existing & incoming for existing, incoming in zip(groups, hit)):
                     editor.set_selection(*hit)
                 self.move_preview = None
-                self.drag = ("group", point, None)
+                self.group_offset = (0, 0)
+                self.drag = ("group", point, event.globalPosition())
         self.update()
 
     def selection_hit(self, point):
@@ -493,10 +570,18 @@ class Canvas(QWidget):
                 return set(), {index}, set()
         return set(), set(), set()
 
+    def group_delta(self, event):
+        movement = event.globalPosition() - self.drag[2]
+        if movement.manhattanLength() < QApplication.startDragDistance():
+            return 0, 0
+        return round(movement.x()/self.cell), round(movement.y()/self.cell)
+
     def mouseMoveEvent(self, event):
         self.pointer = self.grid(event.position())
         if self.drag and self.drag[0] == "pan":
             self.offset = self.drag[2] + event.position() - self.drag[1]
+        elif self.drag and self.drag[0] == "group":
+            self.group_offset = self.group_delta(event)
         self.editor.coordinates.setText(f"X {self.pointer[0]}   Y {self.pointer[1]}")
         self.update()
 
@@ -506,7 +591,9 @@ class Canvas(QWidget):
             if self.marker_hit(event.position()) is not None:
                 return
             self.editor.set_selection(*self.selection_hit(self.grid(event.position())))
-            self.editor.edit_selection()
+            from studies import inspect_selected
+            if not inspect_selected(self.editor):
+                self.editor.edit_selection()
             return
         super().mouseDoubleClickEvent(event)
 
@@ -522,7 +609,7 @@ class Canvas(QWidget):
                 else:
                     self.editor.select_box(start, end, extend)
             elif mode == "group":
-                self.editor.move_group(end[0]-start[0], end[1]-start[1])
+                self.editor.move_group(*self.group_delta(event))
         self.drag = None
         self.update()
 

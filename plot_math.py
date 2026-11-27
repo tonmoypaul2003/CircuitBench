@@ -69,6 +69,22 @@ def evaluate(expression, plot):
                     return signal(f"{name}({key.id})")
                 if isinstance(key, ast.Constant) and type(key.value) in (str, int):
                     return signal(str(key.value) if name == "trace" else f"{name}({key.value})")
+            if name in ("rms","max","min","mean") and len(node.args)==1:
+                operand = compile_node(node.args[0])
+                values = []
+                for row in plot.rows:
+                    try:
+                        z = complex(operand(row))
+                        value = abs(z) if z.imag or name=="rms" else z.real
+                        if math.isfinite(value):
+                            values.append(value)
+                    except (ValueError,ArithmeticError):
+                        continue
+                if not values:
+                    raise ValueError("No finite samples for "+name)
+                result = (math.sqrt(sum(v*v for v in values)/len(values)) if name=="rms" else
+                          sum(values)/len(values) if name=="mean" else (max if name=="max" else min)(values))
+                return lambda row: result
             if name in FUNCTIONS and len(node.args) == (2 if name in ("pow", "multiply") else 1):
                 function = FUNCTIONS[name]
                 args = [compile_node(arg) for arg in node.args]

@@ -1,0 +1,360 @@
+CIRCUITBENCH PROJECT LOG
+=======================
+
+Developer: Tonmoy Paul
+Log established: 2026-11-27 (Asia/Dhaka)
+Scope: CircuitBench Desktop, CircuitBench Web, and public distribution.
+
+HOW TO READ THIS LOG
+
+Dates and times are in Asia/Dhaka (UTC+06:00). Exact times identify a
+Git commit or a local verification checkpoint as indicated. They are not
+necessarily the time a feature was first written or made public. Earlier
+undated work is grouped under the first commit that records it. Local work
+and published releases are identified separately. The release changelog
+summarizes versions. This log records individual milestones, decisions,
+reversals, and verification.
+
+PROJECT MAP
+
+Desktop: CircuitBench. A Python/PyQt6 schematic editor with bundled
+ngspice 47 for Windows x64. Device placement, wire connectivity, project
+storage, SPICE generation, runs, and plot exports live primarily in
+app.py, canvas.py, circuit.py, results.py, and plotting.py. Reusable
+subcircuit editing also uses subcircuit_designer.py.
+
+Web: CircuitBench-Web in the workspace. The publishing checkout observed
+in this workspace is CircuitBench/.build/CircuitBench-Web, with the web
+app under web/. JavaScript handles the UI. Pyodide runs the shared Python
+core. The browser uses ngspice 46 via WebAssembly and stores run history
+locally. The static build is deployed through GitHub Pages.
+
+Distribution: The desktop development repository is private. The public
+CircuitBench-Releases repository contains download information and release
+assets. Its executable is distributed with the matching GPLv3 source
+archive. The deployed web app has its own repository and release path.
+
+TIMELINE
+========
+
+Initial work through 2026-11-26 03:50 — Desktop foundation and 0.1 beta
+    Commit: d7ceb3d, tagged v0.1-beta.
+    The initial desktop preview established an independent workbench for
+    schematic preparation and SPICE simulation. Historical PSpice/OrCAD
+    research and workflow comparisons are documented under reference/
+    and PARITY.md. Those documents describe the early investigation and
+    may predate capabilities recorded later in this log.
+    Features included searchable parts, device properties, orthogonal
+    wires and junctions, named nets, grouped selection, drag and arrow
+    movement, rotation, undo/redo, zoom and pan. Conventional device
+    symbols and versioned .cwb files preserved supported older pin
+    layouts. Named profiles covered operating point, DC sweep, AC sweep,
+    and transient analysis. The app generated simulator decks, stored run
+    files and diagnostics, and loaded ASCII ngspice waveforms.
+    The initial plots supported pages and subplots, traces, expressions,
+    cursors and pins, CSV and image/PDF export. The app imported supported
+    SPICE model cards and subcircuits plus the bundled starter models and
+    Qucs-S diode catalog. The Windows x64 EXE bundled Qt and ngspice 47.
+    Verification: the initial recorded build exercised model import,
+    a 5 V divider, a 201-point AC sweep, and PNG/PDF export.
+
+2026-11-26 10:43 — Web edition published
+    Web commit: de6cc0b.
+    The browser workbench shipped as a static app with light, dark, and
+    system themes. The Python core ran through Pyodide and the simulator
+    ran in a separate Web Worker. The web editor opened and saved .cwb
+    schematics, edited profiles, managed parts and markers, and exposed
+    waveform plots and locally stored run files. Browser print supplied
+    PDF output. GitHub Pages hosted the build.
+
+2026-11-26 10:51 — Web operating-point readings
+    Web commit: f251e77.
+    An operating-point run annotated the sheet with node voltages and
+    signed terminal currents and listed the values in Readings. The
+    operating-point and DC sweep plots became optional views.
+
+2026-11-26 11:18 — Web marker editing
+    Web commit: f533014.
+    Added direct selection of measurement markers on the sheet and in the
+    marker list. Shift-click selects several markers. Delete removes them,
+    and Undo restores them.
+
+2026-11-26 11:35–11:41 — Desktop parity and voltage-label formatting
+    Local evidence: sync-smoke.json and voltage-label-smoke.json.
+    Ported the theme selector, schematic operating-point readings,
+    optional operating-point/DC plots, and individual marker selection
+    into the desktop. Added an RC transient example. Moved the
+    operating-point annotation logic into the shared Python results core
+    and adjusted the web build to work with sibling app folders.
+    Both apps gained voltage-label appearance controls. A schematic can
+    set a default and per-node overrides for theme/custom color, text
+    size, and horizontal/vertical offset. The appearance is saved in the
+    .cwb, can be undone, and leaves current simulation readings usable.
+    Verification: 34 desktop tests for feature parity, then 35 for label
+    formatting. Web simulator tests and the packaged desktop smokes passed.
+
+2026-11-26 11:52 — Desktop and web updates pushed
+    Desktop commit: c8c4c52. Web commit: f58eb7b.
+    The desktop source changes and web voltage-label controls were pushed
+    to their existing repositories. The Pages build passed, and the
+    deployed HTML and JavaScript were checked for the new controls.
+
+2026-11-26 12:47 and later — Handwriting experiment and removal
+    Local evidence: handwriting-final-smoke.json and
+    desktop-without-handwriting.json.
+    A separate experimental desktop canvas recognized common symbols and
+    wire strokes, offered corrections and a color-coded connectivity
+    preview, then generated SPICE and opened an editable schematic.
+    Testing reached 39 desktop tests and a packaged smoke. A converted
+    2 kΩ / 1 kΩ divider produced about 1.666667 V from a 5 V source.
+    The user reported recognition problems in practice. An experimental
+    local Ollama vision path was added to classify components while
+    deterministic code handled wires. Live inference was never verified.
+    At the user's request, both handwriting implementations were removed.
+    The rebuilt executable was checked for absent handwriting modules,
+    and all 35 remaining desktop tests and a packaged smoke passed.
+    The handwriting work stayed local.
+
+2026-11-26 16:10 — Plot controls and schematic interaction overhaul
+    Local evidence: plot-workbench-alt-smoke.json. Published later in
+    desktop commit e341120.
+    Improved axis controls with per-axis fit, manual limits accepting
+    SPICE suffixes, selectable linear/logarithmic X, tick count and
+    precision, and editable axis titles. Added X-signal selection for
+    parametric plots such as device current versus voltage, while keeping
+    cursor, pins, and exports in the selected coordinates.
+    Added pin shapes (circle, square, triangle, diamond, cross), solid,
+    dashed, dotted and dash-dot trace patterns, line widths, colors,
+    plot background and grid colors. Replaced the height slider with
+    zoom and added stacked or two-column subplots with matching exports.
+    For the schematic, added drag from the part library, insertion of a
+    two-terminal part on a sufficiently clear wire, alignment guides,
+    and live wire-route previews during connected moves. The move logic
+    checks electrical connectivity before accepting a proposed route.
+    MATLAB tiled layouts and draw.io connector placement and movement
+    were workflow references. A locked main executable required an
+    alternate build path for this checkpoint. All 37 desktop tests and
+    the alternate packaged smoke passed.
+
+2026-11-26 16:20 — Desktop 0.2 beta release
+    Commit: e341120. Initial target of v0.2-beta.
+    Renamed the plot window CircuitBench Simulation. Added + and −
+    controls and extended zoom to 25%–800%, with Fit data resetting the
+    view to 100%. Added Help → About CircuitBench with version, project
+    description, license, and GitHub link. The existing 0.2 beta features
+    also included the plot, canvas, theme, marker, and readings updates
+    recorded above.
+    Distribution: pushed main and uploaded the verified Windows
+    executable as a prerelease in the desktop development repository.
+    Verification: 37 desktop tests, packaged smoke, and release-asset
+    checksum comparison.
+
+2026-11-26 16:32 — 0.2 beta About and menu refresh
+    Commit: 1c78684. Replacement target of v0.2-beta.
+    Moved Help directly after Markers and credited Developer: Tonmoy Paul
+    in About. Verified the exact menu order and About text, rebuilt the
+    desktop executable, and updated the existing release asset and tag
+    under the same version. All 37 desktop tests and packaged smoke
+    passed, and the uploaded digest matched the verified local file.
+
+2026-11-26 16:38–16:45 — Readings cross-probe and click-to-clear
+    Local evidence: readings-highlight-smoke.json and
+    readings-dismiss-smoke.json. Desktop commit: 5fabece (16:45).
+    Selecting a voltage reading highlighted the entire connected net on
+    the schematic, including pins and junctions. Current rows highlighted
+    the terminal's net and marked the measured pin. Clicking the canvas
+    cleared the reading selection and highlight while preserving the
+    canvas's regular click action.
+    Both checkpoints passed 37 desktop tests and a packaged smoke.
+    Pushed the source and refreshed v0.2-beta with the matching
+    executable. GitHub's verified executable SHA-256 was
+    3f8a1bb3465315587065820357dfc7f031d59fb1f9b911c89f9b81d093b5ea02.
+
+2026-11-26, after the 16:45 desktop refresh — Public releases repository
+    Created CircuitBench-Releases so people could read release notes and
+    download 0.2 beta without development-repository access. The
+    development repository remained private. Published the same verified
+    EXE and a matching source ZIP based on desktop commit 5fabece. The
+    source archive contains build inputs and license notices and excludes
+    development history and private research materials. Both public
+    asset links were verified without authentication.
+    Source ZIP SHA-256:
+    39b97812888a92ff61fbceb1df9aece1bb21ff71baa2c9fd6b8893043b857dfb.
+
+2026-11-26 19:38 — Click jitter fix and built-in OP07
+    Local evidence: opamp-smoke.json.
+    Clicking a part could move it when a small pointer change crossed a
+    snap boundary. Added a drag-distance threshold and computed movement
+    from screen-space displacement so selection alone leaves the part in
+    place. Added a searchable OpAmp / OP07 entry based on the bundled
+    five-pin model. Placement embeds the model in the .cwb and is
+    undoable. Verified the model as a voltage follower in ngspice. The
+    39-test suite and packaged smoke passed.
+
+2026-11-26 19:42 — Standard triangular OP07 symbol
+    Local evidence: opamp-symbol-smoke.json.
+    Replaced the rectangular preview on new placements with the familiar
+    triangle. Inputs are on the left, output on the right, and supply
+    pins above and below. The SPICE pin order is unchanged. Unwired
+    legacy OP07s can adopt the new geometry when opened. Legacy parts
+    with affected connections keep their original pin geometry so their
+    wiring survives. Verified the symbol rendering, save/load, migration,
+    simulation, and packaged build. All 39 desktop tests passed.
+
+2026-11-26 19:51 — Reusable .cwb subcircuits
+    Local evidence: reusable-subcircuit-smoke.json.
+    Added Draw → Build reusable subcircuit and a designer that maps
+    between one and sixteen named ports to electrical nets in a saved
+    .cwb. The designer shows the source net visually and offers a block
+    preview with draggable side assignments and port ordering. A saved
+    block remains a .cwb and is imported as a dedicated library part.
+    Host schematics embed the block definition and its dependencies.
+    Scoped SPICE definitions support nested blocks and imported models.
+    Mapping the schematic ground to a port creates an external return,
+    and an unmapped ground retains SPICE node 0 behavior.
+    Verified design/save/import, pin geometry and project round-tripping,
+    and ran a nested divider whose return was tied to a nonzero external
+    reference. All 41 desktop tests and the packaged smoke passed.
+
+2026-11-26 20:01 — Plus/minus labels and shared return ports
+    Local evidence: rc-port-alias-smoke.json.
+    Fixed the invalid-net-label error on an RC filter drawn with In+,
+    In−, Out+, and Out−. The compiler accepts signed labels and
+    normalizes Unicode minus. The designer proposes ports from named
+    nets. Multiple visible ports mapped to one net are internally
+    connected, and SPICE uses one connection per distinct electrical
+    port. The example therefore has four visible pins and three nets.
+    Operating-point instrumentation skips individual current probes on
+    shared ports. A current marker on an external component can measure
+    a branch of the common return.
+    Verified that the designer recognizes all four labels and tested the
+    RC circuit in ngspice with both return pins in use. All 42 desktop
+    tests and the packaged Windows smoke passed.
+
+2026-11-27 — Consolidated project log and maintenance instructions
+    Created this chronological account and recorded how future desktop,
+    web, and release changes should be appended. Source evidence included
+    both Git histories, local smoke records, project documentation, and
+    the implementation and publishing history in the project conversation.
+
+BASELINE AT LOG CREATION
+=======================
+
+- Older published desktop binary: 0.2 beta based on 5fabece, with reading
+  net highlights and click-to-clear behavior.
+- Local desktop source and rebuilt executable: includes the click fix,
+  triangular OP07, reusable subcircuits, and signed/shared return ports.
+  Those changes were still uncommitted locally and were absent from the
+  last verified public release. BUILD-VERIFICATION.json records 42
+  passing tests and a packaged Windows smoke for the local build.
+- Last verified live Web change: f58eb7b with voltage-label appearance.
+  The subsequent desktop workflow changes are tracked here as desktop work.
+
+REFERENCE LINKS
+===============
+
+Public downloads and release notes:
+https://github.com/tonmoypaul2003/CircuitBench-Releases/releases
+CircuitBench Web:
+https://tonmoypaul2003.github.io/CircuitBench-Web/
+Local evidence: CHANGELOG.md, BUILD-VERIFICATION.json, PARITY.md,
+reference/, and named verification reports under .build/.
+
+APPEND FUTURE WORK BELOW
+========================
+
+For each completed change, append the date, affected edition, user-visible
+behavior or technical decision, compatibility implications if applicable,
+verification, and delivery status. Include commit, tag, or release URLs
+when applicable. Record withdrawn work and failed or skipped verification
+accurately. Keep this history append-only, with explicit correction
+entries for substantive historical mistakes.
+
+2026-11-27 — Desktop plot Cursor toggle
+    Added a Cursor button to each sweep and transient subplot. Turning
+    it off clears the active cursor and readout, blocks clicks from
+    recreating the cursor, and keeps exports cursor-free. Saved pins
+    remain visible. Turning it back on allows selecting a fresh sample.
+    The change is per subplot and requires no schematic migration.
+    Verification: all 42 desktop tests passed, including cursor
+    dismissal and restoration with a saved pin present. A PNG exported
+    after toggling off matched the cursor-free baseline byte for byte.
+    The rebuilt Windows executable passed cursor-toggle-smoke.json.
+    Delivery: local source and executable build.
+
+2026-11-27 — Desktop simulation studies, schematic inspection and reporting
+    Added Set A to measure against cursor B, with delta X/Y and reciprocal
+    time. Cursor hides both for export. Profile layouts preserve subplot
+    arrangement, named traces, expressions, styling, axes and visibility.
+    Port design summarizes shared nets and supports optional descriptions.
+    Embedded blocks open a hierarchical source inspector. Reusable CWB
+    parts can be archived as numbered revisions, searched and previewed.
+    Schematic diagnostics select the components involved in a finding.
+    Added interval measurements and sample pins, Hann-windowed spectra
+    and harmonic estimates, passive-value sweeps, interactive tuning,
+    uniform tolerance trials and yield, and comparison of saved runs.
+    Operating-point annotations and transient power reveal absorbed or
+    delivered watts. Combined PDFs use the selected run's source snapshot,
+    component values, profile, subplot charts and measurement summary.
+    Existing desktop projects open without migration. Saving layouts or
+    port descriptions adds optional CWB fields that older readers may
+    reject. Simulation studies and library archives run locally.
+    Verification: 45 source tests passed. Checked a two-value divider
+    sweep (5 V and 2.5 V), 25 mW resistor dissipation, a 32 Hz signal
+    with 10% harmonic distortion, tolerance yield, shared-port previews,
+    revision archiving, layout round-trip and PDF generation. Rebuilt
+    executable passed packaged Windows smoke including ngspice and exports.
+    Delivery: local desktop source and CircuitBench.exe, version 0.2-beta.
+    BUILD-VERIFICATION.json records the executable SHA-256.
+
+2026-11-27 — Desktop multi-analysis setup and schematic presentation
+    Analysis Setup now enables multiple named profiles and a parametric
+    passive sweep with a base profile, explicit values, or linear/log
+    ranges. Run executes independent snapshots sequentially. DC sweep
+    and the existing OP, AC and transient profiles have settings dialogs.
+    Removed interactive tuning and tolerance trials from desktop studies.
+    Added Set B beside Set A, an aggregate function picker, and selectable
+    waveform statistics including mean, RMS, extrema and standard deviation.
+    Added a canvas dot toggle, click-to-place text annotations, and PNG/PDF
+    schematic export. Optional analysis-plan and annotation fields are
+    stored in CWB. Existing schematics open with their active profile.
+    New histories use Simulation Runs beside the file or under the user's
+    home directory, with schematic/profile, numbered run and timestamp.
+    Deleted 78 verified old run directories: 39 unsaved, 14 amp, 25 circuit.
+    Verification: 45 tests passed including a three-job DC and parametric
+    batch, 5 V and 2.5 V divider results, and unchanged component values.
+    Also verified four aggregate expressions, annotation round-trip, setup
+    dialog and both diagram export formats. Packaged Windows smoke passed.
+    Delivery: local desktop source and rebuilt 0.2-beta executable.
+
+2026-11-27 — Desktop v0.3 beta menus and simulation plot inspection
+    File > Examples groups the three bundled circuits. File > Export
+    offers schematic diagrams, the active plot, whole plot pages and CSV
+    data. Import beside Draw groups library and reusable-block imports,
+    library browsing, starter packs and saved waveform loading.
+    A focused waveform accepts left/right arrows to step by one sample.
+    Set A and Set B support removing their markers independently, including
+    keeping the reference line when the second cursor is dismissed.
+    Closing the last plot retains its waveform for Add plot page. Disabled
+    default-button activation in the simulation dialog so submitting a
+    trace expression cannot also click Add plot page. Added all supported
+    math functions to the picker and editable signal selection/insertion.
+    Intersections finds isolated crossings between two displayed traces,
+    interpolating in plotted coordinates and marking fractional samples.
+    Pinned points lists the subplot's pins for full label replacement and
+    deletion; pin edits apply to both the display and plot exports.
+    No CWB format change for this update. Pin and cursor edits are local
+    to the open plot. Version shown in About is 0.3-beta.
+    Verification: 46 source tests passed. New regression covers Enter
+    submitting an expression once, crossings halfway between samples,
+    cursor removal and reopening a waveform after closing the last page.
+    Separately exercised menu grouping, pin label replacement and deletion.
+    Delivery: local desktop source.
+
+2026-11-27 — Desktop v0.3 beta Windows package
+    Windows denied replacing the root executable. Built the local package
+    at v0.3-beta/CircuitBench.exe. Packaged Windows smoke passed; see
+    BUILD-VERIFICATION.json for path and digest. Delivery: local build.
+
+2026-11-27 — Desktop build layout and Git delivery workflow
+    Archived 0.3-beta in build/0.3-beta/CircuitBench.exe and atomically replaced the locked root executable. SHA-256 of both matches the smoke-tested package. Future Windows builds derive the output folder from the desktop version and verify both copies. Recorded commit-and-push instructions. No schematic migration. Prepared desktop sources and versioned executable for GitHub delivery.

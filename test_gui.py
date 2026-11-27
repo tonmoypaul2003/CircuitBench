@@ -48,6 +48,163 @@ class GuiTests(unittest.TestCase):
         QTest.mouseMove(canvas, self.pixel(*end))
         QTest.mouseRelease(canvas, Qt.MouseButton.LeftButton, modifier, self.pixel(*end))
 
+    def test_study_layout_roundtrip_and_report(self):
+        from unittest.mock import patch
+        from circuit import Project
+        from studies import save_layout, report
+        editor = self.window
+        editor.project = example()
+        editor.project.active = "Transient"
+        plot = Plot("Transient", ["time", "v(out)"], ["time", "voltage"], [[0, 0], [1, 2]])
+        editor.show_plot(plot, editor.project.dump())
+        page = editor.plot_pages.currentWidget()
+        page.add_expression("twice = multiply(v(out), 2)")
+        page.add_subplot([2])
+        page.tiles.setCurrentIndex(1)
+        page.subplots[1].cursor_button.setChecked(False)
+        save_layout(editor)
+        saved = Project.load(editor.project.dump())
+        editor.show_plot(plot, saved.dump())
+        restored = editor.plot_pages.currentWidget()
+        self.assertEqual(restored.plot.names[-1], "twice")
+        self.assertEqual(restored.subplots[1].wave.columns, [2])
+        self.assertFalse(restored.subplots[1].wave.cursor_enabled)
+        self.assertEqual(restored.tiles.currentIndex(), 1)
+        with tempfile.TemporaryDirectory() as folder:
+            pdf = Path(folder) / "report.pdf"
+            with patch("studies.QFileDialog.getSaveFileName", return_value=(str(pdf), "")):
+                report(editor)
+            self.assertTrue(pdf.read_bytes().startswith(b"%PDF"))
+
+    def test_transient_power_and_spectrum(self):
+        import math
+        from unittest.mock import patch
+        from studies import measurements, transient_power
+        editor = self.window
+        editor.project = example()
+        editor.project.active = "Transient"
+        with patch("studies.choose", return_value="R1"), patch("studies.prompt", side_effect=lambda *a: a[-1]):
+            transient_power(editor)
+        power = editor.plot_pages.currentWidget()
+        self.assertAlmostEqual(power.plot.rows[-1][1], .025)
+        self.assertIn("average 0.025 W", power.message.text())
+        rows = [[i/1024, math.sin(2*math.pi*32*i/1024) + .1*math.sin(2*math.pi*64*i/1024)]
+                for i in range(1025)]
+        editor.add_plot_page(Plot("Transient", ["time", "out"], ["time", "voltage"], rows), None)
+        with patch("studies.choose", return_value="out"), patch("studies.prompt", return_value="0,1"):
+            measurements(editor, True)
+        spectrum = editor.plot_pages.currentWidget()
+        self.assertAlmostEqual(spectrum.plot.rows[32][1], 1)
+        self.assertIn("10%", spectrum.message.text())
+
+    def test_parameter_sweep_preserves_project(self):
+        import time
+        from circuit import Profile
+        from results import load_plot
+        editor = self.window
+        editor.project = example()
+        editor.project.profiles["DC sweep"] = Profile("DC")
+        editor.project.analysis_plan = dict(enabled=["DC sweep"], parametric=True,
+                                            ref="R1",values=["1k","3k"],profile="Operating point")
+        before = editor.project.dump()
+        with tempfile.TemporaryDirectory() as folder:
+            editor.path = Path(folder)/"Divider.cwb"
+            editor.run()
+            deadline = time.monotonic()+15
+            while editor.process and time.monotonic()<deadline:
+                QTest.qWait(10)
+            self.assertIsNone(editor.process)
+            runs = sorted(editor.runs_root().glob("Divider_*"))
+            self.assertEqual(len(runs),3)
+            outputs = []
+            for run in runs:
+                result = load_plot(run/"result.raw")
+                if "Parametric" in run.name:
+                    outputs.append(result.rows[0][result.names.index("v(out)")].real)
+            self.assertEqual(outputs,[5,2.5])
+        self.assertEqual(editor.project.dump(),before)
+
+    def test_plot_expression_crossings_cursor_and_last_page(self):
+        from unittest.mock import patch
+        from PyQt6.QtWidgets import QPushButton
+        editor = self.window
+        page = editor.add_plot_page(Plot("Transient",["time","v(out)"],["time","voltage"],
+                                         [[0,0],[1,2],[2,0]]),None,[1])
+        editor.open_plots()
+        self.application.processEvents()
+        page.expression.setText("level = MAX(v(out))/2")
+        page.expression.setFocus()
+        QTest.keyClick(page.expression,Qt.Key.Key_Return)
+        self.assertEqual(editor.plot_pages.count(),1)
+        self.assertEqual(page.plot.names.count("level"),1)
+        sub = page.subplots[0]
+        with patch("plotting.QInputDialog.getItem",side_effect=[("v(out)",True),("level",True)]), patch("PyQt6.QtWidgets.QMessageBox.information"):
+            sub.intersections()
+        self.assertEqual([p[1] for p in sub.wave.pins],[.5,1.5])
+        sub.wave.grab()
+        QTest.keyClick(sub.wave,Qt.Key.Key_Right)
+        buttons = {b.text():b for b in sub.findChildren(QPushButton)}
+        buttons["Set A"].click()
+        self.assertIsNotNone(sub.wave.reference)
+        buttons["Set A"].click()
+        self.assertIsNone(sub.wave.reference)
+        buttons["Set B"].click()
+        buttons["Set B"].click()
+        self.assertIsNone(sub.wave.cursor)
+        editor.close_plot_page(0)
+        editor.duplicate_plot_page()
+        self.assertEqual(editor.plot_pages.count(),1)
+        self.assertEqual(editor.plot_pages.currentWidget().plot.names,page.plot.names)
+
+    def test_click_jitter_does_not_move_part(self):
+        self.window.project.add("R", (0, 0))
+        self.window.refresh()
+        canvas = self.window.canvas
+        QTest.mousePress(canvas, Qt.MouseButton.LeftButton, pos=self.pixel(.45, 0))
+        QTest.mouseRelease(canvas, Qt.MouseButton.LeftButton, pos=self.pixel(.60, 0))
+        self.assertEqual((self.window.selected.x, self.window.selected.y), (0, 0))
+        self.assertFalse(self.window.undo_stack)
+
+    def test_bundled_opamp_is_searchable_and_embedded_on_placement(self):
+        self.window.search.setText("opamp")
+        self.assertEqual(self.window.library.count(), 1)
+        self.assertNotIn("OP07", self.window.project.subcircuits)
+        self.window.choose_first_part()
+        self.click(0, 0)
+        part = self.window.project.parts[0]
+        self.assertEqual((part.kind, part.value, part.port_names), ("X", "OP07", ["3", "2", "7", "4", "6"]))
+        self.assertIn("OP07", self.window.project.subcircuits)
+        self.assertEqual(part.pins(), [(-3, -1), (-3, 1), (0, -3), (0, 3), (3, 0)])
+        self.assertEqual(type(self.window.project).load(self.window.project.dump()).parts[0].pins(), part.pins())
+        self.assertFalse(self.window.canvas.grab().isNull())
+        self.window.restore(self.window.undo_stack, self.window.redo_stack)
+        self.assertNotIn("OP07", self.window.project.subcircuits)
+
+    def test_reusable_cwb_import_and_symbol(self):
+        from subcircuit_designer import SubcircuitDesigner
+
+        source = example()
+        source.subcircuit_design = {"name": "DEMO_BLOCK", "ports": [
+            {"name": "OUT", "net": "out", "side": "Right"},
+            {"name": "RETURN", "net": "0", "side": "Bottom"},
+        ]}
+        with tempfile.TemporaryDirectory() as folder:
+            path = Path(folder) / "demo.cwb"
+            source.save(path)
+            dialog = SubcircuitDesigner(self.window, source, path)
+            self.assertEqual(dialog.rows()[0]["net"], "out")
+            self.assertFalse(dialog.preview.grab().isNull())
+            self.assertFalse(dialog.source_preview.grab().isNull())
+            self.assertEqual(self.window.import_library_files([path]), (1, []))
+            self.window.search.setText("DEMO_BLOCK")
+            self.window.choose_first_part()
+            self.click(0, 0)
+            part = self.window.project.parts[0]
+            self.assertEqual(part.port_names, ["OUT", "RETURN"])
+            self.assertEqual(part.pins(), [(3, 0), (0, 3)])
+            self.assertFalse(self.window.canvas.grab().isNull())
+            self.assertEqual(type(source).load(self.window.project.dump()).parts[0].pins(), part.pins())
+
     def test_box_select_move_delete_and_undo(self):
         self.window.replace(example())
         original = self.window.project.dump()
@@ -238,6 +395,15 @@ class GuiTests(unittest.TestCase):
         subplot.auto_pin_button.click()
         self.assertEqual(subplot.wave.pin_shapes[-1], "Triangle")
         self.assertEqual(subplot.wave.pins[-1], (2, 1, ""))
+        self.assertEqual(subplot.wave.cursor, 1)
+        subplot.cursor_button.click()
+        self.assertIsNone(subplot.wave.cursor)
+        self.assertFalse(subplot.auto_pin_button.isEnabled())
+        QTest.mouseClick(subplot.wave, Qt.MouseButton.LeftButton, pos=point.toPoint())
+        self.assertIsNone(subplot.wave.cursor)
+        self.assertEqual(len(subplot.wave.pins), 1)
+        subplot.cursor_button.click()
+        QTest.mouseClick(subplot.wave, Qt.MouseButton.LeftButton, pos=point.toPoint())
         self.assertEqual(subplot.wave.cursor, 1)
         self.assertEqual(subplot.pin_at(1, .97, "End"), 1)
         subplot.wave.background = QColor("#27394d")

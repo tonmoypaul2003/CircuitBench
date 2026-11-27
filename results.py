@@ -4,7 +4,7 @@ from dataclasses import dataclass
 import math
 from pathlib import Path
 
-from circuit import Project, connectivity, netlist
+from circuit import Project, connectivity, netlist, shared_port_pins
 
 
 @dataclass
@@ -113,7 +113,10 @@ def bias_deck(project):
     currents = []
     for index, part in devices:
         pins = part.pins()
-        for pin in range(1 if len(pins) == 2 else len(pins)):
+        shared = shared_port_pins(project, part)
+        for pin in range(1 if len(pins) == 2 and not shared else len(pins)):
+            if pin in shared:
+                continue
             project.markers.append({"kind": "I", "ref": part.ref, "pin": pin})
             currents.append({"part": index, "pin": pin})
     measurements = []

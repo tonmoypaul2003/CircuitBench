@@ -233,15 +233,75 @@ class ElectricalTests(unittest.TestCase):
         label_pins(project, ("out", "gate", "0"), ("supply", "out"), ("supply", "0"), ("gate", "0"))
         plot = self.run_circuit(Project.load(project.dump()))
         self.assertLess(plot.rows[0][plot.names.index("v(out)")].real, 1)
-        _, subcircuits, issues = read_library(STARTER_ROOT / "OpAmps/generic_opamp.lib", number)
-        self.assertFalse(issues)
-        project = Project(subcircuits=subcircuits)
-        project.parts = [Part("X1", "X", 0, 0, "GENOPA1", port_names=subcircuits["GENOPA1"]["ports"]),
-                         Part("V1", "V", 10, 0, "DC 0.05"), Part("V2", "V", 10, 6, "DC 12"),
-                         Part("V3", "V", 10, 10, "DC -12")]
-        label_pins(project, ("input", "out", "vcc", "vee", "out"), ("input", "0"), ("vcc", "0"), ("vee", "0"))
-        plot = self.run_circuit(Project.load(project.dump()))
-        self.assertAlmostEqual(plot.rows[0][plot.names.index("v(out)")].real, .04, delta=.001)
+        for filename, model, expected in (("generic_opamp.lib", "GENOPA1", .04),
+                                          ("Op07.mod", "OP07", .05)):
+            _, subcircuits, issues = read_library(STARTER_ROOT / "OpAmps" / filename, number)
+            self.assertFalse(issues)
+            project = Project(subcircuits=subcircuits)
+            project.parts = [Part("X1", "X", 0, 0, model, port_names=subcircuits[model]["ports"],
+                                  opamp_symbol=model == "OP07"),
+                             Part("V1", "V", 10, 0, "DC 0.05"), Part("V2", "V", 10, 6, "DC 12"),
+                             Part("V3", "V", 10, 10, "DC -12")]
+            label_pins(project, ("input", "out", "vcc", "vee", "out"), ("input", "0"), ("vcc", "0"), ("vee", "0"))
+            plot = self.run_circuit(Project.load(project.dump()))
+            self.assertAlmostEqual(plot.rows[0][plot.names.index("v(out)")].real, expected, delta=.001)
+
+    def test_rc_subcircuit_with_four_named_pins_and_common_return(self):
+        from circuit import reusable_subcircuit
+        from results import bias_deck
+
+        rc = Project()
+        rc.parts = [Part("R1", "R", 0, 0, "1k"), Part("C1", "C", 0, 6, "1u")]
+        label_pins(rc, ("In+", "Out+"), ("Out+", "In−"))
+        rc.parts.append(Part("N5", "N", 3, 6, "Out-"))
+        rc.wires.append(((2, 6), (3, 6)))
+        nodes = connectivity(rc)
+        self.assertEqual(nodes[(2, 6)], nodes[(3, 6)])
+        rc.subcircuit_design = {"name": "RC_FILTER", "ports": [
+            {"name": name, "net": nodes[point], "side": side}
+            for name, point, side in (("In+", (-2, 0), "Left"), ("In-", (2, 6), "Left"),
+                                      ("Out+", (2, 0), "Right"), ("Out-", (3, 6), "Right"))
+        ]}
+        name, model = reusable_subcircuit(rc)
+        host = Project(subcircuits={name: model})
+        host.parts = [Part("X1", "X", 0, 0, name, port_names=model["ports"], port_sides=model["sides"]),
+                      Part("V1", "V", 12, 0, "DC 10"), Part("R1", "R", 12, 6, "1k")]
+        label_pins(host, ("source+", "0", "output+", "load-"), ("source+", "0"), ("output+", "load-"))
+        host = Project.load(host.dump())
+        nets = connectivity(host)
+        self.assertEqual(nets[host.parts[0].pins()[3]], "0")
+        _, readings = bias_deck(host)
+        self.assertIn("X1 source+ 0 output+ RC_FILTER", netlist(host))
+        self.assertEqual([entry["pin"] for entry in readings["currents"] if entry["part"] == 0], [0, 2])
+        plot = self.run_circuit(host)
+        self.assertAlmostEqual(plot.rows[0][plot.names.index("v(output+)")].real, 5)
+
+    def test_nested_reusable_schematic_with_explicit_return(self):
+        from circuit import reusable_subcircuit
+
+        divider = Project()
+        divider.parts = [Part("R1", "R", 0, 0, "1k"), Part("R2", "R", 0, 6, "1k")]
+        label_pins(divider, ("input", "out"), ("out", "0"))
+        ports = [{"name": "IN", "net": "input", "side": "Left"},
+                 {"name": "OUT", "net": "out", "side": "Right"},
+                 {"name": "RETURN", "net": "0", "side": "Bottom"}]
+        divider.subcircuit_design = {"name": "DIVIDER", "ports": ports}
+        name, definition = reusable_subcircuit(divider)
+        wrapper = Project(subcircuits={name: definition})
+        wrapper.parts = [Part("X1", "X", 0, 0, name, port_names=definition["ports"],
+                              port_sides=definition["sides"])]
+        label_pins(wrapper, ("input", "out", "0"))
+        wrapper.subcircuit_design = {"name": "FILTER_BLOCK", "ports": ports}
+        name, definition = reusable_subcircuit(wrapper)
+        host = Project(subcircuits={name: definition})
+        host.parts = [Part("X1", "X", 0, 0, name, port_names=definition["ports"],
+                           port_sides=definition["sides"]),
+                      Part("V1", "V", 12, 0, "DC 10"), Part("V2", "V", 12, 6, "DC 2"),
+                      Part("R1", "R", 12, 12, "1meg")]
+        label_pins(host, ("input", "out", "return"), ("input", "0"), ("return", "0"),
+                   ("out", "return"))
+        plot = self.run_circuit(Project.load(host.dump()))
+        self.assertAlmostEqual(plot.rows[0][plot.names.index("v(out)")].real, 5.998, places=3)
 
     def test_imported_subcircuit_ports(self):
         project = imported_divider()

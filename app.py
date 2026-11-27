@@ -18,14 +18,15 @@ from PyQt6.QtWidgets import (
 from canvas import Canvas, engineering
 from circuit import (GENERIC_MODELS, Profile, Project, SOURCE_DEFAULTS, SYMBOLS, WAVE_FIELDS, connectivity,
                      diode_model, example, marker_node, netlist, number, on_wire, source_tokens,
-                     source_value, translate_selection)
+                     source_value, translate_selection, reusable_subcircuit)
 from plotting import PlotReportPage, Waveform
 from qucs_library import import_diodes
 from results import analysis_deck, bias_deck, bias_readings, load_plot, trim_bias_vectors
 from spice_library import MODEL_PORTS, read_library
+from subcircuit_designer import SubcircuitDesigner
 
 
-VERSION = "0.2-beta"
+VERSION = "0.3-beta"
 
 RUNTIME = Path(__file__).resolve().parent / "runtime"
 BUNDLED_SOLVER = RUNTIME / "ngspice" / "bin" / "ngspice_con.exe"
@@ -61,6 +62,11 @@ class Editor(QMainWindow):
         self.resize(1260, 800)
         self.setDockNestingEnabled(True)
         self.catalog = []
+        try:
+            _, opamps, _ = read_library(RUNTIME / "models/basic_models/OpAmps/Op07.mod", number)
+            self.bundled_opamp = opamps.get("OP07")
+        except (OSError, ValueError):
+            self.bundled_opamp = None
         self.placement_model = None
         self.placement_value = None
         self.marker_start = None
@@ -81,9 +87,11 @@ class Editor(QMainWindow):
         tools.addAction(self.action(file_menu, "Save", "Ctrl+S", self.save))
         tools.addSeparator()
         self.action(file_menu, "Save as…", "Ctrl+Shift+S", lambda: self.save(True))
-        self.action(file_menu, "Load voltage divider example", "", lambda: self.replace(example()))
-        self.action(file_menu, "Load RC filter AC example", "", self.load_ac_example)
-        self.action(file_menu, "Load RC transient example", "", lambda: self.load_ac_example(True))
+        examples = file_menu.addMenu("Examples")
+        exports = file_menu.addMenu("Export")
+        self.action(examples, "Load voltage divider example", "", lambda: self.replace(example()))
+        self.action(examples, "Load RC filter AC example", "", self.load_ac_example)
+        self.action(examples, "Load RC transient example", "", lambda: self.load_ac_example(True))
         edit = self.menuBar().addMenu("&Edit")
         self.action(edit, "Undo", "Ctrl+Z", lambda: self.restore(self.undo_stack, self.redo_stack))
         self.action(edit, "Redo", "Ctrl+Y", lambda: self.restore(self.redo_stack, self.undo_stack))
@@ -100,15 +108,30 @@ class Editor(QMainWindow):
         drawing_tools.addAction(self.action(draw, "Part…", "P", self.focus_library))
         self.action(drawing_tools, "Ground", "", lambda: self.set_mode("G"))
         self.action(drawing_tools, "Label", "", lambda: self.set_mode("N"))
-        self.action(draw, "Import model libraries…", "", self.open_library)
-        self.action(draw, "Import local ngspice starter pack", "", self.import_starter_pack)
-        self.action(draw, "Import bundled Qucs-S diodes", "", self.import_bundled_diodes)
-        self.action(draw, "Browse ngspice starter pack", "", lambda: QDesktopServices.openUrl(
+        imports = self.menuBar().addMenu("&Import")
+        self.action(imports, "Import model libraries…", "", self.open_library)
+        self.action(draw, "Build reusable subcircuit…", "", self.build_reusable_subcircuit)
+        self.action(imports, "Import CircuitBench subcircuit…", "", self.import_reusable_subcircuit)
+        self.action(imports, "Import local ngspice starter pack", "", self.import_starter_pack)
+        self.action(imports, "Import bundled Qucs-S diodes", "", self.import_bundled_diodes)
+        self.action(imports, "Browse ngspice starter pack", "", lambda: QDesktopServices.openUrl(
             QUrl("https://ngspice.sourceforge.io/modelparams.html")))
-        self.action(draw, "Browse Qucs-S libraries", "", lambda: QDesktopServices.openUrl(
+        self.action(imports, "Browse Qucs-S libraries", "", lambda: QDesktopServices.openUrl(
             QUrl("https://github.com/ra3xdh/qucs_s/tree/current/library")))
         self.action(tools, "Rotate", "", self.rotate)
+        from analysis_setup import setup, export_canvas, annotation
+        analysis = self.menuBar().addMenu("&Analysis")
+        self.action(analysis,"Analysis setup…","",lambda: setup(self))
+        self.action(exports,"Schematic diagram…","",lambda: export_canvas(self))
+        self.action(draw,"Text annotation…","",lambda: annotation(self))
         view = self.menuBar().addMenu("&View")
+        dots = view.addAction("Canvas dots")
+        dots.setCheckable(True)
+        dots.setChecked(True)
+        def toggle_dots(enabled):
+            self.show_dots = enabled
+            self.canvas.update()
+        dots.toggled.connect(toggle_dots)
         view.addAction(self.action(tools, "Fit schematic", "F", self.fit_view))
         self.action(view, "Reset zoom", "", self.reset_view)
         theme_menu = view.addMenu("Theme")
@@ -120,7 +143,7 @@ class Editor(QMainWindow):
             self.theme_options.addAction(action)
         self.set_theme(self.theme_settings.value("theme", "System"))
         tools.addSeparator()
-        self.action(tools, "Analysis setup…", "", self.edit_profile)
+        self.action(tools, "Analysis setup…", "", lambda: setup(self))
         self.action(tools, "Netlist", "", self.preview)
         self.run_action = self.action(tools, "Run", "F5", self.run)
         self.cancel_action = self.action(tools, "Cancel run", "", self.cancel)
@@ -133,8 +156,12 @@ class Editor(QMainWindow):
         self.action(simulation, "Choose ngspice executable…", "", self.choose_solver)
         self.action(simulation, "Run history…", "", self.open_run_history)
         self.action(simulation, "Show plot", "", self.open_plots)
-        self.action(simulation, "Open saved waveform…", "", self.open_waveform)
-        self.action(simulation, "Export waveform CSV…", "", self.export_waveform)
+        self.action(imports, "Open saved waveform…", "", self.open_waveform)
+        self.action(exports, "CSV data…", "", self.export_waveform)
+        self.action(exports,"Active plot…","",lambda: self.export_plot_page(False))
+        self.action(exports,"Plot page…","",self.export_plot_page)
+        from studies import install_studies
+        install_studies(self, simulation, draw, imports)
         markers = self.menuBar().addMenu("&Markers")
         for mode, title, key in (("Mark V", "Voltage", "Ctrl+M"),
                                  ("Mark VD", "Differential voltage", ""),
@@ -217,6 +244,11 @@ class Editor(QMainWindow):
         close_page = QPushButton("Remove plot page")
         close_page.clicked.connect(lambda: self.close_plot_page(self.plot_pages.currentIndex()))
         controls.addWidget(close_page)
+        studies_button = QPushButton("Simulation studies")
+        studies_button.setMenu(self.studies_menu)
+        controls.addWidget(studies_button)
+        for control in (button,close_page,studies_button):
+            control.setAutoDefault(False)
         controls.addStretch()
         plots_layout.addLayout(controls)
         self.plot_pages = QTabWidget()
@@ -353,9 +385,22 @@ class Editor(QMainWindow):
         for node in self.active_readings["nodes"]:
             name = "Ground" if node["net"] == "0" else node["net"]
             add_reading(f"{name}    {engineering(node['value'], 'V')}", node["net"])
-        for current in self.active_readings["currents"]:
+        self.part_powers = {}
+        volts = {n["net"]: n["value"] for n in self.active_readings["nodes"]}
+        currents = self.active_readings["currents"]
+        from collections import Counter
+        measured = Counter(current["part"] for current in currents)
+        for current in currents:
             part = self.project.parts[current["part"]]
             pin, value = current["pin"], current["value"]
+            pins = part.pins()
+            index = current["part"]
+            if all(self.reading_nets[p] in volts for p in pins):
+                potential = volts[self.reading_nets[pins[pin]]]
+                if len(pins) == 2 and pin == 0:
+                    self.part_powers[index] = value * (potential - volts[self.reading_nets[pins[1]]])
+                elif measured[index] == len(pins):
+                    self.part_powers[index] = self.part_powers.get(index, 0) + value * potential
             terminal = part.port_names[pin] if pin < len(part.port_names) else f"pin {pin+1}"
             direction = " into" if value > 0 else " out of" if value < 0 else ""
             point = part.pins()[pin]
@@ -482,10 +527,16 @@ class Editor(QMainWindow):
                     item.setData(Qt.ItemDataRole.UserRole, ("D", entry, None))
                     self.library.addItem(item)
         if self.category.currentIndex() in (0, 3):
-            for name, model in self.project.subcircuits.items():
-                if query in name.casefold():
-                    item = QListWidgetItem(f"{name}  ·  {len(model['ports'])} ports")
-                    item.setToolTip(", ".join(model["ports"]))
+            subcircuits = self.project.subcircuits.copy()
+            if self.bundled_opamp:
+                subcircuits.setdefault("OP07", self.bundled_opamp)
+            for name, model in subcircuits.items():
+                opamp = name == "OP07" and model == self.bundled_opamp
+                title = "OpAmp · OP07" if opamp else f"{name}  ·  {len(model['ports'])} ports"
+                keywords = title + (" op amp operational amplifier" if opamp else "")
+                if query in keywords.casefold():
+                    item = QListWidgetItem(title)
+                    item.setToolTip("IN+, IN−, V+, V−, OUT" if opamp else ", ".join(model["ports"]))
                     item.setData(Qt.ItemDataRole.UserRole, ("X", None, name))
                     self.library.addItem(item)
         if self.category.currentIndex() in (0, 1, 4):
@@ -524,10 +575,24 @@ class Editor(QMainWindow):
             self.statusBar().showMessage(f"Click the canvas to place an {item.text()} · Esc to stop")
         self.canvas.setFocus()
 
+    def build_reusable_subcircuit(self):
+        name, _ = QFileDialog.getOpenFileName(self, "Choose the source schematic",
+                                             str(self.path or ""), "CircuitBench schematic (*.cwb)")
+        if name:
+            saved = SubcircuitDesigner.open_file(self, Path(name))
+            if saved is not None:
+                self.statusBar().showMessage(f"Saved reusable subcircuit to {saved.name}", 6500)
+
+    def import_reusable_subcircuit(self):
+        names, _ = QFileDialog.getOpenFileNames(self, "Import CircuitBench subcircuits",
+                                               filter="CircuitBench schematic (*.cwb)")
+        if names:
+            self.show_library_import([Path(name) for name in names])
+
     def open_library(self):
         names, _ = QFileDialog.getOpenFileNames(
             self, "Import model libraries",
-            filter="Model libraries (*.lib *.mod *.cir *.sp *.spi *.sub *.txt);;All files (*)")
+            filter="Model libraries (*.cwb *.lib *.mod *.cir *.sp *.spi *.sub *.txt);;All files (*)")
         if not names:
             return
         self.show_library_import([Path(name) for name in names])
@@ -564,6 +629,14 @@ class Editor(QMainWindow):
         count = 0
         for path in paths:
             try:
+                if path.suffix.lower() == ".cwb":
+                    name, entry = reusable_subcircuit(Project.load(path.read_text(encoding="utf-8-sig")))
+                    before = subcircuits.get(name, self.project.subcircuits.get(name))
+                    if before is None:
+                        subcircuits[name] = entry
+                    elif before != entry:
+                        issues.append(f"{path.name}: a different definition of {name} is already loaded")
+                    continue
                 with path.open(encoding="utf-8-sig", errors="replace") as file:
                     qucs = file.read(256).lstrip().startswith("<Qucs Library")
                 if qucs:
@@ -585,7 +658,7 @@ class Editor(QMainWindow):
                             pending[name] = entry
                         elif before != entry:
                             issues.append(f"{path.name}: a different definition of {name} is already loaded")
-            except (OSError, ValueError) as error:
+            except (OSError, ValueError, KeyError, TypeError) as error:
                 issues.append(f"{path.name}: {error}")
         if models or subcircuits:
             self.checkpoint()
@@ -617,6 +690,11 @@ class Editor(QMainWindow):
         self.place_part(point, splice)
         return True
 
+    def placement_subcircuit(self):
+        if self.placement_value == "OP07":
+            return self.project.subcircuits.get("OP07", self.bundled_opamp)
+        return self.project.subcircuits.get(self.placement_value)
+
     def place_part(self, point, splice=None):
         self.checkpoint()
         self.project.add(self.mode, point)
@@ -626,7 +704,11 @@ class Editor(QMainWindow):
         elif self.placement_value is not None:
             part.value = self.placement_value
             if part.kind == "X":
-                part.port_names = self.project.subcircuits[part.value]["ports"].copy()
+                model = self.placement_subcircuit()
+                self.project.subcircuits.setdefault(part.value, model)
+                part.port_names = model["ports"].copy()
+                part.port_sides = model.get("sides", []).copy()
+                part.opamp_symbol = part.is_op07() and not part.port_sides
             elif part.kind in "QMJS":
                 model = self.project.device_models[part.value]
                 part.port_names = list(MODEL_PORTS[model["type"]][1])
@@ -638,7 +720,7 @@ class Editor(QMainWindow):
 
     def refresh(self):
         self.filter_library(self.search.text())
-        if ((self.mode == "X" and self.placement_value not in self.project.subcircuits)
+        if ((self.mode == "X" and self.placement_subcircuit() is None)
                 or (self.mode in ("Q", "M", "J", "S") and self.placement_value not in self.project.device_models)):
             self.set_mode("Select")
         self.profiles.blockSignals(True)
@@ -688,6 +770,7 @@ class Editor(QMainWindow):
     def fit_view(self):
         points = [pin for part in self.project.parts for pin in part.pins()]
         points.extend(point for wire in self.project.wires for point in wire)
+        points.extend((x,y) for x,y,_ in self.project.annotations)
         if not points:
             self.reset_view()
             return
@@ -1012,6 +1095,18 @@ class Editor(QMainWindow):
     def replace(self, project, path=None):
         if not self.confirm_discard():
             return
+        for part in project.parts:
+            if not part.is_op07() or part.opamp_symbol:
+                continue
+            old_pins = part.pins()
+            part.opamp_symbol = True
+            occupied = {pin for other in project.parts if other is not part for pin in other.pins()}
+            occupied.update(project.junctions)
+            occupied.update(tuple(point) for marker in project.markers if marker["kind"] != "I"
+                            for point in marker["points"])
+            if any(pin in occupied or any(on_wire(pin, wire) for wire in project.wires)
+                   for pin in set(old_pins) ^ set(part.pins())):
+                part.opamp_symbol = False
         self.project, self.path = project, path
         self.saved = project.dump() if path or not project.parts else Project().dump()
         self.undo_stack.clear()
@@ -1199,12 +1294,11 @@ class Editor(QMainWindow):
             self.statusBar().showMessage(f"Simulator: {name}", 6000)
 
     def runs_root(self):
-        return (self.path.parent / f"{self.path.stem}.runs" if self.path
-                else Path.home() / "CircuitBench Runs")
+        return (self.path.parent if self.path else Path.home()) / "Simulation Runs"
 
     def open_run_history(self):
         try:
-            folders = sorted(self.runs_root().glob("run-*"), key=lambda folder: folder.stat().st_mtime,
+            folders = sorted((p.parent for p in self.runs_root().glob("*/status.json")), key=lambda folder: folder.stat().st_mtime,
                              reverse=True)
         except OSError as error:
             self.error(str(error))
@@ -1254,7 +1348,22 @@ class Editor(QMainWindow):
     def run(self):
         if self.process is not None:
             return
-        deck = self.preview()
+        from analysis_setup import jobs
+        try:
+            self.analysis_jobs = jobs(self.project)
+        except ValueError as error:
+            self.error(str(error))
+            return
+        self.run_next()
+
+    def run_next(self):
+        project, label = self.analysis_jobs.pop(0)
+        try:
+            deck = netlist(project)
+        except ValueError as error:
+            self.error(str(error))
+            self.analysis_jobs.clear()
+            return
         if deck is None:
             return
         if not self.solver:
@@ -1263,14 +1372,15 @@ class Editor(QMainWindow):
         try:
             parent = self.runs_root()
             parent.mkdir(exist_ok=True)
-            folder = Path(tempfile.mkdtemp(prefix="run-", dir=parent))
+            from analysis_setup import allocate_run
+            folder = allocate_run(parent, self.path, label)
             (folder / "schematic.cir").write_text(deck, encoding="ascii")
             solver_deck = deck
-            if self.project.profiles[self.project.active].mode == "OP":
-                solver_deck, metadata = bias_deck(self.project)
+            if project.profiles[project.active].mode == "OP":
+                solver_deck, metadata = bias_deck(project)
                 (folder / "operating-point.json").write_text(json.dumps(metadata), encoding="utf-8")
             (folder / "circuit.cir").write_text(analysis_deck(solver_deck), encoding="ascii")
-            revision = self.project.dump()
+            revision = project.dump()
             (folder / "project.cwb").write_text(revision, encoding="utf-8")
         except (OSError, ValueError) as error:
             self.error(str(error))
@@ -1320,6 +1430,9 @@ class Editor(QMainWindow):
                         self.log.appendPlainText(log.read(60000))
             if code == 0 and not self.cancelled:
                 self.show_run_result(self.run_dir, self.pending_revision)
+                page = self.plot_pages.currentWidget()
+                page.title = self.run_dir.name
+                self.plot_pages.setTabText(self.plot_pages.currentIndex(),page.title)
                 status = "completed"
             else:
                 self.error(f"Simulation {status} (exit {code})")
@@ -1335,6 +1448,9 @@ class Editor(QMainWindow):
         except OSError as error:
             self.error(str(error))
 
+        if status=='completed' and self.analysis_jobs:
+            self.run_next()
+
     def show_run_result(self, folder, revision):
         metadata = folder / "operating-point.json"
         operating_point = json.loads(metadata.read_text(encoding="utf-8")) if metadata.is_file() else None
@@ -1346,6 +1462,7 @@ class Editor(QMainWindow):
 
     def show_plot(self, plot, revision, *, operating_point=None, open_window=True):
         measurements = []
+        snapshot = None
         if revision is not None:
             try:
                 snapshot = Project.load(revision)
@@ -1360,6 +1477,9 @@ class Editor(QMainWindow):
             self.readings = bias_readings(plot, operating_point)
             selected = trim_bias_vectors(plot, operating_point, selected)
         page = self.add_plot_page(plot, revision, selected or None)
+        if revision and snapshot is not None and snapshot.active in snapshot.plot_layouts:
+            from studies import restore_layout
+            restore_layout(page, snapshot.plot_layouts[snapshot.active])
         self.wave, self.run_revision = page.wave, revision
         self.refresh()
         if open_window:
@@ -1385,6 +1505,12 @@ class Editor(QMainWindow):
             copy = self.add_plot_page(page.wave.plot, page.revision, page.wave.columns)
             copy.title = f"{page.title} (copy)"
             self.refresh()
+        elif hasattr(self,"last_closed_plot"):
+            restored = self.add_plot_page(*self.last_closed_plot)
+            self.wave,self.run_revision = restored.wave,restored.revision
+            self.refresh()
+        else:
+            self.open_waveform()
 
     def rename_plot_page(self, index):
         page = self.plot_pages.widget(index)
@@ -1398,6 +1524,7 @@ class Editor(QMainWindow):
         page = self.plot_pages.widget(index)
         if page is None:
             return
+        self.last_closed_plot = page.plot, page.revision, page.wave.columns.copy()
         self.plot_pages.removeTab(index)
         if page.plot is self.wave.plot:
             current = self.plot_pages.currentWidget()
@@ -1419,6 +1546,13 @@ class Editor(QMainWindow):
                     self.show_plot(load_plot(path), snapshot.read_text(encoding="utf-8") if snapshot.exists() else None)
             except (OSError, ValueError) as error:
                 self.error(str(error))
+
+    def export_plot_page(self,whole_page=True):
+        page = self.plot_pages.currentWidget()
+        if page:
+            page.choose_export(whole_page)
+        else:
+            self.error("Open a simulation plot first.")
 
     def export_waveform(self):
         page = self.plot_pages.currentWidget()

@@ -1,5 +1,6 @@
 """Versioned schematic, connectivity compiler and SPICE export."""
 from collections import Counter
+from hashlib import sha256
 from dataclasses import asdict, dataclass, field
 from dataclasses import replace
 import json
@@ -45,6 +46,45 @@ SOURCE_DEFAULTS = {"DC": "DC 5", "AC": "DC 0 AC 1 0", "SIN": "SIN 0 1 1k 0 0 0",
                    "EXP": "EXP 0 1 0 100u 1m 100u", "PWL": "PWL 0 0 1m 1 2m 0"}
 
 
+def validate_plot_layouts(layouts):
+    def finite(value):
+        return type(value) in (int, float) and math.isfinite(value)
+
+    def pair(value):
+        return isinstance(value, (tuple, list)) and len(value) == 2 and all(map(finite, value))
+
+    def strings(value):
+        return isinstance(value, list) and all(isinstance(v, str) for v in value)
+
+    def color(value):
+        return isinstance(value, str) and re.fullmatch(r"#[a-fA-F0-9]{6}", value)
+
+    if not isinstance(layouts, dict):
+        raise ValueError("Invalid saved plot layouts")
+    for layout in layouts.values():
+        if (not isinstance(layout, dict) or layout.get("tiles") not in (0, 1)
+                or not strings(layout.get("expressions", [])) or not isinstance(layout.get("states"), list)
+                or not 1 <= len(layout["states"]) <= 12):
+            raise ValueError("Invalid saved plot page")
+        for w in layout["states"]:
+            if (not isinstance(w, dict) or not strings(w.get("columns"))
+                    or not all(isinstance(w.get(k), str) for k in ("title","x","x_label","y_label"))
+                    or w.get("x_scale") not in ("Automatic","Logarithmic","Linear")
+                    or not all(type(w.get(k)) is bool for k in ("cursor","grid"))
+                    or not all(type(w.get(k)) is int for k in ("presentation","tick_count","tick_precision","zoom"))
+                    or not 2 <= w["tick_count"] <= 20 or not 0 <= w["tick_precision"] <= 16
+                    or w["presentation"] not in (0,1,2) or not 25 <= w["zoom"] <= 800
+                    or not pair(w.get("origin"))
+                    or any(k not in w or (w[k] is not None and not color(w[k])) for k in ("grid_color","background"))
+                    or any(k not in w or (w[k] is not None and not (pair(w[k]) and w[k][0]<w[k][1]))
+                           for k in ("x_limits","y_limits"))
+                    or not isinstance(w.get("colors"), dict) or not all(map(color,w["colors"].values()))
+                    or not isinstance(w.get("styles"), dict)
+                    or any(not isinstance(v,(tuple,list)) or len(v)!=2 or v[0] not in ("Solid","Dashed","Dotted","Dash-dot")
+                           or not finite(v[1]) or not 0<v[1]<=30 for v in w["styles"].values())):
+                raise ValueError("Invalid saved subplot settings")
+
+
 def number(token):
     match = re.fullmatch(r"([+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:e[+-]?\d+)?)(meg|[tgkmunpf])?",
                          token, re.I | re.ASCII)
@@ -54,6 +94,23 @@ def number(token):
     if not math.isfinite(value):
         raise ValueError(f"Nonfinite SPICE number {token!r}")
     return value
+
+
+PORT_SIDES = ("Left", "Right", "Top", "Bottom")
+
+
+def symbol_geometry(sides):
+    counts = Counter(sides)
+    width = max(2, counts["Top"], counts["Bottom"])
+    height = max(2, counts["Left"], counts["Right"])
+    used = Counter()
+    offsets = []
+    for side in sides:
+        offset = 2*used[side]-counts[side]+1
+        used[side] += 1
+        offsets.append({"Left": (-width-1, offset), "Right": (width+1, offset),
+                        "Top": (offset, -height-1), "Bottom": (offset, height+1)}[side])
+    return width, height, offsets
 
 
 @dataclass
@@ -66,9 +123,18 @@ class Part:
     rotation: int = 0
     port_names: list[str] = field(default_factory=list)
     legacy_pin_layout: bool = False
+    opamp_symbol: bool = False
+    port_sides: list[str] = field(default_factory=list)
+
+    def is_op07(self):
+        return self.kind == "X" and self.value == "OP07" and self.port_names == ["3", "2", "7", "4", "6"]
 
     def pins(self):
-        if self.kind == "X" or self.legacy_pin_layout:
+        if self.port_sides:
+            offsets = symbol_geometry(self.port_sides)[2]
+        elif self.opamp_symbol:
+            offsets = ((-3, -1), (-3, 1), (0, -3), (0, 3), (3, 0))
+        elif self.kind == "X" or self.legacy_pin_layout:
             offsets = self.box_offsets()
         elif self.kind in MODELED_SYMBOLS:
             offsets = self.device_offsets()
@@ -146,6 +212,10 @@ class Project:
         for name, (family, parameters) in GENERIC_MODELS.items()})
     markers: list[dict] = field(default_factory=list)
     voltage_labels: dict[str, dict] = field(default_factory=dict)
+    annotations: list = field(default_factory=list)
+    analysis_plan: dict = field(default_factory=dict)
+    plot_layouts: dict = field(default_factory=dict)
+    subcircuit_design: dict | None = None
 
     def register_qucs_diode(self, entry):
         stem = "QUCS_" + re.sub(r"[^A-Z0-9_]", "_", entry.name.upper())[:80]
@@ -178,17 +248,31 @@ class Project:
     def remove_active_profile(self):
         if len(self.profiles) == 1:
             raise ValueError("Keep at least one simulation profile")
+        self.plot_layouts.pop(self.active, None)
         del self.profiles[self.active]
         self.active = next(iter(self.profiles))
 
     def dump(self, *, include_label_styles=True):
         data = asdict(self)
+        for part in data["parts"]:
+            for option in ("opamp_symbol", "port_sides"):
+                if not part[option]:
+                    del part[option]
+        if not include_label_styles or not self.plot_layouts:
+            del data["plot_layouts"]
+        for key in ("annotations","analysis_plan"):
+            if not data[key]:
+                del data[key]
+        if self.subcircuit_design is None:
+            del data["subcircuit_design"]
         if not include_label_styles or not self.voltage_labels:
             del data["voltage_labels"]
         return json.dumps({"version": 2, **data}, indent=2)
 
     @classmethod
-    def load(cls, source):
+    def load(cls, source, *, _depth=0):
+        if _depth > 8:
+            raise ValueError("Subcircuits can be nested up to eight levels.")
         data = json.loads(source)
         version = data.pop("version", None)
         if version not in (1, 2):
@@ -202,12 +286,29 @@ class Project:
                 or any(p.kind not in SYMBOLS or type(p.x) is not int or type(p.y) is not int
                        or type(p.rotation) is not int or not isinstance(p.value, str)
                        or type(p.legacy_pin_layout) is not bool
+                       or type(p.opamp_symbol) is not bool or (p.opamp_symbol and not p.is_op07())
+                       or not isinstance(p.port_sides, list)
+                       or (p.port_sides and (p.kind != "X" or p.opamp_symbol
+                           or len(p.port_sides) != len(p.port_names)
+                           or any(side not in PORT_SIDES for side in p.port_sides)))
                        or (p.legacy_pin_layout and p.kind not in MODELED_SYMBOLS)
                        or not isinstance(p.ref, str) for p in project.parts)
                 or any(len(wire) != 2 or wire[0] == wire[1] for wire in project.wires)
                 or any(len(point) != 2 or any(type(axis) is not int for axis in point)
                        for point in [*project.junctions, *(p for w in project.wires for p in w)])):
             raise ValueError("Invalid project geometry, active profile, or symbol")
+        if not isinstance(project.annotations,list) or any(
+                not isinstance(note,list) or len(note)!=3 or type(note[0]) is not int or type(note[1]) is not int
+                or not isinstance(note[2],str) for note in project.annotations):
+            raise ValueError("Invalid schematic text annotation")
+        plan = project.analysis_plan
+        if not isinstance(plan,dict) or (plan and (
+                not isinstance(plan.get("enabled"),list) or not all(isinstance(n,str) for n in plan["enabled"])
+                or (plan.get("parametric") and (not isinstance(plan.get("values"),list)
+                    or not 1<=len(plan["values"])<=64 or not all(isinstance(v,str) for v in plan["values"])
+                    or not all(isinstance(plan.get(k),str) for k in ("ref","profile")))))):
+            raise ValueError("Invalid analysis setup")
+        validate_plot_layouts(project.plot_layouts)
         for profile in project.profiles.values():
             profile.directive()
         for name, (current, emission) in project.diode_models.items():
@@ -215,13 +316,26 @@ class Project:
         for name, parameters in project.qucs_models.items():
             qucs_diode_model(name, parameters)
         for name, model in project.subcircuits.items():
-            validate_subcircuit(name, model["ports"], model["body"], number, model.get("parameters"))
+            if "source" in model:
+                if set(model) != {"source", "ports", "sides"}:
+                    raise ValueError(f"{name}: invalid schematic subcircuit")
+                source_project = cls.load(json.dumps(model["source"]), _depth=_depth+1)
+                design = validate_design(source_project)
+                if (name, model["ports"], model["sides"]) != (
+                        design["name"], [p["name"] for p in design["ports"]],
+                        [p["side"] for p in design["ports"]]):
+                    raise ValueError(f"{name}: subcircuit ports do not match its source")
+            else:
+                validate_subcircuit(name, model["ports"], model["body"], number, model.get("parameters"))
+        if project.subcircuit_design is not None:
+            validate_design(project, check_nets=False)
         for name, model in project.device_models.items():
             if name in project.diode_models or name in project.qucs_models:
                 raise ValueError(f"Duplicate model name: {name}")
             model_statement(name, model, number)
         for part in project.parts:
-            if part.kind == "X" and part.port_names != project.subcircuits[part.value]["ports"]:
+            if part.kind == "X" and (part.port_names != project.subcircuits[part.value]["ports"]
+                                     or part.port_sides != project.subcircuits[part.value].get("sides", [])):
                 raise ValueError(f"{part.ref}: subcircuit port order changed")
             if part.kind in "QMJS":
                 model = project.device_models.get(part.value.upper())
@@ -287,6 +401,25 @@ def on_wire(point, wire):
             and min(ax, bx) <= x <= max(ax, bx) and min(ay, by) <= y <= max(ay, by))
 
 
+def port_groups(model):
+    """Return the physical pin indices for each distinct electrical port."""
+    groups = {}
+    for index, port in enumerate(model.get("source", {}).get("subcircuit_design", {}).get("ports", [])):
+        groups.setdefault(port["net"], []).append(index)
+    return list(groups.values())
+
+
+def shared_port_pins(project, part):
+    if part.kind != "X":
+        return set()
+    return {pin for group in port_groups(project.subcircuits.get(part.value, {}))
+            if len(group) > 1 for pin in group}
+
+
+def normalized_label(name):
+    return name.lower().replace("−", "-")
+
+
 def connectivity(project):
     parent = {}
 
@@ -309,20 +442,25 @@ def connectivity(project):
         for point in sorted(points):
             if on_wire(point, wire):
                 join(wire[0], point)
+    for part in project.parts:
+        if part.kind != "X":
+            continue
+        pins = part.pins()
+        for group in port_groups(project.subcircuits.get(part.value, {})):
+            for index in group[1:]:
+                join(pins[group[0]], pins[index])
     labels = {}
     for part in project.parts:
         if part.kind in "GN":
-            name = "0" if part.kind == "G" else part.value.lower()
-            if not re.fullmatch(r"[a-z_][a-z0-9_]*|0", name, re.ASCII):
-                raise ValueError(f"{part.ref}: invalid net label")
+            name = "0" if part.kind == "G" else normalized_label(part.value)
+            if not re.fullmatch(r"[a-z_][a-z0-9_+-]*|0", name, re.ASCII):
+                raise ValueError(f"{part.ref}: invalid net label {part.value!r}. Start with a letter or _, "
+                                 "then use letters, numbers, _, + or -.")
             point = part.pins()[0]
             join(labels.setdefault(name, point), point)
     names = {}
-    for name, point in labels.items():
-        root = find(point)
-        if root in names and names[root] != name:
-            raise ValueError(f"Conflicting net labels {names[root]} and {name}")
-        names[root] = name
+    for name in sorted(labels):
+        names.setdefault(find(labels[name]), name)
     used = set(labels)
     for index, root in enumerate(sorted({find(point) for point in points}), 1):
         name = f"n{index}"
@@ -483,24 +621,100 @@ def marker_node(point, project, nodes):
     raise ValueError(f"Marker at {point} needs an unambiguous wire or pin")
 
 
+def validate_design(project, *, check_nets=True):
+    design = project.subcircuit_design
+    if not isinstance(design, dict) or set(design) != {"name", "ports"}:
+        raise ValueError("Use Build reusable subcircuit to assign ports to this schematic.")
+    name, ports = design["name"], design["ports"]
+    if not isinstance(name, str) or not re.fullmatch(r"[A-Z][A-Z0-9_]{0,39}", name, re.ASCII):
+        raise ValueError("Use an ASCII letter followed by up to 39 letters, numbers or underscores for the name.")
+    if not isinstance(ports, list) or not 1 <= len(ports) <= 16:
+        raise ValueError("Assign between 1 and 16 ports.")
+    device_nets = set()
+    if check_nets:
+        nodes = connectivity(project)
+        device_nets = {nodes[pin] for part in project.parts if part.kind not in "GN" for pin in part.pins()}
+    used_names = set()
+    for port in ports:
+        if (not isinstance(port, dict) or set(port)-{"description"} != {"name", "net", "side"}
+                or not isinstance(port.get("description", ""), str) or len(port.get("description", "")) > 500):
+            raise ValueError("Invalid subcircuit port.")
+        title, net, side = port["name"], port["net"], port["side"]
+        if (not isinstance(title, str) or not re.fullmatch(r"[A-Za-z][A-Za-z0-9_+-]{0,23}", title, re.ASCII)
+                or title.casefold() in used_names):
+            raise ValueError("Use distinct port names starting with a letter. Letters, numbers, _, + and - are allowed.")
+        if (not isinstance(net, str) or (check_nets and net not in device_nets)
+                or side not in PORT_SIDES):
+            raise ValueError(f"{title}: choose a net connected to a component and a valid side.")
+        used_names.add(title.casefold())
+    return design
+
+
+def reusable_subcircuit(project):
+    design = validate_design(project)
+    name = design["name"]
+    ports = design["ports"]
+    source = json.loads(project.dump())
+    emit_subcircuit(name, {"source": source}, 0)
+    return name, {"source": source, "ports": [p["name"] for p in ports],
+                  "sides": [p["side"] for p in ports]}
+
+
+def emit_subcircuit(name, model, depth):
+    if depth > 8:
+        raise ValueError("Subcircuits can be nested up to eight levels.")
+    if "source" in model:
+        project = Project.load(json.dumps(model["source"]))
+        ports = validate_design(project)["ports"]
+        port_map = {}
+        for port in ports:
+            port_map.setdefault(port["net"], f"cbp_{len(port_map)+1}")
+        elements, models, definitions, _ = compile_circuit(project, None, port_map, name, depth)
+        return [*definitions, " ".join([".subckt", name, *port_map.values()]), *elements, *models,
+                f".ends {name}"]
+    parameters = model.get("parameters", {})
+    validate_subcircuit(name, model["ports"], model["body"], number, parameters)
+    defaults = ["params:", *(f"{key}={value}" for key, value in parameters.items())] if parameters else []
+    return [" ".join([".subckt", name, *model["ports"], *defaults]), *model["body"], f".ends {name}"]
+
+
 def netlist(project, measurements=None):
+    lines, models, definitions, refs = compile_circuit(project, measurements)
+    profile = project.profiles[project.active]
+    directive = profile.directive()
+    if profile.mode == "DC" and profile.sweep_source.upper() not in refs:
+        raise ValueError(f"DC sweep source {profile.sweep_source} is missing from the schematic")
+    return "\n".join(["CircuitBench", *lines, *models, *definitions, directive, ".end", ""])
+
+
+def compile_circuit(project, measurements, ports=None, scope="", depth=0):
     nodes = connectivity(project)
     devices = sorted((p for p in project.parts if p.kind not in "GN"), key=lambda p: p.ref.upper())
-    if not devices or "0" not in nodes.values():
+    if not devices or (ports is None and "0" not in nodes.values()):
         raise ValueError("Place electrical components and connect a ground reference")
     neighbors = {}
     refs, models, pin_counts = set(), set(), {}
     subcircuits = set()
-    lines = ["CircuitBench"]
+    lines = []
+    names = {}
+    if ports is not None:
+        reserved = {value.lower() for value in ports.values()}
+        for i, node in enumerate(sorted(set(nodes.values()))):
+            local = f"cbn_{i}"
+            while local in reserved:
+                local += "_"
+            names[node] = ports.get(node, "0" if node == "0" else local)
     by_ref = {p.ref.upper(): p for p in devices}
     used_names = set(by_ref)
     used_nodes = set(nodes.values())
     sensors = {}
-    for index, marker in enumerate(project.markers, 1):
+    for index, marker in enumerate(project.markers if ports is None else (), 1):
         if marker["kind"] == "I":
             ref, pin = marker["ref"].upper(), marker["pin"]
             if ref not in by_ref or not 0 <= pin < len(by_ref[ref].pins()):
                 raise ValueError(f"Current marker needs an existing pin on {ref}")
+            if pin in shared_port_pins(project, by_ref[ref]):
+                raise ValueError(f"{ref}: use a current marker on an external component to measure a shared port")
             if (ref, pin) not in sensors:
                 tag = f"cwb{index}"
                 while f"V_{tag.upper()}" in used_names or f"n_{tag}" in used_nodes:
@@ -523,6 +737,12 @@ def netlist(project, measurements=None):
             raise ValueError(f"Invalid or duplicate designator {part.ref}")
         refs.add(ref)
         terminals = [nodes[pin] for pin in part.pins()]
+        pin_indices = list(range(len(terminals)))
+        if part.kind == "X":
+            groups = port_groups(project.subcircuits.get(part.value, {}))
+            if groups:
+                pin_indices = [group[0] for group in groups]
+                terminals = [terminals[i] for i in pin_indices]
         if part.kind in "RCLVID" and terminals[0] == terminals[1]:
             raise ValueError(f"{ref}: both pins are on the same net")
         for node in terminals:
@@ -538,6 +758,8 @@ def netlist(project, measurements=None):
             if value not in project.subcircuits or part.port_names != project.subcircuits[value]["ports"]:
                 raise ValueError(f"{ref}: unknown subcircuit or mismatched port order")
             subcircuits.add(value)
+            if scope:
+                value = scoped_name(scope, value)
         elif value.upper() in project.device_models or part.kind in "QMJS":
             value = value.upper()
             model = project.device_models.get(value)
@@ -553,35 +775,34 @@ def netlist(project, measurements=None):
                 models.add(diode_model(value, *project.diode_models[value]))
             else:
                 raise ValueError(f"{ref}: unknown diode model {value}")
-        for pin, terminal in enumerate(terminals):
+        for index, (pin, terminal) in enumerate(zip(pin_indices, terminals)):
             if (ref, pin) in sensors:
                 sensor, inner = sensors[ref, pin]
                 lines.append(f"{sensor} {terminal} {inner} 0")
-                terminals[pin] = inner
-        lines.append(" ".join([ref, *terminals, value]))
-    reached, pending = {"0"}, ["0"]
+                terminals[index] = inner
+        lines.append(" ".join([ref, *(names.get(pin, pin) for pin in terminals), value]))
+    reached = {"0"} | set(ports or ())
+    pending = list(reached)
     while pending:
         for node in neighbors.get(pending.pop(), set()) - reached:
             reached.add(node)
             pending.append(node)
     if neighbors.keys() - reached:
-        raise ValueError("Circuit contains a group of devices disconnected from ground")
+        raise ValueError("Circuit contains a group of devices disconnected from ground"
+                         if ports is None else "A group of devices is disconnected from all ports and ground")
     for node, endpoints in pin_counts.items():
-        if node != "0" and len(endpoints) == 1:
+        if node != "0" and node not in (ports or ()) and len(endpoints) == 1:
             raise ValueError(f"{endpoints[0]}: dangling terminal on {node}")
-    profile = project.profiles[project.active]
-    directive = profile.directive()
-    if profile.mode == "DC" and profile.sweep_source.upper() not in refs:
-        raise ValueError(f"DC sweep source {profile.sweep_source} is missing from the schematic")
     definitions = []
     for name in sorted(subcircuits):
-        model = project.subcircuits[name]
-        parameters = model.get("parameters", {})
-        validate_subcircuit(name, model["ports"], model["body"], number, parameters)
-        defaults = ["params:", *(f"{key}={value}" for key, value in parameters.items())] if parameters else []
-        definitions.extend([" ".join([".subckt", name, *model["ports"], *defaults]),
-                            *model["body"], f".ends {name}"])
-    return "\n".join([*lines, *sorted(models), *definitions, directive, ".end", ""])
+        definitions.extend(emit_subcircuit(scoped_name(scope, name) if scope else name,
+                                           project.subcircuits[name], depth+1))
+    return lines, sorted(models), definitions, refs
+
+
+def scoped_name(scope, name):
+    digest = sha256(f"{scope}/{name}".encode("ascii")).hexdigest()[:24]
+    return f"CBW_{digest}"
 
 
 def example():
