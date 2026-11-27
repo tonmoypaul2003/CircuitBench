@@ -382,3 +382,4 @@ entries for substantive historical mistakes.
     one summary for a two-value sweep, 25 mW absorption and 50 mW delivery.
     Packaged smoke passed. Build and root executable hashes match.
     Delivery: local executable, with source prepared for GitHub main.
+    GitHub delivery confirmed for source commit 820d3e3 and verification commit 94664f7 on origin/main.
