@@ -100,10 +100,16 @@ Double-click a pin to edit its label, color and coordinate precision. Intersecti
 
 Open **Simulation → Session History** for a maximized tree or **View → Session History** for the docked tree. **Simulation → New session** starts a new group for the current schematic. Session history uses the saved schematic path. Earlier flat run folders remain available through **Import → Open saved waveform**.
 
-Select or drag annotation text on the canvas and press Delete to remove it. **Selected item color** in Edit and Properties works with annotations and component symbols. **Show schematic readings** toggles the net labels and operating-point overlay. Use the power marker on a two-terminal component. Positive watts indicate absorption and negative watts indicate delivery. AC uses average real power for peak-amplitude phasors.
+Select or drag annotation text on the canvas and press Delete to remove it. **Label appearance** in Edit and Properties works with annotations and component symbols. **Show schematic readings** toggles the net labels and operating-point overlay. Use the power marker on a two-terminal component. Positive watts indicate absorption and negative watts indicate delivery. AC uses average real power for peak-amplitude phasors.
 
 ## Desktop v0.4.2 beta
 
 Power markers use lowercase **p**. Marker units are W for power, V for voltage and A for current. The schematic shows SI-scaled values after a matching operating-point run, and plot readouts show scaled values when inspecting samples.
 
 In either session tree, Ctrl-click or Shift-click to select multiple runs or sessions. Press **Delete** or choose **Delete selected** and confirm. Deleting a session removes its saved runs. **Sweep runs** shows a table with component value, base analysis and session. **Saved waveforms** lists available runs for the current schematic. History and plot tabs use descriptive display labels while retaining the existing run directories.
+
+## Desktop v0.4.3 beta
+
+Drag a component or marker label in Select mode to reposition it. Labels start to the left. Select a part, marker or annotation and use **Label appearance** in Properties or Edit for text size and color. Parts have separate reference and value toggles. Markers can hide their ID or measurement and use filled or hollow points.
+
+A denser plot grid adds axis ticks. The cursor guide dropdown offers vertical, horizontal or both directions, and the readout shows A, B and their differences. **Appearance → Chart text** controls the plot font. **Pinned points** controls per-point label size, text color and fill.

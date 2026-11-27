@@ -157,6 +157,26 @@ class GuiTests(unittest.TestCase):
         self.assertEqual(editor.plot_pages.count(),1)
         self.assertFalse(editor.plot_pages.currentWidget().plot.rows)
 
+    def test_schematic_label_drag_preserves_connections(self):
+        from circuit import Project, netlist
+        self.window.project = example()
+        self.window.project.markers = [{"kind":"V","points":[[5,-2]]}]
+        self.window.refresh()
+        canvas = self.window.canvas
+        before = netlist(self.window.project)
+        for kind,index in (("part",1),("marker",0)):
+            canvas.grab()
+            hit = next(r for key,r in canvas.label_hits if key==(kind,index))
+            start = hit.center().toPoint()
+            end = start+QPoint(30,18)
+            QTest.mousePress(canvas, Qt.MouseButton.LeftButton, pos=start)
+            QTest.mouseMove(canvas,end)
+            QTest.mouseRelease(canvas,Qt.MouseButton.LeftButton,pos=end)
+        restored = Project.load(self.window.project.dump())
+        self.assertGreater(restored.parts[1].label_style["offset"][0],0)
+        self.assertGreater(restored.markers[0]["label_style"]["offset"][0],0)
+        self.assertEqual(netlist(restored),before)
+
     def test_click_jitter_does_not_move_part(self):
         self.window.project.add("R", (0, 0))
         self.window.refresh()

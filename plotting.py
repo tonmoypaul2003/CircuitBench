@@ -41,6 +41,7 @@ class Waveform(QWidget):
         self.trace_styles = {}
         self.pin_shapes = []
         self.pin_options = {}
+        self.pin_text = {}
         self.pin_hits = []
         self.pin_offsets = {}
         self.pin_drag = None
@@ -48,6 +49,9 @@ class Waveform(QWidget):
         self.x_column = 0
         self.x_scale = "Automatic"
         self.tick_count = 5
+        self.cursor_lines = "Vertical"
+        self.text_size = 12
+        self.text_color = None
         self.tick_precision = 4
         self.zoom = 100
         self.zoom_origin = (0., 0.)
@@ -226,6 +230,10 @@ class Waveform(QWidget):
         rect = QRectF(0, 0, width, height)
         background = self.chart_background(report)
         ink = QColor("#173d37" if background.lightness() >= 128 else "#f0f7f4")
+        ink = self.text_color or ink
+        font = painter.font()
+        font.setPixelSize(self.text_size)
+        painter.setFont(font)
         painter.fillRect(rect, background)
         painter.setPen(ink)
         if self.plot is None or not self.columns:
@@ -277,7 +285,7 @@ class Waveform(QWidget):
             painter.drawLine(QPointF(legend_x, legend_y-4), QPointF(legend_x+13, legend_y-4))
             painter.drawText(QPointF(legend_x+17, legend_y), name)
             legend_x += label_width
-        cursor_footer = 18 if report and self.cursor is not None else 0
+        cursor_footer = 18 if report and self.cursor_enabled and (self.cursor is not None or self.reference) else 0
         left, right, top, bottom = 74, width-26, legend_y+27, height-43-cursor_footer
         valid_x = [x for x in xs if math.isfinite(x)]
         valid_y = [y for values in columns for x, y in zip(xs, values)
@@ -314,15 +322,17 @@ class Waveform(QWidget):
             grid_color.setAlpha(42)
             grid_color = self.grid_color or grid_color
             painter.setPen(QPen(grid_color, 1))
-            for tick in range(1, self.grid_density):
-                x = left+(right-left)*tick/self.grid_density
-                y = top+(bottom-top)*tick/self.grid_density
+            intervals = max(self.grid_density,self.tick_count-1)
+            for tick in range(1, intervals):
+                x = left+(right-left)*tick/intervals
+                y = top+(bottom-top)*tick/intervals
                 painter.drawLine(QPointF(x, top), QPointF(x, bottom))
                 painter.drawLine(QPointF(left, y), QPointF(right, y))
         painter.setPen(ink)
         painter.drawRect(QRectF(left, top, right-left, bottom-top))
-        for i in range(self.tick_count):
-            fraction = i/(self.tick_count-1)
+        ticks = max(self.tick_count,self.grid_density+1) if self.grid_visible else self.tick_count
+        for i in range(ticks):
+            fraction = i/(ticks-1)
             x = left + (right-left)*fraction
             y = bottom - (bottom-top)*fraction
             xlabel = xmin + (xmax-xmin)*fraction
@@ -361,42 +371,44 @@ class Waveform(QWidget):
                     painter.drawEllipse(point, 3, 3)
             painter.drawPath(path)
         painter.restore()
+        readouts = []
+        cursor_points = []
         if self.cursor_enabled and self.reference and self.reference[1] in self.columns:
-            ax = xs[self.reference[0]]
-            if xmin <= ax <= xmax:
-                position = location(ax,ymin).x()
-                painter.setPen(ink)
-                painter.drawLine(QPointF(position,top),QPointF(position,bottom))
-                painter.drawText(QPointF(position+3,top+13),"A")
-        if self.cursor is not None and xmin <= xs[self.cursor] <= xmax:
-            sample = self.cursor
-            position = location(xs[sample], ymin).x()
+            cursor_points.append(("A",*self.reference))
+        if self.cursor is not None and self.cursor_column in self.columns:
+            cursor_points.append(("B",self.cursor,self.cursor_column))
+        coords = []
+        for label,index,column in cursor_points:
+            value = columns[self.columns.index(column)][index]
+            coords.append((raw_x[index],value))
+            unit = self.plot.units[column]
+            y_text = (f"{value:.7g} dB" if self.presentation==2 and unit not in ("power","expression") else
+                      f"{value:.7g}°" if self.presentation==1 and unit not in ("power","expression") else
+                      display_value(value,unit))
+            readouts.append(f"{label}  {self.plot.names[self.x_column]} = {display_value(raw_x[index],self.plot.units[self.x_column])}   {self.plot.names[column]} = {y_text}")
             painter.setPen(ink)
-            painter.drawLine(QPointF(position, top), QPointF(position, bottom))
-            if self.b_active:
-                painter.drawText(QPointF(position+3,bottom-5),"B")
-            for values in columns:
-                if ymin <= values[sample] <= ymax:
-                    painter.drawEllipse(location(xs[sample], values[sample]), 3, 3)
-            readout = "  |  ".join(
-                [f"{self.plot.names[self.x_column]} = {raw_x[sample]:.10g} {self.plot.units[self.x_column]}"]
-                + [f"{self.plot.names[col]} = {values[sample]:.7g} dB" if self.presentation==2 and self.plot.units[col]!="power" else
-                   f"{self.plot.names[col]} = {values[sample]:.7g}°" if self.presentation==1 and self.plot.units[col]!="power" else
-                   f"{self.plot.names[col]} = {display_value(values[sample],self.plot.units[col])}"
-                   for col, values in zip(self.columns, columns)])
-            if self.reference is not None and self.reference[1] in self.columns:
-                a, col = self.reference
-                dx = raw_x[sample]-raw_x[a]
-                bcol = self.cursor_column if self.cursor_column in self.columns else col
-                dy = columns[self.columns.index(bcol)][sample]-columns[self.columns.index(col)][a]
-                readout = f"ΔX {dx:.7g}   ΔY {dy:.7g}   " + readout
-                if dx and self.plot.names[self.x_column].lower() == "time":
-                    readout = f"{1/abs(dx):.7g} Hz   " + readout
-            if report:
-                visible = metrics.elidedText(readout, Qt.TextElideMode.ElideRight, width-24)
-                painter.drawText(QPointF(12, height-7), visible)
-            else:
-                self.readout.emit(readout)
+            if self.cursor_lines != "Horizontal" and xmin<=xs[index]<=xmax:
+                x = location(xs[index],ymin).x()
+                painter.drawLine(QPointF(x,top),QPointF(x,bottom))
+                painter.drawText(QPointF(x+3,top+(13 if label=="A" else 26)),label)
+            if ymin<=value<=ymax:
+                y = location(xmin,value).y()
+                if self.cursor_lines != "Vertical":
+                    painter.drawLine(QPointF(left,y),QPointF(right,y))
+                    painter.drawText(QPointF(left+5,y-3),label)
+                if xmin<=xs[index]<=xmax:
+                    painter.drawEllipse(location(xs[index],value),3,3)
+        if len(coords)==2:
+            dx = coords[1][0]-coords[0][0]
+            dy = coords[1][1]-coords[0][1]
+            readouts.append(f"ΔX {dx:.7g}   ΔY {dy:.7g}")
+            if dx and self.plot.names[self.x_column].lower()=="time":
+                readouts.append(f"{1/abs(dx):.7g} Hz")
+        readout = "   |   ".join(readouts)
+        if report and readout:
+            painter.drawText(QPointF(12,height-7),metrics.elidedText(readout,Qt.TextElideMode.ElideRight,width-24))
+        elif not report:
+            self.readout.emit(readout)
         for pin_index, (column, sample, label) in enumerate(self.pins):
             if column not in self.columns:
                 continue
@@ -411,9 +423,19 @@ class Waveform(QWidget):
                 continue
             point = location(px, value)
             color,digits = self.pin_options.get(pin_index,(None,3))
+            size,text_color,fill = self.pin_text.get(pin_index,(self.text_size,None,False))
+            painter.save()
+            pin_font = painter.font()
+            pin_font.setPixelSize(size)
+            painter.setFont(pin_font)
+            metrics = painter.fontMetrics()
             painter.setPen(QPen(QColor(color) if color else self.color(column, background), 1.5))
             shape = self.pin_shapes[pin_index] if pin_index < len(self.pin_shapes) else "Circle"
+            painter.setBrush(painter.pen().color() if fill else Qt.BrushStyle.NoBrush)
             self.draw_pin(painter, point, shape)
+            painter.setBrush(Qt.BrushStyle.NoBrush)
+            if text_color:
+                painter.setPen(QColor(text_color))
             x = 10**px if logarithmic else px
             text = f"{label or self.plot.names[column]} ({x:.{digits}f}, {value:.{digits}f})"
             if not report:
@@ -432,6 +454,7 @@ class Waveform(QWidget):
                 self.pin_hits.append((pin_index,label_box))
             painter.fillRect(label_box,background)
             painter.drawText(QPointF(text_x, text_y), text)
+            painter.restore()
 
 
 class PlotPage(QWidget):
@@ -473,9 +496,9 @@ class PlotPage(QWidget):
         self.grid_button.setChecked(self.wave.grid_visible)
         self.grid_button.toggled.connect(self.toggle_grid)
         self.grid_density = QSlider(Qt.Orientation.Horizontal)
-        self.grid_density.setRange(2, 16)
+        self.grid_density.setRange(2, 24)
         self.grid_density.setValue(self.wave.grid_density)
-        self.grid_density.setFixedWidth(64)
+        self.grid_density.setFixedWidth(96)
         self.grid_density.setAccessibleName("Grid density")
         self.grid_density.valueChanged.connect(self.set_grid_density)
         self.limits_button = QPushButton("Axis limits…")
@@ -533,7 +556,7 @@ class PlotPage(QWidget):
         appearance.setPopupMode(QToolButton.ToolButtonPopupMode.InstantPopup)
         appearance_menu = QMenu(appearance)
         for label, callback in (("Trace style…", self.edit_trace_style), ("Labels…", self.edit_labels),
-                                ("Background…", self.choose_background), ("Grid color…", self.choose_grid_color)):
+                                ("Chart text…", self.edit_chart_text), ("Background…", self.choose_background), ("Grid color…", self.choose_grid_color)):
             appearance_menu.addAction(label, callback)
         appearance.setMenu(appearance_menu)
         for button in (self.limits_button, fit, appearance, self.grid_button):
@@ -550,6 +573,14 @@ class PlotPage(QWidget):
         crossing.clicked.connect(self.intersections)
         pin_tools.addWidget(manage)
         pin_tools.addWidget(crossing)
+        guides = self.guides = QComboBox()
+        guides.addItems(["Vertical","Horizontal","Both"])
+        guides.setAccessibleName("Cursor guide orientation")
+        def set_guides(text):
+            self.wave.cursor_lines = text
+            self.wave.update()
+        guides.currentTextChanged.connect(set_guides)
+        pin_tools.addWidget(guides)
         pin_tools.addStretch()
         layout.addLayout(pin_tools)
         content = QHBoxLayout()
@@ -667,6 +698,32 @@ class PlotPage(QWidget):
         self.presentation.setEnabled(index == 0 and self.wave.plot.names[0].lower() == "frequency")
         self.wave.clear_cursor()
         self.set_axis_limits(None, None)
+
+    def edit_chart_text(self):
+        dialog = QDialog(self)
+        dialog.setWindowTitle("Chart text")
+        layout = QFormLayout(dialog)
+        size = QSpinBox()
+        size.setRange(6,32)
+        size.setValue(self.wave.text_size)
+        layout.addRow("Text size (px)",size)
+        color = self.wave.text_color
+        button = QPushButton("Choose text color…")
+        def pick():
+            nonlocal color
+            choice = QColorDialog.getColor(color or QColor("#173d37"),dialog)
+            if choice.isValid():
+                color = choice
+        button.clicked.connect(pick)
+        layout.addRow(button)
+        controls = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok|QDialogButtonBox.StandardButton.Cancel)
+        controls.accepted.connect(dialog.accept)
+        controls.rejected.connect(dialog.reject)
+        layout.addRow(controls)
+        if dialog.exec():
+            self.wave.text_size = size.value()
+            self.wave.text_color = color
+            self.wave.update()
 
     def choose_grid_color(self):
         color = QColorDialog.getColor(self.wave.grid_color or QColor("#9aada4"), self, "Grid color")
@@ -833,7 +890,22 @@ class PlotPage(QWidget):
         digits.setPrefix("Decimals  ")
         color_button = QPushButton("Point color…")
         color = None
+        text_color = None
+        font_size = QSpinBox()
+        font_size.setRange(6,48)
+        font_size.setPrefix("Text size  ")
+        fill = QCheckBox("Filled point")
+        text_button = QPushButton("Text color…")
+        def pick_text():
+            nonlocal text_color
+            color = QColorDialog.getColor(QColor(text_color or "#173d37"),dialog)
+            if color.isValid():
+                text_color = color.name()
+        text_button.clicked.connect(pick_text)
         layout.addWidget(points)
+        layout.addWidget(font_size)
+        layout.addWidget(text_button)
+        layout.addWidget(fill)
         layout.addWidget(digits)
         layout.addWidget(color_button)
         layout.addWidget(label)
@@ -843,7 +915,10 @@ class PlotPage(QWidget):
                 points.addItem(name or f"{self.wave.plot.names[col]} at sample {sample:g}")
         refresh()
         def select(row):
-            nonlocal color
+            nonlocal color,text_color
+            size,text_color,filled = self.wave.pin_text.get(row,(self.wave.text_size,None,False))
+            font_size.setValue(size)
+            fill.setChecked(filled)
             label.setText(self.wave.pins[row][2] if row>=0 else "")
             color,precision = self.wave.pin_options.get(row,(None,3))
             digits.setValue(precision)
@@ -862,12 +937,14 @@ class PlotPage(QWidget):
                 self.wave.pins.pop(row)
                 self.wave.pin_options = {i-(i>row):v for i,v in self.wave.pin_options.items() if i!=row}
                 self.wave.pin_offsets = {i-(i>row):v for i,v in self.wave.pin_offsets.items() if i!=row}
+                self.wave.pin_text = {i-(i>row):v for i,v in self.wave.pin_text.items() if i!=row}
                 if row<len(self.wave.pin_shapes):
                     self.wave.pin_shapes.pop(row)
             else:
                 col,sample,_ = self.wave.pins[row]
                 self.wave.pins[row] = col,sample,label.text()
                 self.wave.pin_options[row] = color,digits.value()
+                self.wave.pin_text[row] = font_size.value(),text_color,fill.isChecked()
             refresh()
             points.setCurrentRow(min(row,points.count()-1))
             self.wave.update()
@@ -926,6 +1003,7 @@ class PlotPage(QWidget):
     def remove_pin(self):
         if self.wave.pins:
             self.wave.pin_offsets.pop(len(self.wave.pins)-1,None)
+            self.wave.pin_text.pop(len(self.wave.pins)-1,None)
             self.wave.pin_options.pop(len(self.wave.pins)-1,None)
             self.wave.pins.pop()
             if self.wave.pin_shapes:

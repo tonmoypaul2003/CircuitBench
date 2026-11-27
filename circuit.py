@@ -113,6 +113,18 @@ def symbol_geometry(sides):
     return width, height, offsets
 
 
+
+def valid_label_style(style):
+    if not isinstance(style,dict):
+        return False
+    offset = style.get("offset",[0,0])
+    return (type(style.get("size",12)) is int and 6<=style.get("size",12)<=48
+            and isinstance(offset,list) and len(offset)==2
+            and all(type(v) in (int,float) and math.isfinite(v) for v in offset)
+            and all(k not in style or isinstance(style[k],str) and re.fullmatch(r"#[0-9a-fA-F]{6}",style[k])
+                    for k in ("color","point_color","symbol_color"))
+            and all(k not in style or type(style[k]) is bool for k in ("name","value","fill")))
+
 @dataclass
 class Part:
     ref: str
@@ -125,6 +137,7 @@ class Part:
     legacy_pin_layout: bool = False
     opamp_symbol: bool = False
     port_sides: list[str] = field(default_factory=list)
+    label_style: dict = field(default_factory=dict)
 
     def is_op07(self):
         return self.kind == "X" and self.value == "OP07" and self.port_names == ["3", "2", "7", "4", "6"]
@@ -262,6 +275,13 @@ class Project:
             for option in ("opamp_symbol", "port_sides"):
                 if not part[option]:
                     del part[option]
+        for part in data["parts"]:
+            if not include_label_styles or not part["label_style"]:
+                part.pop("label_style")
+        if not include_label_styles:
+            data["annotations"] = [note[:3] for note in data["annotations"]]
+            for marker in data["markers"]:
+                marker.pop("label_style",None)
         if not include_label_styles or not self.plot_layouts:
             del data["plot_layouts"]
         for key in ("annotations","analysis_plan","element_colors"):
@@ -291,6 +311,7 @@ class Project:
                        or type(p.rotation) is not int or not isinstance(p.value, str)
                        or type(p.legacy_pin_layout) is not bool
                        or type(p.opamp_symbol) is not bool or (p.opamp_symbol and not p.is_op07())
+                       or not valid_label_style(p.label_style)
                        or not isinstance(p.port_sides, list)
                        or (p.port_sides and (p.kind != "X" or p.opamp_symbol
                            or len(p.port_sides) != len(p.port_names)
@@ -302,8 +323,8 @@ class Project:
                        for point in [*project.junctions, *(p for w in project.wires for p in w)])):
             raise ValueError("Invalid project geometry, active profile, or symbol")
         if not isinstance(project.annotations,list) or any(
-                not isinstance(note,list) or len(note)!=3 or type(note[0]) is not int or type(note[1]) is not int
-                or not isinstance(note[2],str) for note in project.annotations):
+                not isinstance(note,list) or len(note) not in (3,4) or type(note[0]) is not int or type(note[1]) is not int
+                or not isinstance(note[2],str) or (len(note)==4 and not valid_label_style(note[3])) for note in project.annotations):
             raise ValueError("Invalid schematic text annotation")
         plan = project.analysis_plan
         if not isinstance(plan,dict) or (plan and (
@@ -350,6 +371,8 @@ class Project:
                 if not model or (part.kind, tuple(part.port_names)) != MODEL_PORTS[model["type"]]:
                     raise ValueError(f"{part.ref}: device model or port order changed")
         for marker in project.markers:
+            if not valid_label_style(marker.get("label_style",{})):
+                raise ValueError("Invalid marker label style")
             if marker.get("kind") == "I":
                 if not isinstance(marker.get("ref"), str) or type(marker.get("pin")) is not int:
                     raise ValueError("Invalid current marker")

@@ -26,7 +26,7 @@ from spice_library import MODEL_PORTS, read_library
 from subcircuit_designer import SubcircuitDesigner
 
 
-VERSION = "0.4.2-beta"
+VERSION = "0.4.3-beta"
 
 RUNTIME = Path(__file__).resolve().parent / "runtime"
 BUNDLED_SOLVER = RUNTIME / "ngspice" / "bin" / "ngspice_con.exe"
@@ -222,9 +222,9 @@ class Editor(QMainWindow):
         self.profiles.setFrameShape(self.profiles.Shape.StyledPanel)
         self.profiles.setStyleSheet("border: 1px solid palette(mid); border-radius: 4px; padding: 4px 8px;")
         tools.addWidget(self.profiles)
-        item_color = QPushButton("Selected item color…")
-        item_color.clicked.connect(self.color_selected)
-        form.addRow(item_color)
+        labels = QPushButton("Label appearance…")
+        labels.clicked.connect(self.edit_label_appearance)
+        form.addRow(labels)
         self.properties_dock = self.dock("Properties", properties, Qt.DockWidgetArea.RightDockWidgetArea)
         self.action(edit, "Edit selected properties", "Alt+Return", self.edit_selection)
 
@@ -292,7 +292,7 @@ class Editor(QMainWindow):
             (import_library, QStyle.StandardPixmap.SP_DialogOpenButton),
             (self.apply, QStyle.StandardPixmap.SP_DialogApplyButton),
             (self.source_editor, QStyle.StandardPixmap.SP_FileDialogDetailedView),
-            (item_color, QStyle.StandardPixmap.SP_DialogResetButton),
+            (labels, QStyle.StandardPixmap.SP_DialogResetButton),
             (self.voltage_style_button, QStyle.StandardPixmap.SP_FileDialogContentsView),
         ):
             button.setIcon(self.style().standardIcon(icon))
@@ -802,7 +802,7 @@ class Editor(QMainWindow):
     def fit_view(self):
         points = [pin for part in self.project.parts for pin in part.pins()]
         points.extend(point for wire in self.project.wires for point in wire)
-        points.extend((x,y) for x,y,_ in self.project.annotations)
+        points.extend(tuple(note[:2]) for note in self.project.annotations)
         if not points:
             self.reset_view()
             return
@@ -1109,9 +1109,61 @@ class Editor(QMainWindow):
             except ValueError as error:
                 self.error(str(error))
 
-    def color_selected(self):
-        from desktop04 import appearance
-        appearance(self)
+    def edit_label_appearance(self):
+        part = self.selected
+        marker = self.project.markers[next(iter(self.selected_markers))] if len(self.selected_markers)==1 else None
+        index = getattr(self.canvas,"annotation_index",None)
+        note = self.project.annotations[index] if index is not None and index<len(self.project.annotations) else None
+        if part is None and marker is None and note is None:
+            self.statusBar().showMessage("Select a part, marker or annotation first.",5000)
+            return
+        style = (part.label_style if part else marker.get("label_style",{}) if marker else note[3] if len(note)>3 else {}).copy()
+        dialog = QDialog(self)
+        dialog.setWindowTitle("Label appearance")
+        form = QFormLayout(dialog)
+        size = QSpinBox()
+        size.setRange(6,48)
+        size.setValue(style.get("size",12))
+        form.addRow("Text size (px)",size)
+        colors = [("color","Text color")]
+        if marker:
+            colors.append(("point_color","Point color"))
+        elif part:
+            colors.append(("symbol_color","Symbol color"))
+        for key,caption in colors:
+            button = QPushButton(style.get(key) or "Choose color…")
+            def choose_color(checked=False,k=key,b=button):
+                color = QColorDialog.getColor(QColor(style.get(k) or "#173d37"),dialog)
+                if color.isValid():
+                    style[k] = color.name()
+                    b.setText(color.name())
+            button.clicked.connect(choose_color)
+            form.addRow(caption,button)
+        flags = {}
+        for key,caption in (("name","Show reference"),("value","Show value")) if part else (
+                ("name","Show marker ID"),("value","Show measurement and unit"),("fill","Filled point")) if marker else ():
+            check = QCheckBox(caption)
+            check.setChecked(style.get(key,True))
+            form.addRow(check)
+            flags[key] = check
+        reset = QPushButton("Reset label position")
+        reset.clicked.connect(lambda:style.pop("offset",None))
+        if note is None:
+            form.addRow(reset)
+        buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok|QDialogButtonBox.StandardButton.Cancel)
+        buttons.accepted.connect(dialog.accept)
+        buttons.rejected.connect(dialog.reject)
+        form.addRow(buttons)
+        if dialog.exec():
+            self.checkpoint()
+            style.update(size=size.value(),**{k:v.isChecked() for k,v in flags.items()})
+            if part:
+                part.label_style = style
+            elif marker:
+                marker["label_style"] = style
+            else:
+                note[3:] = [style]
+            self.refresh()
 
     def delete(self):
         if getattr(self.canvas,"annotation_index",None) is not None:

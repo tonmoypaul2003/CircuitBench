@@ -9,7 +9,7 @@ from datetime import datetime
 
 from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import (QDialog,QVBoxLayout,QTreeWidget,QTreeWidgetItem,
-                             QPushButton,QInputDialog,QColorDialog,QMessageBox,QMenu,QAbstractItemView,QDialogButtonBox)
+                             QPushButton,QInputDialog,QMessageBox,QMenu,QAbstractItemView,QDialogButtonBox)
 from PyQt6.QtGui import QShortcut,QKeySequence
 from results import Plot,load_plot
 
@@ -246,21 +246,6 @@ def pick_sweep(editor):
         load_selected(editor,table.currentItem())
 
 
-def appearance(editor):
-    index = getattr(editor.canvas,"annotation_index",None)
-    if index is not None and index < len(editor.project.annotations):
-        key = f"text:{index}"
-    elif editor.selected:
-        key = editor.selected.ref
-    else:
-        return
-    color = QColorDialog.getColor(parent=editor)
-    if color.isValid():
-        editor.checkpoint()
-        editor.project.element_colors[key] = color.name()
-        editor.refresh()
-
-
 def install(editor,view,edit,simulation,controls):
     tree = QTreeWidget()
     tree.setHeaderLabel("Sessions and runs")
@@ -276,7 +261,7 @@ def install(editor,view,edit,simulation,controls):
         session_folder(editor)
         refresh_history(editor)
     editor.action(simulation,"New session","",new_session)
-    editor.action(edit,"Selected item color…","",lambda:appearance(editor))
+    editor.action(edit,"Label appearance…","",editor.edit_label_appearance)
     button = QPushButton("Sweep runs…")
     button.setAutoDefault(False)
     button.clicked.connect(lambda:pick_sweep(editor))

@@ -239,6 +239,8 @@ def save_layout(editor):
                      colors={page.plot.names[c]:v.name() for c,v in w.trace_colors.items()},
                      background=w.background.name() if w.background else None,
                      grid_color=w.grid_color.name() if w.grid_color else None,grid=w.grid_visible,
+                     grid_density=w.grid_density, text_size=w.text_size,
+                     text_color=w.text_color.name() if w.text_color else None,cursor_lines=w.cursor_lines,
                      cursor=w.cursor_enabled,presentation=w.presentation,zoom=w.zoom,origin=w.zoom_origin)
         states.append(state)
     editor.checkpoint()
@@ -264,6 +266,10 @@ def restore_layout(page,layout):
         sub.presentation.setCurrentIndex(state["presentation"])
         for k in LAYOUT_FIELDS:
             setattr(w,k,state[k])
+        sub.grid_density.setValue(state.get("grid_density",4))
+        sub.guides.setCurrentText(state.get("cursor_lines","Vertical"))
+        w.text_size = max(6,min(32,state.get("text_size",12)))
+        w.text_color = QColor(state["text_color"]) if state.get("text_color") else None
         w.trace_styles = {page.plot.names.index(n):v for n,v in state["styles"].items() if n in page.plot.names}
         w.trace_colors = {page.plot.names.index(n):QColor(v) for n,v in state["colors"].items() if n in page.plot.names}
         for k in ("background","grid_color"):

@@ -429,3 +429,20 @@ entries for substantive historical mistakes.
     All 46 tests passed after cleanup. The root executable still matches
     the v0.4.2 beta build. Cleanup affected local artifacts. This log
     records the change for delivery to GitHub main.
+
+2026-11-28 — Desktop v0.4.3 beta
+    Part and measurement marker labels default to the left and drag
+    independently of their electrical anchors. Properties and Edit
+    expose text size, colors, visibility and marker fill. The same
+    dialog also styles annotation text. Chart text and pinned-point
+    styling cover plot typography, color and filled or hollow points.
+    Increasing grid density increases ticks on both axes, up to at
+    least 25 tick positions at the slider maximum. Cursor readouts
+    give individual positions alongside their deltas, with vertical,
+    horizontal or both guides. Saved plot layouts retain plot settings.
+    Existing projects load with default styles. Older builds may reject
+    optional appearance fields when edited projects are saved.
+    All 47 tests passed, including label drag and netlist preservation
+    after save and reload. Verified cursor readout and plot rendering,
+    Windows packaged smoke and matching root and versioned hashes.
+    Both executables are local. Source and log prepared for GitHub main.
