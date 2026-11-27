@@ -1,11 +1,12 @@
 """Colors, Qt styles and toolbar glyphs for the desktop workbench."""
+from functools import lru_cache
 from pathlib import Path
 import re
 import sys
 
 from PyQt6.QtCore import QPointF, Qt
 from PyQt6.QtGui import QAction, QColor, QIcon, QPainter, QPalette, QPen, QPixmap, QPolygonF
-from PyQt6.QtWidgets import QApplication, QMenu, QMenuBar
+
 
 glyphs = {
     "New":[[(5,2),(13,2),(19,8),(19,21),(5,21),(5,2)],[(13,2),(13,8),(19,8)]],
@@ -55,6 +56,7 @@ def action_icon(name,color):
 THEME_FILE = Path(__file__).with_name("CircuitBench.qss")
 _theme_text = ""
 _themes = {}
+_accent = ""
 
 
 def read_theme(path):
@@ -83,21 +85,56 @@ def reload_theme():
         _theme_text,_themes = read_theme(THEME_FILE)
 
 
+def mix(first,second,amount):
+    return QColor.fromRgbF(*(a+(b-a)*amount for a,b in zip(first.getRgbF()[:3],second.getRgbF()[:3])))
+
+
+def accent_palette(colors,accent,dark):
+    base = QColor(accent)
+    if not base.isValid():
+        return colors
+    white,black = QColor("#ffffff"),QColor("#000000")
+    result = colors.copy()
+    weights = {
+        "panel": .12, "sheet": .07, "well": .05, "line": .28, "grid": .24,
+        "disabled": .14, "hover": .20, "active": .32, "mute": .17,
+        "ink": .09, "boundary": .34,
+    }
+    for key,weight in weights.items():
+        if key in result:
+            result[key] = mix(QColor(colors[key]),base,weight).name()
+    result["focus"] = mix(base,white if dark else black,.38).name()
+    result["run"] = mix(base,black,.48).name()
+    result["runhover"] = mix(base,black,.57).name()
+    result["net"] = result["focus"]
+    hue,saturation,_,_ = base.getHslF()
+    hue = 0. if hue<0 else hue
+    for key,shift in {"selection":.43,"copper":.43,"marker":.18,"current":.34,
+                      "traceviolet":.20,"traceberry":.76,"traceolive":.58}.items():
+        result[key] = QColor.fromHslF((hue+shift)%1,max(.42,saturation*.7),.71 if dark else .34).name()
+    result["highlight"] = result["focus"]
+    return result
+
+
+@lru_cache(maxsize=2)
 def desktop_colors(dark):
     if not _themes:
         reload_theme()
-    return _themes["dark" if dark else "light"]
+    return accent_palette(_themes["dark" if dark else "light"],_accent,dark)
 
 
-def apply_desktop_theme(window, dark):
+def apply_desktop_theme(window, dark, accent=""):
+    global _accent
     reload_theme()
+    _accent = accent
+    desktop_colors.cache_clear()
     colors = desktop_colors(dark)
     palette = QPalette(window.palette())
     for role, key in (
         ("Window", "panel"), ("WindowText", "ink"), ("Base", "well"),
         ("AlternateBase", "panel"), ("Text", "ink"), ("Button", "panel"),
         ("ButtonText", "ink"), ("Highlight", "active"), ("HighlightedText", "ink"),
-        ("ToolTipBase", "well"), ("ToolTipText", "ink"), ("Mid", "line"),
+        ("ToolTipBase", "well"), ("ToolTipText", "ink"), ("Mid", "line"), ("Link", "focus"),
     ):
         palette.setColor(getattr(QPalette.ColorRole, role), QColor(colors[key]))
     for role in (QPalette.ColorRole.Text, QPalette.ColorRole.WindowText, QPalette.ColorRole.ButtonText):
@@ -111,8 +148,6 @@ def apply_desktop_theme(window, dark):
     window.setStyleSheet(qss)
     if hasattr(window, "plot_window"):
         window.plot_window.setStyleSheet(qss)
-    for menu in (*window.findChildren(QMenu), *window.findChildren(QMenuBar)):
-        menu.setPalette(QApplication.palette())
     for action in window.findChildren(QAction):
         name = {"Open…":"Open", "Analysis setup…":"Analysis setup", "Part…":"Part",
                 "Show plot":"Plots"}.get(action.text(), action.text())

@@ -9,5 +9,5 @@
   "status": "passed",
   "source_tests_passed": 52,
   "executable_path": "build/0.4.7-beta/CircuitBench.exe",
-  "executable_sha256": "607da0aa54dc53e37f016f767a0db5320a219b8211a97ca632cb5d57b279ab79"
+  "executable_sha256": "51f1df2709ff749ac39c8a1106c31a01a19b7bd3308cc0a5e2caebb9d1c679be"
 }

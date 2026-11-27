@@ -18,6 +18,28 @@ SCHEMATIC_COLORS = {
 }
 
 
+SOURCE_LABELS = {
+    "dc": "DC", "ac": "AC", "ac_phase": "AC φ",
+    "SIN:0": "Offset", "SIN:1": "Amp", "SIN:2": "f", "SIN:3": "Delay",
+    "SIN:4": "Damp", "SIN:5": "φ",
+    "PULSE:3": "Rise", "PULSE:4": "Fall", "PULSE:5": "Width", "PULSE:6": "Period",
+    "EXP:0": "Init", "EXP:1": "Pulse", "EXP:2": "Rise delay", "EXP:3": "Rise τ",
+    "EXP:4": "Fall delay", "EXP:5": "Fall τ",
+}
+
+
+def parameter_label(key,name,value):
+    if key=="waveform":
+        return value
+    if key=="PWL:0":
+        return f"{len(value.split())//2} PWL pairs"
+    caption,_,unit = name.partition(" (")
+    name = SOURCE_LABELS.get(key,caption)
+    if key in ("ac_phase","SIN:5"):
+        return f"{name} {value}°"
+    return f"{name} {value} {unit[:-1]}" if unit else f"{name} {value}"
+
+
 def engineering(value, unit):
     for scale, prefix in ((1e9, "G"), (1e6, "M"), (1e3, "k"), (1, ""),
                           (1e-3, "m"), (1e-6, "µ"), (1e-9, "n"), (1e-12, "p")):
@@ -155,7 +177,7 @@ class Canvas(QWidget):
                 if style.get("value",True):
                     if "hidden_parameters" in style:
                         hidden = set(style["hidden_parameters"])
-                        fields.extend((f"param:{key}", f"{name} = {value}")
+                        fields.extend((f"param:{key}", parameter_label(key,name,value))
                                       for key,name,value in part_parameters(project,part) if key not in hidden)
                     else:
                         fields.append(("value",part.value))
@@ -475,7 +497,7 @@ class Canvas(QWidget):
         family = model["type"]
         if family == "VDMOS" and "PCHAN" in model["flags"]:
             family = "PVDMOS"
-        draw_device(painter, part, family, selected,self.ink("#173d37").name())
+        draw_device(painter, part, family, selected,self.ink("#173d37").name(),self.ink("#d46127").name())
 
     def draw_pin_targets(self, painter, part):
         painter.save()

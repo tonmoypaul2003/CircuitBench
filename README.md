@@ -128,10 +128,14 @@ The light and dark themes use slate panels and quiet grid lines. The blue Run co
 
 ### Customize the desktop theme
 
-Edit **CircuitBench.qss** to change the shared Qt widget rules and the light and dark palettes. The palette also supplies the default schematic, plot, and toolbar icon colors. From a Windows release, place a copy of the file next to `CircuitBench.exe` and restart the app or reselect **View → Theme**. The executable includes defaults, so the stylesheet is optional for normal use. The menu bar and menus use the original compact Qt styling.
+Edit **CircuitBench.qss** to change the shared Qt widget rules and the light and dark palettes. The palette also supplies the default schematic, plot, and toolbar icon colors. From a Windows release, place a copy of the file next to `CircuitBench.exe` and restart the app or reselect **View → Theme**. The executable includes defaults, so the stylesheet is optional for normal use. Menus and dropdowns use the theme’s rounded selection highlights.
 
 ### Control which parameters appear on the schematic
 
 In **Source parameters**, the checkbox next to each input controls its canvas label. Changing one switches the source from its compact value string to individual labels. DC bias, AC magnitude, AC phase, waveform type and each waveform input can be shown independently.
 
 For any part, open **Properties → Label appearance** and enable **Show individual parameters** to choose fields. Available fields include passive values and stored model or subcircuit parameters. Turn off **Show parameters** to hide the whole group or turn off **Show individual parameters** to restore the compact label. Drag individual labels in Select mode. Visibility and placement are saved per component.
+
+### Accent color
+
+Choose **View → Theme → Accent color** to tint the application, schematic and default traces from one saved color. Light and dark modes derive their own shades. **Reset accent color** restores the stylesheet palette. Per-plot and per-component color overrides continue to take precedence. Individual parameter labels use abbreviated names on the canvas, while editing dialogs retain the full parameter names.

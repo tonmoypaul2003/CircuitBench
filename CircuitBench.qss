@@ -1,10 +1,17 @@
 /* CircuitBench desktop theme. Edit the light and dark token values or the Qt widget rules.
-   Keep token names and use six-digit hex colors. Menu geometry uses the Qt style. */
+   Keep token names and use six-digit hex colors. The same palette supplies widget, schematic and plot colors. */
 /* light panel=#F5F7F9 well=#FFFFFF ink=#172735 mute=#4B6171 line=#CCD6DE disabled=#E0E7ED hover=#E8EFF5 active=#D9EAF9 focus=#2774B2 run=#155789 runhover=#10476F grid=#D3DCE3 net=#12776E copper=#A44C28 sheet=#FCFDFE boundary=#86A49B selection=#D46127 marker=#80469C highlight=#1D56B3 current=#B34B1D traceviolet=#5157AD traceberry=#9B3B70 traceolive=#426925 */
 /* dark panel=#18242E well=#101B24 ink=#E6EEF4 mute=#A9BECC line=#354B5A disabled=#1B2A35 hover=#223746 active=#284657 focus=#77B9F0 run=#205F91 runhover=#194F7D grid=#2B4251 net=#72D4C0 copper=#EFA577 sheet=#111D27 boundary=#8AABA1 selection=#FFAB72 marker=#D9A5EC highlight=#82BAFF current=#FFAB72 traceviolet=#858DE5 traceberry=#E694C8 traceolive=#A2CE76 */
 
 QMainWindow, QDialog { background: @panel@; color: @ink@; }
-QToolBar, QStatusBar { background: @panel@; color: @ink@; }
+QToolBar, QStatusBar, QMenuBar { background: @panel@; color: @ink@; }
+QMenuBar::item { background: transparent; padding: 4px 8px; border-radius: 5px; }
+QMenuBar::item:selected, QMenuBar::item:pressed { background: @active@; color: @ink@; }
+QMenu { background: @panel@; color: @ink@; border: 1px solid @line@; border-radius: 8px; padding: 4px; }
+QMenu::item { padding: 5px 24px 5px 22px; border-radius: 5px; }
+QMenu::item:selected { background: @active@; color: @ink@; }
+QMenu::item:disabled { color: @mute@; }
+QMenu::separator { height: 1px; background: @line@; margin: 4px 2px; }
 QToolBar { padding: 5px; spacing: 5px; border: 0; }
 QToolBar::separator { background: @line@; width: 1px; margin: 5px; }
 QStatusBar { border-top: 1px solid @line@; }
@@ -14,8 +21,10 @@ QScrollArea { border: 1px solid @line@; }
 QComboBox, QSpinBox, QDoubleSpinBox { color: @ink@; background: @well@; border: 1px solid @line@; border-radius: 5px; }
 QComboBox { padding: 4px 22px 4px 7px; }
 QComboBox:enabled:hover, QComboBox:enabled:focus, QComboBox:enabled:on { background: @active@; border-color: @focus@; }
+QComboBox QAbstractItemView::item { padding: 4px 6px; border-radius: 5px; }
 QComboBox QAbstractItemView::item:hover { background: @hover@; color: @ink@; }
-QComboBox QAbstractItemView { background: @well@; color: @ink@; selection-background-color: @active@; selection-color: @ink@; }
+QComboBox QAbstractItemView::item:selected { background: @active@; color: @ink@; }
+QComboBox QAbstractItemView { background: @panel@; color: @ink@; border: 1px solid @line@; border-radius: 7px; padding: 3px; selection-background-color: @active@; selection-color: @ink@; }
 QLabel#analysisMode { border: 1px solid @line@; border-radius: 5px; padding: 5px 8px; color: @mute@; }
 QPushButton, QToolButton { background: @panel@; color: @ink@; border: 1px solid @line@; border-radius: 5px; padding: 5px 8px; }
 QPushButton:hover, QToolButton:hover { background: @hover@; }

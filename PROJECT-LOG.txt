@@ -555,3 +555,15 @@ entries for substantive historical mistakes.
     identical netlists after display changes. Captured the Qt source
     dialog and passed packaged smoke. Root and versioned hashes match.
     Delivery: local builds and source prepared for GitHub main.
+
+2026-11-28 — Desktop v0.4.7 beta coordinated accent and compact labels
+    Abbreviated detailed canvas parameter labels while keeping full names
+    in editing dialogs. Menus and dropdowns use rounded selected rows.
+    Added a saved accent color and reset in View > Theme. The accent
+    derives light and dark shades for application chrome, schematic
+    colors, glyphs and default trace series from the stylesheet palette.
+    Explicit plot and component colors retain precedence. No CWB changes.
+    All 52 tests passed. Verified Qt popup rendering, concise canvas
+    labels, accent save/reset and both palettes. Packaged smoke passed
+    and root and versioned hashes match. Delivery: local builds and
+    source prepared for GitHub main.

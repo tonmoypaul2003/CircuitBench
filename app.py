@@ -143,6 +143,9 @@ class Editor(QMainWindow):
             action = self.action(theme_menu, theme, "", lambda theme=theme: self.set_theme(theme))
             action.setCheckable(True)
             self.theme_options.addAction(action)
+        theme_menu.addSeparator()
+        self.action(theme_menu,"Accent color…","",self.choose_accent_color)
+        self.action(theme_menu,"Reset accent color","",self.reset_accent_color)
         self.set_theme(self.theme_settings.value("theme", "System"))
         tools.addSeparator()
         self.action(tools, "Analysis setup…", "", lambda: setup(self))
@@ -338,12 +341,24 @@ class Editor(QMainWindow):
         QApplication.styleHints().setColorScheme(options[preference])
         self.apply_theme()
 
+    def choose_accent_color(self):
+        saved = self.theme_settings.value("accent_color","#2774b2",type=str)
+        chosen = QColorDialog.getColor(QColor(saved),self,"CircuitBench accent color")
+        if chosen.isValid():
+            self.theme_settings.setValue("accent_color",chosen.name())
+            self.apply_theme()
+
+    def reset_accent_color(self):
+        self.theme_settings.remove("accent_color")
+        self.apply_theme()
+
     def apply_theme(self):
         self.dark_theme = (self.theme_preference == "Dark" or
                            (self.theme_preference == "System"
                             and QApplication.styleHints().colorScheme() == Qt.ColorScheme.Dark))
         QApplication.instance().setProperty("circuitbenchDark", self.dark_theme)
-        apply_desktop_theme(self,self.dark_theme)
+        accent = self.theme_settings.value("accent_color","",type=str)
+        apply_desktop_theme(self,self.dark_theme,accent)
         self.canvas.update()
 
     def eventFilter(self, watched, event):
