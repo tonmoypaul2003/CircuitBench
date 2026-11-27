@@ -418,3 +418,14 @@ entries for substantive historical mistakes.
     batch session deletion across both views, the sweep table and the
     packaged Windows smoke test. Matching root and versioned builds
     stay local. Source and log prepared for GitHub main.
+
+2026-11-28 — Desktop workspace cleanup
+    Removed the untracked duplicate Web Pages workflow, the stray pp.png
+    screenshot, an empty old version directory, Python and PyInstaller
+    caches, superseded temporary executable copies and obsolete previews.
+    The duplicate workflow matched the Web checkout byte for byte.
+    Retained the versioned builds, root executable, dependencies, release
+    archive and referenced evidence. No application or schematic changes.
+    All 46 tests passed after cleanup. The root executable still matches
+    the v0.4.2 beta build. Cleanup affected local artifacts. This log
+    records the change for delivery to GitHub main.
