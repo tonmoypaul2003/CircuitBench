@@ -2,10 +2,12 @@
 from pathlib import Path
 import hashlib
 import tempfile
+import shutil
 
 from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import (QDialog,QVBoxLayout,QTreeWidget,QTreeWidgetItem,
-                             QPushButton,QInputDialog,QColorDialog)
+                             QPushButton,QInputDialog,QColorDialog,QMessageBox,QMenu)
+from PyQt6.QtGui import QShortcut,QKeySequence
 from results import Plot,load_plot
 
 
@@ -68,6 +70,45 @@ def refresh_history(editor):
     populate(editor,editor.session_tree)
 
 
+def wire_history(editor,tree):
+    tree.itemDoubleClicked.connect(lambda item,col:load_selected(editor,item))
+    def remove():
+        item = tree.currentItem()
+        data = item.data(0,Qt.ItemDataRole.UserRole) if item else None
+        if not data:
+            return
+        path = Path(data)
+        root = history_root(editor).resolve()
+        if editor.process is not None:
+            editor.statusBar().showMessage("Wait for the simulation batch to finish before deleting a run.",5000)
+            return
+        if path.is_symlink() or path.parent.is_symlink() or path.resolve().parent.parent != root:
+            return
+        if QMessageBox.question(tree,"Delete run",f"Permanently delete {path.name} and its saved data?") != QMessageBox.StandardButton.Yes:
+            return
+        try:
+            shutil.rmtree(path)
+        except OSError as error:
+            editor.error(str(error))
+            return
+        editor.sweep_runs = [p for p in getattr(editor,"sweep_runs",[]) if p!=path]
+        refresh_history(editor)
+        if tree is not editor.session_tree:
+            populate(editor,tree)
+    shortcut = QShortcut(QKeySequence("Delete"),tree)
+    shortcut.setContext(Qt.ShortcutContext.WidgetWithChildrenShortcut)
+    shortcut.activated.connect(remove)
+    tree.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+    def context(point):
+        item = tree.itemAt(point)
+        if item and item.parent():
+            tree.setCurrentItem(item)
+            menu = QMenu(tree)
+            menu.addAction("Delete run",remove)
+            menu.exec(tree.viewport().mapToGlobal(point))
+    tree.customContextMenuRequested.connect(context)
+
+
 def show_history(editor):
     dialog = QDialog(editor)
     dialog.setWindowTitle("Session History")
@@ -75,10 +116,12 @@ def show_history(editor):
     tree = QTreeWidget()
     tree.setHeaderLabel("Session Tree")
     populate(editor,tree)
-    tree.itemDoubleClicked.connect(lambda item,col:load_selected(editor,item))
+    wire_history(editor,tree)
     box.addWidget(tree)
-    dialog.showMaximized()
-    dialog.exec()
+    dialog.setWindowFlags(Qt.WindowType.Window | Qt.WindowType.WindowMinMaxButtonsHint | Qt.WindowType.WindowCloseButtonHint)
+    dialog.resize(680,440)
+    dialog.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)
+    dialog.show()
 
 
 def fresh_page(editor):
@@ -98,6 +141,16 @@ def show_sweep(editor):
     runs = editor.sweep_runs
     plots = [load_plot(run/"result.raw") for run in runs]
     first = plots[0]
+    if "operating point" not in first.title.lower():
+        from studies import overlay
+        plan = editor.sweep_plan
+        common = [n for n in first.names[1:] if all(n in plot.names for plot in plots)]
+        signal = "v(out)" if "v(out)" in common else next(iter(common),None)
+        page = overlay(editor,[(f"{plan['ref']}={v}",p) for v,p in zip(plan["values"],plots)],
+                       "Parametric sweep",signal)
+        if page:
+            page.message.setText("All sweep values overlaid. Use Sweep results for individual runs.")
+        return
     signal = next((n for n in first.names[1:] if n=="v(out)"),first.names[-1])
     values = [plot.rows[-1][plot.names.index(signal)] for plot in plots]
     plan = editor.sweep_plan
@@ -107,6 +160,18 @@ def show_sweep(editor):
                                     [[x,y] for x,y in zip(axis,values)]),None,[1])
     page.message.setText("Final sample by component value. Use Sweep results to open an individual waveform.")
     editor.open_plots()
+
+
+def pick_trace_run(editor):
+    runs = sorted(history_root(editor).glob("*/*/result.raw"),key=lambda p:p.stat().st_mtime,reverse=True)
+    if not runs:
+        editor.error("No saved waveform for this schematic.")
+        return
+    labels = [f"{p.parent.parent.name} / {p.parent.name}" for p in runs]
+    label,ok = QInputDialog.getItem(editor.plot_window,"Trace run","Session and run",labels,0,False)
+    if ok:
+        editor.load_saved_run(runs[labels.index(label)].parent)
+        editor.open_plots()
 
 
 def pick_sweep(editor):
@@ -138,7 +203,7 @@ def appearance(editor):
 def install(editor,view,edit,simulation,controls):
     tree = QTreeWidget()
     tree.setHeaderLabel("Sessions and runs")
-    tree.itemDoubleClicked.connect(lambda item,col:load_selected(editor,item))
+    wire_history(editor,tree)
     editor.session_tree = tree
     dock = editor.dock("Session Tree",tree,Qt.DockWidgetArea.LeftDockWidgetArea)
     toggle = dock.toggleViewAction()
@@ -155,3 +220,7 @@ def install(editor,view,edit,simulation,controls):
     button.setAutoDefault(False)
     button.clicked.connect(lambda:pick_sweep(editor))
     controls.addWidget(button)
+    trace_run = QPushButton("Trace run…")
+    trace_run.setAutoDefault(False)
+    trace_run.clicked.connect(lambda:pick_trace_run(editor))
+    controls.addWidget(trace_run)

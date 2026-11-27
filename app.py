@@ -26,7 +26,7 @@ from spice_library import MODEL_PORTS, read_library
 from subcircuit_designer import SubcircuitDesigner
 
 
-VERSION = "0.4-beta"
+VERSION = "0.4.1-beta"
 
 RUNTIME = Path(__file__).resolve().parent / "runtime"
 BUNDLED_SOLVER = RUNTIME / "ngspice" / "bin" / "ngspice_con.exe"
@@ -219,9 +219,8 @@ class Editor(QMainWindow):
         form.addRow(self.apply)
         self.profiles = QLabel()
         tools.addSeparator()
-        analysis_label = QLabel(" Analysis ")
-        analysis_label.setBuddy(self.profiles)
-        tools.addWidget(analysis_label)
+        self.profiles.setFrameShape(self.profiles.Shape.StyledPanel)
+        self.profiles.setStyleSheet("border: 1px solid palette(mid); border-radius: 4px; padding: 4px 8px;")
         tools.addWidget(self.profiles)
         item_color = QPushButton("Selected item color…")
         item_color.clicked.connect(self.color_selected)
@@ -758,7 +757,7 @@ class Editor(QMainWindow):
         enabled = self.project.analysis_plan.get("enabled",[self.project.active]).copy()
         if self.project.analysis_plan.get("parametric"):
             enabled.append("Parametric Sweep")
-        self.profiles.setText(", ".join(enabled))
+        self.profiles.setText("Analysis: " + ", ".join(enabled))
         revision = self.project.dump()
         self.refresh_markers()
         simulation_revision = self.project.dump(include_label_styles=False)
@@ -786,6 +785,7 @@ class Editor(QMainWindow):
         messages = {"Select": "Drag empty space to box-select · Shift-drag extends · drag a selection to move",
                     "Mark V": "Click a wire or pin to mark its voltage relative to ground",
                     "Mark VD": "Click the positive wire or pin, then the negative wire or pin",
+                    "Mark P": "Click a two-terminal component to measure power",
                     "Mark I": "Click a component pin to measure current into it",
                     "Wire": "Click two endpoints to route a wire · Esc to stop",
                     "Junction": "Click an intersection to connect the wires"}

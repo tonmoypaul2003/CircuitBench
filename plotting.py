@@ -3,7 +3,7 @@ import math
 from pathlib import Path
 
 from PyQt6.QtCore import QIODevice, QPointF, QRectF, QSaveFile, Qt, pyqtSignal
-from PyQt6.QtGui import QColor, QImage, QPageSize, QPainter, QPainterPath, QPdfWriter, QPen, QPolygonF
+from PyQt6.QtGui import QColor, QImage, QPageSize, QShortcut, QKeySequence, QPainter, QPainterPath, QPdfWriter, QPen, QPolygonF
 from PyQt6.QtWidgets import (QApplication, QColorDialog, QComboBox, QDialog, QDialogButtonBox, QFileDialog,
                              QCheckBox, QDoubleSpinBox, QFormLayout, QGridLayout, QHBoxLayout, QInputDialog, QLabel, QLineEdit,
                              QListWidget, QListWidgetItem, QPushButton, QScrollArea, QSlider, QSpinBox, QToolButton, QMenu,
@@ -36,6 +36,8 @@ class Waveform(QWidget):
         self.pin_shapes = []
         self.pin_options = {}
         self.pin_hits = []
+        self.pin_offsets = {}
+        self.pin_drag = None
         self.grid_color = None
         self.x_column = 0
         self.x_scale = "Automatic"
@@ -85,6 +87,10 @@ class Waveform(QWidget):
     def mousePressEvent(self, event):
         self.activated.emit()
         if event.button() == Qt.MouseButton.LeftButton:
+            for index,hit in reversed(self.pin_hits):
+                if hit.contains(event.position()):
+                    self.pin_drag = index,event.position(),self.pin_offsets.get(index,QPointF())
+                    return
             self.move_cursor(event.position().x(), event.position().y())
         elif event.button() == Qt.MouseButton.RightButton:
             self.reference = None
@@ -107,7 +113,16 @@ class Waveform(QWidget):
             self.cursor_changed.emit()
             self.update()
 
+    def mouseReleaseEvent(self,event):
+        self.pin_drag = None
+        super().mouseReleaseEvent(event)
+
     def mouseMoveEvent(self, event):
+        if self.pin_drag and event.buttons() & Qt.MouseButton.LeftButton:
+            index,origin,offset = self.pin_drag
+            self.pin_offsets[index] = offset + event.position()-origin
+            self.update()
+            return
         if event.buttons() & Qt.MouseButton.LeftButton:
             self.move_cursor(event.position().x(), event.position().y())
 
@@ -399,8 +414,15 @@ class Waveform(QWidget):
             text_width = metrics.horizontalAdvance(text)
             text_x = max(left+4, min(point.x()+7, right-text_width-4))
             text_y = point.y()-7 if point.y() > top+17 else point.y()+17
-            painter.fillRect(QRectF(text_x-3, text_y-metrics.ascent(), text_width+6, metrics.height()),
-                             background)
+            offset = self.pin_offsets.get(pin_index)
+            if offset:
+                text_x = max(left+4,min(text_x+offset.x(),right-text_width-4))
+                text_y = max(top+metrics.ascent(),min(text_y+offset.y(),bottom))
+                painter.drawLine(point,QPointF(text_x,text_y))
+            label_box = QRectF(text_x-3,text_y-metrics.ascent(),text_width+6,metrics.height())
+            if not report:
+                self.pin_hits.append((pin_index,label_box))
+            painter.fillRect(label_box,background)
             painter.drawText(QPointF(text_x, text_y), text)
 
 
@@ -831,6 +853,7 @@ class PlotPage(QWidget):
             if remove:
                 self.wave.pins.pop(row)
                 self.wave.pin_options = {i-(i>row):v for i,v in self.wave.pin_options.items() if i!=row}
+                self.wave.pin_offsets = {i-(i>row):v for i,v in self.wave.pin_offsets.items() if i!=row}
                 if row<len(self.wave.pin_shapes):
                     self.wave.pin_shapes.pop(row)
             else:
@@ -844,6 +867,9 @@ class PlotPage(QWidget):
             button = QPushButton(title)
             button.clicked.connect(lambda checked=False,r=remove:edit(r))
             layout.addWidget(button)
+        delete = QShortcut(QKeySequence("Delete"),points)
+        delete.setContext(Qt.ShortcutContext.WidgetWithChildrenShortcut)
+        delete.activated.connect(lambda:edit(True))
         points.setCurrentRow(selected)
         dialog.exec()
 
@@ -891,6 +917,7 @@ class PlotPage(QWidget):
 
     def remove_pin(self):
         if self.wave.pins:
+            self.wave.pin_offsets.pop(len(self.wave.pins)-1,None)
             self.wave.pin_options.pop(len(self.wave.pins)-1,None)
             self.wave.pins.pop()
             if self.wave.pin_shapes:

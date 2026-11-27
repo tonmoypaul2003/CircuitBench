@@ -48,7 +48,7 @@ def sample(xs, ys, x):
     return ys[i]+(ys[i+1]-ys[i])*(x-xs[i])/(xs[i+1]-xs[i])
 
 
-def overlay(editor, runs, title):
+def overlay(editor, runs, title, signal=None):
     first = runs[0][1]
     if len(first.rows)*(1+len(runs)) > 2_000_000:
         raise ValueError("Comparison exceeds the plot size limit.")
@@ -56,7 +56,7 @@ def overlay(editor, runs, title):
     op = "operating point" in first.title.lower()
     if not op:
         common = [s for s in common if s != first.names[0]]
-    signal = choose(editor, title, common)
+    signal = signal if signal in common else choose(editor, title, common)
     if not signal:
         return
     xs = [r[0].real for r in first.rows]
@@ -71,7 +71,8 @@ def overlay(editor, runs, title):
         for i,row in enumerate(rows):
             row.append(ys[i] if op or xs == axis else sample(axis,ys,xs[i]))
     names = [first.names[0]]+[f"{signal} [{label}]" for label,_ in runs]
-    plot = Plot(title + (" operating point" if op else ""), names,
+    suffix = " operating point" if op else " · AC" if first.names[0].lower()=="frequency" else ""
+    plot = Plot(title + suffix, names,
                 [first.units[0]]+[first.units[first.names.index(signal)]]*len(runs), rows)
     page = editor.add_plot_page(plot,None,list(range(1,len(names))))
     editor.open_plots()

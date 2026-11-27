@@ -390,3 +390,18 @@ entries for substantive historical mistakes.
     No project format changes. Verified all 16 labeled toolbar controls,
     46 source tests, Windows packaged smoke and matching local hashes.
     Rebuilt the versioned and root executables locally.
+
+2026-11-28 — Desktop v0.4.1 beta
+    Session history opens in a smaller independent window with minimize
+    and maximize buttons. Run entries support confirmed deletion by menu
+    or Delete. Trace run selection shows the current schematic's saved
+    waveforms with the newest first. Parametric waveform sweeps overlay
+    a common signal for all values, with individual waveforms available.
+    Pin labels can be dragged without changing measurements. Delete in
+    Pinned points removes the selected pin. Added a border to the analysis
+    summary and corrected the missing power-marker placement prompt that
+    caused a crash. No schematic format changes.
+    Verified 46 tests, four complete 201-sample capacitor AC traces in one
+    plot, power marker activation, pin movement, run and pin deletion
+    actions, and the Windows packaged smoke test. Root and versioned local
+    executable hashes match. Source prepared for GitHub main.
