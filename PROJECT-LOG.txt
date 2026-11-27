@@ -383,3 +383,10 @@ entries for substantive historical mistakes.
     Packaged smoke passed. Build and root executable hashes match.
     Delivery: local executable, with source prepared for GitHub main.
     GitHub delivery confirmed for source commit 820d3e3 and verification commit 94664f7 on origin/main.
+
+2026-11-27 — Desktop 0.4 beta toolbar icon correction
+    Set both main-window toolbars to show icons beside text. Added icons
+    for drawing and simulation actions and main-window dock controls.
+    No project format changes. Verified all 16 labeled toolbar controls,
+    46 source tests, Windows packaged smoke and matching local hashes.
+    Rebuilt the versioned and root executables locally.

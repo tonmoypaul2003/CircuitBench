@@ -75,11 +75,12 @@ class Editor(QMainWindow):
         self.mode_group = QActionGroup(self)
         self.mode_group.setExclusionPolicy(QActionGroup.ExclusionPolicy.ExclusiveOptional)
         tools = QToolBar("Project and simulation")
+        tools.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextBesideIcon)
         tools.setMovable(False)
         self.addToolBar(tools)
         drawing_tools = QToolBar("Drawing tools")
         drawing_tools.setMovable(False)
-        drawing_tools.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextOnly)
+        drawing_tools.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextBesideIcon)
         self.addToolBar(Qt.ToolBarArea.LeftToolBarArea, drawing_tools)
         file_menu = self.menuBar().addMenu("&File")
         tools.addAction(self.action(file_menu, "New", "Ctrl+N", lambda: self.replace(Project())))
@@ -287,6 +288,15 @@ class Editor(QMainWindow):
         for panel in (self.library_dock, self.properties_dock, self.marker_dock, self.bias_dock, self.output_dock):
             view.addAction(panel.toggleViewAction())
             panel.hide()
+        from PyQt6.QtWidgets import QStyle
+        for button, icon in (
+            (import_library, QStyle.StandardPixmap.SP_DialogOpenButton),
+            (self.apply, QStyle.StandardPixmap.SP_DialogApplyButton),
+            (self.source_editor, QStyle.StandardPixmap.SP_FileDialogDetailedView),
+            (item_color, QStyle.StandardPixmap.SP_DialogResetButton),
+            (self.voltage_style_button, QStyle.StandardPixmap.SP_FileDialogContentsView),
+        ):
+            button.setIcon(self.style().standardIcon(icon))
         self.coordinates = QLabel("X 0   Y 0")
         self.coordinates.setMinimumWidth(100)
         self.statusBar().addPermanentWidget(self.coordinates)
@@ -499,9 +509,16 @@ class Editor(QMainWindow):
         action = QAction(title, self)
         from PyQt6.QtWidgets import QStyle
         icons = {"Run":"SP_MediaPlay","Cancel run":"SP_MediaStop","Open…":"SP_DialogOpenButton",
-                 "Save":"SP_DialogSaveButton","New":"SP_FileIcon","Analysis setup…":"SP_FileDialogDetailedView"}
+                 "Save":"SP_DialogSaveButton","New":"SP_FileIcon","Analysis setup…":"SP_FileDialogDetailedView",
+                 "Select":"SP_ArrowUp","Wire":"SP_ArrowRight","Junction":"SP_DialogApplyButton",
+                 "Part…":"SP_FileDialogNewFolder","Ground":"SP_ArrowDown","Label":"SP_FileDialogInfoView",
+                 "Rotate":"SP_BrowserReload","Fit schematic":"SP_TitleBarMaxButton","Netlist":"SP_FileDialogListView",
+                 "Show schematic readings":"SP_FileDialogContentsView","Undo":"SP_ArrowBack","Redo":"SP_ArrowForward",
+                 "Save as…":"SP_DialogSaveButton","Delete selection":"SP_TrashIcon",
+                 "Session History…":"SP_DirIcon","Show plot":"SP_ComputerIcon"}
         if title in icons:
             action.setIcon(self.style().standardIcon(getattr(QStyle.StandardPixmap,icons[title])))
+            action.setIconVisibleInMenu(True)
         if key:
             action.setShortcut(key)
         action.triggered.connect(lambda checked=False: callback())
