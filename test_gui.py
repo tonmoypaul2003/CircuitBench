@@ -139,7 +139,7 @@ class GuiTests(unittest.TestCase):
         self.assertEqual(editor.plot_pages.count(),1)
         self.assertEqual(page.plot.names.count("level"),1)
         sub = page.subplots[0]
-        with patch("plotting.QInputDialog.getItem",side_effect=[("v(out)",True),("level",True)]), patch("PyQt6.QtWidgets.QMessageBox.information"):
+        with patch("plotting.QInputDialog.getItem",side_effect=[("v(out)",True),("level",True)]), patch("plotting.QInputDialog.getInt",return_value=(2,True)), patch("PyQt6.QtWidgets.QMessageBox.information"):
             sub.intersections()
         self.assertEqual([p[1] for p in sub.wave.pins],[.5,1.5])
         sub.wave.grab()
@@ -156,6 +156,23 @@ class GuiTests(unittest.TestCase):
         editor.duplicate_plot_page()
         self.assertEqual(editor.plot_pages.count(),1)
         self.assertFalse(editor.plot_pages.currentWidget().plot.rows)
+
+    def test_intersections_respect_visible_limits_and_cap(self):
+        from unittest.mock import patch
+        page = self.window.add_plot_page(
+            Plot("Transient",["time","v(out)","level"],["time","voltage","voltage"],
+                 [[0,0,1],[1,2,1],[2,0,1],[3,2,1],[4,0,1]]),None,[1,2])
+        self.window.open_plots()
+        sub = page.subplots[0]
+        sub.set_axis_limits((1,4),(0,2))
+        sub.wave.grab()
+        with patch("plotting.QInputDialog.getItem",side_effect=[("v(out)",True),("level",True)]), \
+                patch("plotting.QInputDialog.getInt",return_value=(1,True)), \
+                patch("PyQt6.QtWidgets.QMessageBox.information"):
+            sub.intersections()
+        self.assertEqual([pin[1] for pin in sub.wave.pins],[1.5])
+        sub.delete_pins({0})
+        self.assertFalse(sub.wave.pins)
 
     def test_schematic_label_drag_preserves_connections(self):
         from circuit import Project, netlist

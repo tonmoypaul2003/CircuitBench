@@ -4,7 +4,7 @@ from pathlib import Path
 
 from PyQt6.QtCore import QIODevice, QPointF, QRectF, QSaveFile, Qt, pyqtSignal
 from PyQt6.QtGui import QColor, QImage, QPageSize, QShortcut, QKeySequence, QPainter, QPainterPath, QPdfWriter, QPen, QPolygonF
-from PyQt6.QtWidgets import (QApplication, QColorDialog, QComboBox, QDialog, QDialogButtonBox, QFileDialog,
+from PyQt6.QtWidgets import (QApplication, QAbstractItemView, QColorDialog, QComboBox, QDialog, QDialogButtonBox, QFileDialog,
                              QCheckBox, QDoubleSpinBox, QFormLayout, QGridLayout, QHBoxLayout, QInputDialog, QLabel, QLineEdit,
                              QListWidget, QListWidgetItem, QPushButton, QScrollArea, QSlider, QSpinBox, QToolButton, QMenu,
                              QVBoxLayout, QWidget)
@@ -67,6 +67,7 @@ class Waveform(QWidget):
         self.pins = []
         self.grid_visible = True
         self.grid_density = 4
+        self.y_grid_density = 4
         self.background = None
         self.x_limits = None
         self.y_limits = None
@@ -322,25 +323,30 @@ class Waveform(QWidget):
             grid_color.setAlpha(42)
             grid_color = self.grid_color or grid_color
             painter.setPen(QPen(grid_color, 1))
-            intervals = max(self.grid_density,self.tick_count-1)
-            for tick in range(1, intervals):
-                x = left+(right-left)*tick/intervals
-                y = top+(bottom-top)*tick/intervals
-                painter.drawLine(QPointF(x, top), QPointF(x, bottom))
-                painter.drawLine(QPointF(left, y), QPointF(right, y))
+            for steps, vertical in ((self.grid_density,True),(self.y_grid_density,False)):
+                for tick in range(1,steps):
+                    fraction = tick/steps
+                    if vertical:
+                        x = left+(right-left)*fraction
+                        painter.drawLine(QPointF(x,top),QPointF(x,bottom))
+                    else:
+                        y = bottom-(bottom-top)*fraction
+                        painter.drawLine(QPointF(left,y),QPointF(right,y))
         painter.setPen(ink)
-        painter.drawRect(QRectF(left, top, right-left, bottom-top))
-        ticks = max(self.tick_count,self.grid_density+1) if self.grid_visible else self.tick_count
-        for i in range(ticks):
-            fraction = i/(ticks-1)
-            x = left + (right-left)*fraction
-            y = bottom - (bottom-top)*fraction
-            xlabel = xmin + (xmax-xmin)*fraction
-            if logarithmic:
-                xlabel = 10**xlabel
-            text = f"{xlabel:.{self.tick_precision}g}"
-            painter.drawText(QPointF(x-metrics.horizontalAdvance(text)/2, bottom+17), text)
-            painter.drawText(QPointF(6, y+4), f"{ymin+(ymax-ymin)*fraction:.{self.tick_precision}g}")
+        painter.drawRect(QRectF(left,top,right-left,bottom-top))
+        xticks = self.grid_density+1 if self.grid_visible else self.tick_count
+        yticks = self.y_grid_density+1 if self.grid_visible else self.tick_count
+        for i in range(xticks):
+            fraction = i/(xticks-1)
+            position = left+(right-left)*fraction
+            value = xmin+(xmax-xmin)*fraction
+            value = 10**value if logarithmic else value
+            text = f"{value:.{self.tick_precision}g}"
+            painter.drawText(QPointF(position-metrics.horizontalAdvance(text)/2,bottom+17),text)
+        for i in range(yticks):
+            fraction = i/(yticks-1)
+            value = ymin+(ymax-ymin)*fraction
+            painter.drawText(QPointF(6,bottom-(bottom-top)*fraction+4),f"{value:.{self.tick_precision}g}")
         xlabel = self.x_label or f"{self.plot.names[self.x_column]} ({self.plot.units[self.x_column]})"
         ylabel = self.y_label or (("Magnitude", "Phase (°)", "Magnitude (dB)")[self.presentation]
                                   if frequency_sweep else (self.plot.names[self.columns[0]]
@@ -496,11 +502,18 @@ class PlotPage(QWidget):
         self.grid_button.setChecked(self.wave.grid_visible)
         self.grid_button.toggled.connect(self.toggle_grid)
         self.grid_density = QSlider(Qt.Orientation.Horizontal)
-        self.grid_density.setRange(2, 24)
+        self.grid_density.setRange(1, 24)
         self.grid_density.setValue(self.wave.grid_density)
-        self.grid_density.setFixedWidth(96)
-        self.grid_density.setAccessibleName("Grid density")
+        self.grid_density.setAccessibleName("X grid intervals")
         self.grid_density.valueChanged.connect(self.set_grid_density)
+        self.y_grid_density = QSlider(Qt.Orientation.Vertical)
+        self.y_grid_density.setRange(1,24)
+        self.y_grid_density.setValue(self.wave.y_grid_density)
+        self.y_grid_density.setAccessibleName("Y grid intervals")
+        def set_y_grid(value):
+            self.wave.y_grid_density = value
+            self.wave.update()
+        self.y_grid_density.valueChanged.connect(set_y_grid)
         self.limits_button = QPushButton("Axis limits…")
         self.limits_button.clicked.connect(self.edit_limits)
         self.pin_shape = QComboBox()
@@ -561,7 +574,6 @@ class PlotPage(QWidget):
         appearance.setMenu(appearance_menu)
         for button in (self.limits_button, fit, appearance, self.grid_button):
             graph_tools.addWidget(button)
-        graph_tools.addWidget(self.grid_density)
         graph_tools.addStretch()
         layout.addLayout(graph_tools)
         pin_tools = QHBoxLayout()
@@ -585,7 +597,12 @@ class PlotPage(QWidget):
         layout.addLayout(pin_tools)
         content = QHBoxLayout()
         content.addWidget(self.traces)
-        content.addWidget(self.wave, 1)
+        chart = QGridLayout()
+        chart.addWidget(self.y_grid_density,0,0)
+        chart.addWidget(self.wave,0,1)
+        chart.addWidget(self.grid_density,1,1)
+        chart.setColumnStretch(1,1)
+        content.addLayout(chart,1)
         zoom_tools = QVBoxLayout()
         self.zoom_slider = QSlider(Qt.Orientation.Vertical)
         self.zoom_slider.setRange(25, 800)
@@ -658,7 +675,9 @@ class PlotPage(QWidget):
 
     def toggle_grid(self, enabled):
         self.wave.grid_visible = enabled
-        self.grid_density.setEnabled(enabled)
+        for slider in (self.grid_density,self.y_grid_density):
+            slider.setEnabled(enabled)
+            slider.setVisible(enabled)
         self.wave.update()
 
     def set_grid_density(self, density):
@@ -780,11 +799,17 @@ class PlotPage(QWidget):
                 form.addRow(f"{axis} {label}", field)
             inputs.append((auto, low, high))
         ticks, precision = QSpinBox(), QSpinBox()
-        ticks.setRange(2, 9)
+        ticks.setRange(2, 25)
         ticks.setValue(self.wave.tick_count)
         precision.setRange(2, 7)
         precision.setValue(self.wave.tick_precision)
-        form.addRow("Ticks per axis", ticks)
+        form.addRow("Ticks per axis (grid off)", ticks)
+        xticks,yticks = QSpinBox(),QSpinBox()
+        for caption,control,slider in (("X ticks (grid on)",xticks,self.grid_density),
+                                       ("Y ticks (grid on)",yticks,self.y_grid_density)):
+            control.setRange(2,25)
+            control.setValue(slider.value()+1)
+            form.addRow(caption,control)
         form.addRow("Tick significant digits", precision)
         message = QLabel("SPICE suffixes work in limits, for example 1k or 10m. Use Linear for an X range that starts at zero.")
         message.setWordWrap(True)
@@ -807,6 +832,8 @@ class PlotPage(QWidget):
                 message.setText(str(error))
                 return
             self.wave.tick_count, self.wave.tick_precision = ticks.value(), precision.value()
+            self.grid_density.setValue(xticks.value()-1)
+            self.y_grid_density.setValue(yticks.value()-1)
             dialog.accept()
 
         buttons.accepted.connect(accept)
@@ -929,32 +956,31 @@ class PlotPage(QWidget):
                 color = chosen.name()
         color_button.clicked.connect(pick_color)
         points.currentRowChanged.connect(select)
-        def edit(remove):
+        points.setSelectionMode(QAbstractItemView.SelectionMode.ExtendedSelection)
+        def apply():
             row = points.currentRow()
-            if row<0:
-                return
-            if remove:
-                self.wave.pins.pop(row)
-                self.wave.pin_options = {i-(i>row):v for i,v in self.wave.pin_options.items() if i!=row}
-                self.wave.pin_offsets = {i-(i>row):v for i,v in self.wave.pin_offsets.items() if i!=row}
-                self.wave.pin_text = {i-(i>row):v for i,v in self.wave.pin_text.items() if i!=row}
-                if row<len(self.wave.pin_shapes):
-                    self.wave.pin_shapes.pop(row)
-            else:
+            if row>=0:
                 col,sample,_ = self.wave.pins[row]
                 self.wave.pins[row] = col,sample,label.text()
                 self.wave.pin_options[row] = color,digits.value()
                 self.wave.pin_text[row] = font_size.value(),text_color,fill.isChecked()
+                refresh()
+                points.setCurrentRow(row)
+                self.wave.update()
+        def delete_points(all_points=False):
+            removed = set(range(points.count())) if all_points else {i.row() for i in points.selectedIndexes()}
+            self.delete_pins(removed)
             refresh()
-            points.setCurrentRow(min(row,points.count()-1))
-            self.wave.update()
-        for title,remove in (("Apply label",False),("Delete selected point",True)):
+            if points.count():
+                points.setCurrentRow(0)
+        for title,callback in (("Apply label",apply),("Delete selected",delete_points),
+                               ("Delete all",lambda:delete_points(True))):
             button = QPushButton(title)
-            button.clicked.connect(lambda checked=False,r=remove:edit(r))
+            button.clicked.connect(lambda checked=False,f=callback:f())
             layout.addWidget(button)
         delete = QShortcut(QKeySequence("Delete"),points)
         delete.setContext(Qt.ShortcutContext.WidgetWithChildrenShortcut)
-        delete.activated.connect(lambda:edit(True))
+        delete.activated.connect(delete_points)
         points.setCurrentRow(selected)
         dialog.exec()
 
@@ -965,12 +991,15 @@ class PlotPage(QWidget):
         if not w.screen_axes or len(w.columns)<2:
             QMessageBox.information(self,"Intersections","Display two waveform traces first.")
             return
-        _,xs,series,cols,*_ = w.screen_axes
+        _,xs,series,cols,xmin,xmax,ymin,ymax = w.screen_axes
         names = [w.plot.names[c] for c in cols]
         first,ok = QInputDialog.getItem(self,"Intersections","First trace",names,editable=False)
         if not ok:
             return
         second,ok = QInputDialog.getItem(self,"Intersections","Second trace",[n for n in names if n!=first],editable=False)
+        if not ok:
+            return
+        maximum,ok = QInputDialog.getInt(self,"Intersections","Maximum points to add",10,1,10000)
         if not ok:
             return
         a,b = names.index(first),names.index(second)
@@ -991,24 +1020,36 @@ class PlotPage(QWidget):
             elif ((i and series[a][i-1]==series[b][i-1]) or
                   (i+1<len(xs) and series[a][i+1]==series[b][i+1])):
                 continue
+            x,y = xs[i],v
+            if f:
+                x += f*(xs[i+1]-x)
+                y += f*(series[a][i+1]-y)
+            if not (xmin<=x<=xmax and ymin<=y<=ymax):
+                continue
             pin = (cols[a],i+f,f"X{len(w.pins)+1}")
             if pin[:2] not in existing:
                 existing.add(pin[:2])
                 w.pins.append(pin)
                 w.pin_shapes.append(self.pin_shape.currentText())
                 count+=1
+                if count>=maximum:
+                    break
         w.update()
         QMessageBox.information(self,"Intersections",f"Added {count} isolated crossing points.")
 
+    def delete_pins(self,removed):
+        w = self.wave
+        keep = [i for i in range(len(w.pins)) if i not in removed]
+        w.pins = [w.pins[i] for i in keep]
+        w.pin_shapes = [w.pin_shapes[i] if i<len(w.pin_shapes) else "Circle" for i in keep]
+        for field in ("pin_options","pin_offsets","pin_text"):
+            values = getattr(w,field)
+            setattr(w,field,{j:values[i] for j,i in enumerate(keep) if i in values})
+        w.update()
+
     def remove_pin(self):
         if self.wave.pins:
-            self.wave.pin_offsets.pop(len(self.wave.pins)-1,None)
-            self.wave.pin_text.pop(len(self.wave.pins)-1,None)
-            self.wave.pin_options.pop(len(self.wave.pins)-1,None)
-            self.wave.pins.pop()
-            if self.wave.pin_shapes:
-                self.wave.pin_shapes.pop()
-            self.wave.update()
+            self.delete_pins({len(self.wave.pins)-1})
 
     def update_plot(self):
         items = [self.traces.item(i) for i in range(self.traces.count())]

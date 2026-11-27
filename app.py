@@ -26,7 +26,7 @@ from spice_library import MODEL_PORTS, read_library
 from subcircuit_designer import SubcircuitDesigner
 
 
-VERSION = "0.4.3-beta"
+VERSION = "0.4.5-beta"
 
 RUNTIME = Path(__file__).resolve().parent / "runtime"
 BUNDLED_SOLVER = RUNTIME / "ngspice" / "bin" / "ngspice_con.exe"
@@ -156,7 +156,7 @@ class Editor(QMainWindow):
         simulation.addSeparator()
         self.action(simulation, "Choose ngspice executable…", "", self.choose_solver)
         self.action(simulation, "Session History…", "", self.open_run_history)
-        self.action(simulation, "Show plot", "", self.open_plots)
+        self.action(simulation, "Show plot", "F6", self.open_plots)
         self.action(imports, "Open saved waveform…", "", self.open_waveform)
         self.action(exports, "CSV data…", "", self.export_waveform)
         self.action(exports,"Active plot…","",lambda: self.export_plot_page(False))
@@ -165,8 +165,8 @@ class Editor(QMainWindow):
         install_studies(self, simulation, draw, imports)
         markers = self.menuBar().addMenu("&Markers")
         for mode, title, key in (("Mark V", "Voltage", "Ctrl+M"),
-                                 ("Mark VD", "Differential voltage", ""),
-                                 ("Mark I", "Current into pin", ""), ("Mark P","Power into component","")):
+                                 ("Mark VD", "Differential voltage", "Ctrl+Shift+M"),
+                                 ("Mark I", "Current into pin", "Ctrl+Alt+I"), ("Mark P","Power into component","Ctrl+Alt+P")):
             self.action(markers, title, key, lambda mode=mode: self.set_mode(mode))
         markers.addSeparator()
         show = self.action(markers, "Show markers", "", self.toggle_markers)
@@ -239,6 +239,10 @@ class Editor(QMainWindow):
         self.plot_window.setWindowFlag(Qt.WindowType.WindowMinimizeButtonHint, True)
         self.plot_window.setWindowFlag(Qt.WindowType.WindowContextHelpButtonHint, False)
         self.plot_window.resize(950, 580)
+        schematic_shortcut = QAction("Return to schematic",self.plot_window)
+        schematic_shortcut.setShortcuts(["F6","Shift+F6"])
+        schematic_shortcut.triggered.connect(self.return_to_schematic)
+        self.plot_window.addAction(schematic_shortcut)
         plots_layout = QVBoxLayout(self.plot_window)
         button = QPushButton("Add plot page")
         button.clicked.connect(self.duplicate_plot_page)
@@ -1602,6 +1606,11 @@ class Editor(QMainWindow):
         if revision and snapshot is not None and snapshot.active in snapshot.plot_layouts:
             from studies import restore_layout
             restore_layout(page, snapshot.plot_layouts[snapshot.active])
+            if operating_point and selected:
+                for column in selected:
+                    if not any(column in sub.wave.columns for sub in page.subplots):
+                        traces = page.subplots[0].traces
+                        traces.item(column).setCheckState(Qt.CheckState.Checked)
         self.wave, self.run_revision = page.wave, revision
         self.refresh()
         if open_window:
@@ -1609,9 +1618,20 @@ class Editor(QMainWindow):
         else:
             self.plot_window.hide()
 
+    def return_to_schematic(self):
+        self.plot_window.hide()
+        if self.isMinimized():
+            self.showNormal()
+        else:
+            self.show()
+        self.raise_()
+        self.activateWindow()
+        self.canvas.setFocus()
+
     def open_plots(self):
         self.plot_window.show()
         self.plot_window.raise_()
+        self.plot_window.activateWindow()
 
     def add_plot_page(self, plot, revision, selected=None):
         page = PlotReportPage(plot, selected)

@@ -113,3 +113,11 @@ In either session tree, Ctrl-click or Shift-click to select multiple runs or ses
 Drag a component or marker label in Select mode to reposition it. Labels start to the left. Select a part, marker or annotation and use **Label appearance** in Properties or Edit for text size and color. Parts have separate reference and value toggles. Markers can hide their ID or measurement and use filled or hollow points.
 
 A denser plot grid adds axis ticks. The cursor guide dropdown offers vertical, horizontal or both directions, and the readout shows A, B and their differences. **Appearance → Chart text** controls the plot font. **Pinned points** controls per-point label size, text color and fill.
+
+## Desktop v0.4.5 beta
+
+**Intersections** asks for a maximum count and inserts up to that many new crossings inside the displayed axes. **Measure waveform** uses the active subplot, its axis assignments and its displayed trace values. Measurement pins use visible samples and honor a maximum count. Use Ctrl-click or Shift-click in **Pinned points** to select several pins, then press Delete, or use **Delete all**.
+
+The grid shows separate sliders beside the X and Y axes. Axis Limits can also set the grid-on tick count for each axis and the common grid-off tick count. Each supports 2–25 ticks. Parametric plots include all available marker traces for each sweep value, and operating-point plots keep marker readings visible.
+
+Press **F6** to switch between schematic and simulation, or **Shift+F6** to return from simulation. Use **Ctrl+M** for voltage, **Ctrl+Shift+M** for differential voltage, **Ctrl+Alt+I** for current and **Ctrl+Alt+P** for power.

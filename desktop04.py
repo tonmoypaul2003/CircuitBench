@@ -181,27 +181,39 @@ def fresh_page(editor):
 
 def show_sweep(editor):
     runs = editor.sweep_runs
-    plots = [load_plot(run/"result.raw") for run in runs]
+    from circuit import Project,netlist,number
+    from studies import overlay
+    plots = []
+    marker_names = []
+    for run in runs:
+        plot = load_plot(run/"result.raw")
+        snapshot = Project.load((run/"project.cwb").read_text(encoding="utf8"))
+        measurements = []
+        netlist(snapshot,measurements)
+        names = [plot.names[c] for c in plot.marker_columns(measurements)]
+        if not plots:
+            marker_names = list(dict.fromkeys(names))
+        plots.append(plot)
     first = plots[0]
-    if "operating point" not in first.title.lower():
-        from studies import overlay
-        plan = editor.sweep_plan
-        common = [n for n in first.names[1:] if all(n in plot.names for plot in plots)]
-        signal = "v(out)" if "v(out)" in common else next(iter(common),None)
-        page = overlay(editor,[(f"{plan['ref']}={v}",p) for v,p in zip(plan["values"],plots)],
-                       "Parametric sweep",signal)
-        if page:
-            page.message.setText("All sweep values overlaid. Use Sweep runs for individual runs.")
-        return
-    signal = next((n for n in first.names[1:] if n=="v(out)"),first.names[-1])
-    values = [plot.rows[-1][plot.names.index(signal)] for plot in plots]
+    common = [name for name in (first.names if "operating point" in first.title.lower() else first.names[1:])
+              if all(name in plot.names for plot in plots)]
+    signals = [name for name in marker_names if name in common]
+    if not signals:
+        signals = ["v(out)" if "v(out)" in common else common[-1]]
     plan = editor.sweep_plan
-    from circuit import number
-    axis = [number(v) for v in plan["values"]][:len(runs)]
-    page = editor.add_plot_page(Plot("Parametric sweep",[plan["ref"],signal],["",first.units[first.names.index(signal)]],
-                                    [[x,y] for x,y in zip(axis,values)]),None,[1])
-    page.message.setText("Final sample by component value. Use Sweep runs to open an individual waveform.")
-    editor.open_plots()
+    values = [editor.sweep_values[run] for run in runs]
+    if "operating point" not in first.title.lower():
+        page = overlay(editor,[(f"{plan['ref']}={v}",p) for v,p in zip(values,plots)],
+                       "Parametric sweep",signals)
+    else:
+        rows = [[number(value),*(plot.rows[-1][plot.names.index(name)] for name in signals)]
+                for value,plot in zip(values,plots)]
+        units = [first.units[first.names.index(name)] for name in signals]
+        page = editor.add_plot_page(Plot("Parametric sweep",[plan["ref"],*signals],["",*units],rows),
+                                    None,list(range(1,len(signals)+1)))
+    if page:
+        page.message.setText("Sweep marker values. Use Sweep runs for individual waveforms.")
+        editor.open_plots()
 
 
 def pick_trace_run(editor):

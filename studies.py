@@ -56,24 +56,31 @@ def overlay(editor, runs, title, signal=None):
     op = "operating point" in first.title.lower()
     if not op:
         common = [s for s in common if s != first.names[0]]
-    signal = signal if signal in common else choose(editor, title, common)
-    if not signal:
+    if isinstance(signal,list):
+        signals = [name for name in signal if name in common]
+    else:
+        signal = signal if signal in common else choose(editor,title,common)
+        signals = [signal] if signal else []
+    if not signals:
         return
+    if len(first.rows)*(1+len(runs)*len(signals))>2_000_000:
+        raise ValueError("Comparison exceeds the plot size limit.")
     xs = [r[0].real for r in first.rows]
     rows = [[x] for x in xs]
     for label, plot in runs:
         if plot.title != first.title or plot.names[0] != first.names[0]:
             raise ValueError("Choose runs of the same analysis.")
-        ys = [r[plot.names.index(signal)] for r in plot.rows]
         axis = [r[0].real for r in plot.rows]
         if not op and axis != xs and any(a >= b for a,b in zip(axis, axis[1:])):
             raise ValueError("Resampling requires an increasing sweep.")
-        for i,row in enumerate(rows):
-            row.append(ys[i] if op or xs == axis else sample(axis,ys,xs[i]))
-    names = [first.names[0]]+[f"{signal} [{label}]" for label,_ in runs]
+        for signal in signals:
+            ys = [r[plot.names.index(signal)] for r in plot.rows]
+            for i,row in enumerate(rows):
+                row.append(ys[i] if op or xs == axis else sample(axis,ys,xs[i]))
+    names = [first.names[0]]+[f"{signal} [{label}]" for label,_ in runs for signal in signals]
     suffix = " operating point" if op else " · AC" if first.names[0].lower()=="frequency" else ""
-    plot = Plot(title + suffix, names,
-                [first.units[0]]+[first.units[first.names.index(signal)]]*len(runs), rows)
+    units = [first.units[first.names.index(signal)] for _,_plot in runs for signal in signals]
+    plot = Plot(title+suffix,names,[first.units[0]]+units,rows)
     page = editor.add_plot_page(plot,None,list(range(1,len(names))))
     editor.open_plots()
     return page
@@ -239,7 +246,7 @@ def save_layout(editor):
                      colors={page.plot.names[c]:v.name() for c,v in w.trace_colors.items()},
                      background=w.background.name() if w.background else None,
                      grid_color=w.grid_color.name() if w.grid_color else None,grid=w.grid_visible,
-                     grid_density=w.grid_density, text_size=w.text_size,
+                     grid_density=w.grid_density, y_grid_density=w.y_grid_density, text_size=w.text_size,
                      text_color=w.text_color.name() if w.text_color else None,cursor_lines=w.cursor_lines,
                      cursor=w.cursor_enabled,presentation=w.presentation,zoom=w.zoom,origin=w.zoom_origin)
         states.append(state)
@@ -267,6 +274,7 @@ def restore_layout(page,layout):
         for k in LAYOUT_FIELDS:
             setattr(w,k,state[k])
         sub.grid_density.setValue(state.get("grid_density",4))
+        sub.y_grid_density.setValue(state.get("y_grid_density",state.get("grid_density",4)))
         sub.guides.setCurrentText(state.get("cursor_lines","Vertical"))
         w.text_size = max(6,min(32,state.get("text_size",12)))
         w.text_color = QColor(state["text_color"]) if state.get("text_color") else None
@@ -292,18 +300,42 @@ def fft(values):
 def measurements(editor,spectrum=False):
     page = current_page(editor)
     p = page.plot
-    name = choose(editor,"Inspect waveform",p.names[1:])
+    sub = page.subplots[page.active.currentIndex()]
+    trace_indices = {}
+    sample_indices = []
+    if spectrum:
+        trace_indices = {name:i for i,name in enumerate(p.names) if i}
+    else:
+        sub.wave.grab()
+        if not sub.wave.screen_axes:
+            raise ValueError("Open a waveform with visible traces first.")
+        _,display_x,display_y,columns,xmin,xmax,ymin,ymax = sub.wave.screen_axes
+        trace_indices = {p.names[i]:i for i in columns}
+    name = choose(editor,"Inspect waveform",list(trace_indices))
     if not name:
         return
-    c = p.names.index(name)
-    axis = p.names[0].lower()
-    if spectrum and p.units[c] == "expression" and any(row[c].imag for row in p.rows):
-        raise ValueError("Select a real transient waveform for harmonic analysis.")
-    bounds = prompt(editor,"Measurement interval","Start, end ("+axis+")",f"{p.rows[0][0].real!r}, {p.rows[-1][0].real!r}")
+    c = trace_indices[name]
+    axis = p.names[0 if spectrum else sub.wave.x_column].lower()
+    if spectrum:
+        if p.units[c]=="expression" and any(row[c].imag for row in p.rows):
+            raise ValueError("Select a real transient waveform for harmonic analysis.")
+        candidates = [(row[0].real,row[c].real) for row in p.rows if math.isfinite(abs(row[c]))]
+    else:
+        values = display_y[columns.index(c)]
+        visible = sorted((p.rows[i][sub.wave.x_column].real,y,i)
+                         for i,(x,y) in enumerate(zip(display_x,values))
+                         if xmin<=x<=xmax and ymin<=y<=ymax)
+        candidates = [(x,y) for x,y,_ in visible]
+    if not candidates:
+        raise ValueError("No samples are visible in the selected trace.")
+    bounds = prompt(editor,"Measurement interval","Start, end ("+axis+")",
+                    f"{candidates[0][0]!r}, {candidates[-1][0]!r}")
     if bounds is None:
         return
     lo,hi = sorted(number(v.strip()) for v in bounds.split(","))
-    pairs = sorted((row[0].real,abs(row[c]) if axis=="frequency" and p.units[c]!="expression" else row[c].real) for row in p.rows if lo<=row[0].real<=hi and math.isfinite(abs(row[c])))
+    pairs = sorted((x,y) for x,y in candidates if lo<=x<=hi)
+    if not spectrum:
+        sample_indices = [i for x,y,i in visible if lo<=x<=hi]
     if len(pairs)<2 or pairs[0][0]==pairs[-1][0]:
         raise ValueError("Select a range with at least two distinct samples.")
     xs,ys = map(list,zip(*pairs))
@@ -346,7 +378,11 @@ def measurements(editor,spectrum=False):
         if b is not None:
             metrics["10-90% rise (s)"] = b-a
     elif axis=="frequency":
-        cutoff = crossing(max(ys)/math.sqrt(2),ys.index(max(ys)),False) if p.units[c]!="expression" else None
+        cutoff = None
+        if p.units[c]!="expression" and sub.wave.presentation!=1:
+            peak = max(ys)
+            threshold = peak-20*math.log10(math.sqrt(2)) if sub.wave.presentation==2 else peak/math.sqrt(2)
+            cutoff = crossing(threshold,ys.index(peak),False)
         if cutoff is not None:
             metrics["Upper -3 dB crossing (Hz)"] = cutoff
     dialog = QDialog(editor)
@@ -366,20 +402,30 @@ def measurements(editor,spectrum=False):
     text = f"{name} [{xs[0]:.6g}, {xs[-1]:.6g}]  " + ", ".join(
         f"{key}: {value:.7g}" for key,value in metrics.items() if checks[key].isChecked())
     page.message.setText(text)
-    sub = page.subplots[page.active.currentIndex()]
-    points = [(xs[0],"Start"), (xs[-1],"End"), (xs[ys.index(min(ys))],"Minimum"), (xs[ys.index(max(ys))],"Maximum")]
-    if axis=="time" and b is not None:
+    points = [(xs[0],"Start"),(xs[-1],"End")]
+    if checks["Minimum"].isChecked():
+        points.append((xs[ys.index(min(ys))],"Minimum"))
+    if checks["Maximum"].isChecked():
+        points.append((xs[ys.index(max(ys))],"Maximum"))
+    if axis=="time" and "10-90% rise (s)" in checks and checks["10-90% rise (s)"].isChecked():
         points.extend([(a,"10%"),(b,"90%")])
-    if axis=="frequency" and cutoff is not None:
+    if axis=="frequency" and "Upper -3 dB crossing (Hz)" in checks and checks["Upper -3 dB crossing (Hz)"].isChecked():
         points.append((cutoff,"-3 dB"))
     if QMessageBox.question(editor,"Measurement",text+"\nMark contributing samples on the plot?")==QMessageBox.StandardButton.Yes:
-        sub.x_axis.setCurrentIndex(0)
-        for j in range(sub.traces.count()):
-            item = sub.traces.item(j)
-            if item.data(Qt.ItemDataRole.UserRole)==c:
-                item.setCheckState(Qt.CheckState.Checked)
-        for x,label in points:
-            sub.pin_at(c,x,label)
+        maximum,ok = QInputDialog.getInt(editor,"Measure waveform","Maximum points to add",len(points),1,10000)
+        if ok:
+            existing = {(column,sample) for column,sample,_ in sub.wave.pins}
+            added = 0
+            for x,label in points:
+                i = sample_indices[min(range(len(xs)),key=lambda j:abs(xs[j]-x))]
+                if (c,i) not in existing:
+                    existing.add((c,i))
+                    sub.wave.pins.append((c,i,label))
+                    sub.wave.pin_shapes.append(sub.pin_shape.currentText())
+                    added += 1
+                    if added>=maximum:
+                        break
+            sub.wave.update()
     editor.open_plots()
 
 

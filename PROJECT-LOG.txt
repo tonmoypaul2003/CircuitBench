@@ -446,3 +446,18 @@ entries for substantive historical mistakes.
     after save and reload. Verified cursor readout and plot rendering,
     Windows packaged smoke and matching root and versioned hashes.
     Both executables are local. Source and log prepared for GitHub main.
+
+2026-11-28 — Desktop v0.4.5 beta
+    Intersections honor a maximum count and the current viewport.
+    Waveform measurements use the displayed axes and values, with a
+    maximum for contributing pins. Added multi-select and Delete all
+    for plot pins, independent X/Y grid sliders, and 2–25 tick setup.
+    Parametric plots include all available marked signals for each
+    value. Operating-point plots retain marked readings even with a
+    saved layout. Added F6 plot switching and distinct marker shortcuts.
+    Existing projects load with the prior grid density on both axes.
+    All 48 tests passed. Verified cropped intersections and custom X
+    measurements, six traces in a two-value AC marker sweep, separate
+    grid controls, F6, and the packaged Windows smoke test. Root and
+    versioned executable hashes match. Builds stay local. Source and
+    log prepared for GitHub main.

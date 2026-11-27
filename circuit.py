@@ -72,7 +72,7 @@ def validate_plot_layouts(layouts):
                     or w.get("x_scale") not in ("Automatic","Logarithmic","Linear")
                     or not all(type(w.get(k)) is bool for k in ("cursor","grid"))
                     or not all(type(w.get(k)) is int for k in ("presentation","tick_count","tick_precision","zoom"))
-                    or not 2 <= w["tick_count"] <= 20 or not 0 <= w["tick_precision"] <= 16
+                    or not 2 <= w["tick_count"] <= 25 or not 0 <= w["tick_precision"] <= 16
                     or w["presentation"] not in (0,1,2) or not 25 <= w["zoom"] <= 800
                     or not pair(w.get("origin"))
                     or any(k not in w or (w[k] is not None and not color(w[k])) for k in ("grid_color","background"))
