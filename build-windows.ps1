@@ -21,6 +21,7 @@ try {
         '--add-data', "$runtime;runtime",
         '--add-data', "$(Join-Path $project 'LICENSE');.",
         '--add-data', "$(Join-Path $project 'README.md');.",
+        '--add-data', "$(Join-Path $project 'CircuitBench.qss');.",
         (Join-Path $project 'app.py')
     )
     & python @arguments

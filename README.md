@@ -125,3 +125,7 @@ Press **F6** to switch between schematic and simulation, or **Shift+F6** to retu
 ## Desktop theme refresh
 
 The light and dark themes use slate panels and quiet grid lines. The blue Run control stays prominent, and drawing tools use circuit-specific line icons alongside their names. Simulation defaults to teal and copper traces, while explicit chart and schematic colors retain precedence. Use **View → Theme** to choose System, Light or Dark.
+
+### Customize the desktop theme
+
+Edit **CircuitBench.qss** to change the shared Qt widget rules and the light and dark palettes. The palette also supplies the default schematic, plot, and toolbar icon colors. From a Windows release, place a copy of the file next to `CircuitBench.exe` and restart the app or reselect **View → Theme**. The executable includes defaults, so the stylesheet is optional for normal use. The menu bar and menus use the original compact Qt styling.

@@ -482,3 +482,13 @@ entries for substantive historical mistakes.
     and export background. All 48 tests and the packaged Windows smoke
     test passed. Root and versioned executables match and remain local.
     Source and project log prepared for GitHub main.
+
+2026-11-28 — Desktop v0.4.6 beta universal Qt stylesheet
+    Restored compact Qt menu styling and kept the new toolbar icons.
+    Moved widget rules and light and dark palettes into CircuitBench.qss.
+    The same palette drives the schematic, plots and toolbar glyphs.
+    The executable embeds the stylesheet and can load an optional copy
+    beside the executable. No project format migration is needed.
+    All 48 tests passed. Verified menu styling, palette customization,
+    packaged Windows smoke and matching root and versioned executables.
+    Delivery: local builds, source prepared for GitHub release.

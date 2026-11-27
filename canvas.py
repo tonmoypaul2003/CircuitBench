@@ -11,10 +11,10 @@ from device_symbols import draw_device
 from spice_library import MODEL_PORTS
 
 
-DARK_COLORS = {
-    "#86a49b": "#8aaba1", "#0f766e": "#68c8ba", "#d46127": "#ffab72",
-    "#162e29": "#e2eee9", "#157c72": "#76cfc2", "#80469c": "#d9a5ec",
-    "#173d37": "#c9e7dd", "#b34b1d": "#ffab72", "#1d56b3": "#82baff",
+SCHEMATIC_COLORS = {
+    "#edf2f0": "panel", "#fcfdfc": "sheet", "#cbd9d1": "grid", "#86a49b": "boundary",
+    "#0f766e": "net", "#157c72": "net", "#173d37": "ink", "#162e29": "ink",
+    "#d46127": "selection", "#80469c": "marker", "#1d56b3": "highlight", "#b34b1d": "current",
 }
 
 
@@ -53,11 +53,7 @@ class Canvas(QWidget):
         if light=="#173d37" and getattr(self,"symbol_color",None):
             return QColor(self.symbol_color)
         colors = desktop_colors(self.editor.dark_theme)
-        keys = {"#edf2f0":"panel", "#fcfdfc":"sheet", "#cbd9d1":"grid",
-                "#0f766e":"net", "#173d37":"ink", "#162e29":"ink"}
-        if light in keys:
-            return QColor(colors[keys[light]])
-        return QColor(DARK_COLORS.get(light, light) if self.editor.dark_theme else light)
+        return QColor(colors.get(SCHEMATIC_COLORS.get(light), light))
 
     def paintEvent(self, event):
         self.label_hits = []

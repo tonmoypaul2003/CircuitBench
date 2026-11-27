@@ -1,17 +1,12 @@
 """Colors, Qt styles and toolbar glyphs for the desktop workbench."""
+from pathlib import Path
+import re
+import sys
+
 from PyQt6.QtCore import QPointF, Qt
 from PyQt6.QtGui import QAction, QColor, QIcon, QPainter, QPalette, QPen, QPixmap, QPolygonF
+from PyQt6.QtWidgets import QApplication, QMenu, QMenuBar
 
-themes = {
-    "light": dict(panel="#F5F7F9", well="#FFFFFF", ink="#172735", mute="#4B6171",
-                  line="#CCD6DE", hover="#E8EFF5", active="#D9EAF9", focus="#2774B2",
-                  run="#155789", runhover="#10476F", grid="#D3DCE3", net="#12776E",
-                  copper="#A44C28", sheet="#FCFDFE"),
-    "dark": dict(panel="#18242E", well="#101B24", ink="#E6EEF4", mute="#A9BECC",
-                 line="#354B5A", hover="#223746", active="#284657", focus="#77B9F0",
-                 run="#205F91", runhover="#194F7D", grid="#2B4251", net="#72D4C0",
-                 copper="#EFA577", sheet="#111D27"),
-}
 glyphs = {
     "New":[[(5,2),(13,2),(19,8),(19,21),(5,21),(5,2)],[(13,2),(13,8),(19,8)]],
     "Open":[[(3,7),(9,7),(11,9),(21,9),(18,19),(3,19),(3,7)]],
@@ -57,50 +52,45 @@ def action_icon(name,color):
     return QIcon(pix)
 
 
-STYLESHEET = """
-QMainWindow, QDialog { background: @panel@; color: @ink@; }
-QMenuBar, QMenu, QToolBar, QStatusBar { background: @panel@; color: @ink@; }
-QMenuBar { border-bottom: 1px solid @line@; }
-QMenuBar::item { padding: 5px 8px; }
-QMenu::item { padding: 5px 26px 5px 22px; }
-QMenuBar::item:selected, QMenu::item:selected { background: @active@; }
-QMenu::item:disabled { color: @mute@; }
-QToolBar { padding: 5px; spacing: 5px; border: 0; }
-QToolBar::separator { background: @line@; width: 1px; margin: 5px; }
-QStatusBar { border-top: 1px solid @line@; }
-QLabel { color: @ink@; }
-QScrollArea, QWidget#plotStack, QWidget#plotControls, QWidget#plotViewport { background: @panel@; color: @ink@; }
-QScrollArea { border: 1px solid @line@; }
-QComboBox, QSpinBox, QDoubleSpinBox { color: @ink@; background: @well@; border: 1px solid @line@; border-radius: 5px; }
-QComboBox { padding: 4px 22px 4px 7px; }
-QComboBox QAbstractItemView { background: @well@; color: @ink@; selection-background-color: @active@; selection-color: @ink@; }
-QLabel#analysisMode { border: 1px solid @line@; border-radius: 5px; padding: 5px 8px; color: @mute@; }
-QPushButton, QToolButton { background: @panel@; color: @ink@; border: 1px solid @line@; border-radius: 5px; padding: 5px 8px; }
-QPushButton:hover, QToolButton:hover { background: @hover@; }
-QPushButton:checked, QToolButton:checked { background: @active@; border-color: @focus@; }
-QPushButton:focus, QToolButton:focus, QLineEdit:focus { border-color: @focus@; }
-QPushButton:disabled, QToolButton:disabled { color: @mute@; background: @panel@; }
-QToolButton#runButton:enabled { background: @run@; color: white; border-color: @run@; font-weight: 600; }
-QToolButton#runButton:enabled:hover { background: @runhover@; }
-QToolButton#runButton:enabled:focus { border-color: @focus@; }
-QLineEdit, QPlainTextEdit { color: @ink@; background: @well@; border: 1px solid @line@; border-radius: 5px; selection-background-color: @active@; selection-color: @ink@; }
-QLineEdit { padding: 4px 7px; }
-QListWidget, QTreeWidget { background: @well@; color: @ink@; border: 1px solid @line@; }
-QListWidget::item, QTreeWidget::item { padding: 4px 5px; }
-QListWidget::item:selected, QTreeWidget::item:selected { background: @active@; color: @ink@; }
-QDockWidget { color: @ink@; font-weight: 600; }
-QDockWidget::title { background: @panel@; padding: 7px; border-bottom: 1px solid @line@; }
-QTabWidget::pane { border: 1px solid @line@; }
-QTabBar::tab { background: @panel@; color: @mute@; padding: 6px 9px; border: 1px solid @line@; }
-QTabBar::tab:selected { background: @active@; color: @ink@; }
-"""
+THEME_FILE = Path(__file__).with_name("CircuitBench.qss")
+_theme_text = ""
+_themes = {}
+
+
+def read_theme(path):
+    source = path.read_text(encoding="utf-8-sig")
+    colors = {}
+    for mode in ("light", "dark"):
+        match = re.search(r"/\* "+mode+r" (.*?) \*/",source)
+        if not match:
+            raise ValueError(f"Missing {mode} palette")
+        colors[mode] = dict(re.findall(r"([a-z]+)=(#[0-9a-fA-F]{6})\b",match[1]))
+        required = set(re.findall(r"@([a-z]+)@",source)) | {"panel","well","ink","mute","line","active","net","copper","sheet","grid",
+                    "boundary","selection","marker","highlight","current","traceviolet","traceberry","traceolive"}
+        if required-colors[mode].keys():
+            raise ValueError(f"Incomplete {mode} palette")
+    return source,colors
+
+
+def reload_theme():
+    global _theme_text,_themes
+    override = Path(sys.executable).with_name(THEME_FILE.name) if getattr(sys,"frozen",False) else THEME_FILE
+    try:
+        _theme_text,_themes = read_theme(override)
+    except (OSError,ValueError):
+        if override==THEME_FILE:
+            raise
+        _theme_text,_themes = read_theme(THEME_FILE)
 
 
 def desktop_colors(dark):
-    return themes["dark" if dark else "light"]
+    if not _themes:
+        reload_theme()
+    return _themes["dark" if dark else "light"]
 
 
 def apply_desktop_theme(window, dark):
+    reload_theme()
     colors = desktop_colors(dark)
     palette = QPalette(window.palette())
     for role, key in (
@@ -115,12 +105,14 @@ def apply_desktop_theme(window, dark):
     window.setPalette(palette)
     if hasattr(window, "plot_window"):
         window.plot_window.setPalette(palette)
-    qss = STYLESHEET
+    qss = _theme_text
     for key, value in colors.items():
         qss = qss.replace(f"@{key}@", value)
     window.setStyleSheet(qss)
     if hasattr(window, "plot_window"):
         window.plot_window.setStyleSheet(qss)
+    for menu in (*window.findChildren(QMenu), *window.findChildren(QMenuBar)):
+        menu.setPalette(QApplication.palette())
     for action in window.findChildren(QAction):
         name = {"Open…":"Open", "Analysis setup…":"Analysis setup", "Part…":"Part",
                 "Show plot":"Plots"}.get(action.text(), action.text())

@@ -27,7 +27,7 @@ PIN_SHAPES = ("Circle", "Square", "Triangle", "Diamond", "Cross")
 
 
 class Waveform(QWidget):
-    colors = ["#087e74", "#c85528", "#5157ad", "#9b3b70", "#426925"]
+    trace_palette = ("net", "copper", "traceviolet", "traceberry", "traceolive")
     readout = pyqtSignal(str)
     cursor_changed = pyqtSignal()
     zoom_requested = pyqtSignal(int, float, float)
@@ -214,11 +214,8 @@ class Waveform(QWidget):
     def color(self, column, background=None):
         dark = (background or self.chart_background()).lightness() < 128
         palette = desktop_colors(dark)
-        index = (column-1) % len(self.colors)
-        base = QColor((palette["net"],palette["copper"])[index] if index<2 else self.colors[index])
-        if dark and index>=2:
-            base = base.lighter(165)
-        return self.trace_colors.get(column, base)
+        key = self.trace_palette[(column-1) % len(self.trace_palette)]
+        return self.trace_colors.get(column, QColor(palette[key]))
 
     def draw(self, painter, width, height, *, report=True):
         painter.save()
