@@ -91,3 +91,13 @@ Use **File → Examples** for the built-in circuits, **File → Export** for sch
 Click a waveform and use the left and right arrows to step through samples. **Set A** anchors the current sample. **Set B** activates the second cursor. Press the same button again to remove its marker. **Intersections** locates isolated crossings of two visible traces by interpolation between plotted samples. **Pinned points** lets you select a pin, replace its complete label or delete it.
 
 The expression bar accepts typed formulas, offers the supported math functions, and can insert a selected or typed variable name. Press Enter to add the expression to the current subplot. After closing the last plot page, **Add plot page** can reopen its waveform.
+
+## Desktop v0.4 beta
+
+Analysis Setup controls the selections shown in the toolbar. Transient profiles accept a start time. A parametric batch produces one summary of the final sample versus component value. Use **Sweep results** to open an individual waveform.
+
+Double-click a pin to edit its label, color and coordinate precision. Intersection labels start at X1 with three decimals. **Simulation report** lets you choose schematic settings, data points, available operating-point readings and open plot pages for A4 PDF export.
+
+Open **Simulation → Session History** for a maximized tree or **View → Session History** for the docked tree. **Simulation → New session** starts a new group for the current schematic. Session history uses the saved schematic path. Earlier flat run folders remain available through **Import → Open saved waveform**.
+
+Select or drag annotation text on the canvas and press Delete to remove it. **Selected item color** in Edit and Properties works with annotations and component symbols. **Show schematic readings** toggles the net labels and operating-point overlay. Use the power marker on a two-terminal component. Positive watts indicate absorption and negative watts indicate delivery. AC uses average real power for peak-amplitude phasors.

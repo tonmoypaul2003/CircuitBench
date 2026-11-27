@@ -92,7 +92,8 @@ def simulate(editor, project, deck=None):
 
 
 def compare(editor):
-    folders = {p.parent.name:p.parent for p in editor.runs_root().glob("*/result.raw")}
+    from desktop04 import history_root
+    folders = {p.parent.name:p.parent for p in history_root(editor).glob("*/*/result.raw")}
     a = choose(editor,"First run",sorted(folders))
     if not a:
         return
@@ -375,36 +376,85 @@ def measurements(editor,spectrum=False):
     editor.open_plots()
 
 
+def report_selection(editor):
+    dialog = QDialog(editor)
+    dialog.setWindowTitle("Simulation report contents")
+    box = QVBoxLayout(dialog)
+    choices = {}
+    for label in ("Schematic and settings","Data points","Operating point","Select all plots"):
+        choices[label] = QCheckBox(label)
+        box.addWidget(choices[label])
+    choices["Schematic and settings"].setChecked(True)
+    choices["Operating point"].setEnabled(bool(getattr(editor,"report_bias",None)))
+    pages = {}
+    for i in range(editor.plot_pages.count()):
+        page = editor.plot_pages.widget(i)
+        if page.plot.rows:
+            check = QCheckBox(page.title)
+            box.addWidget(check)
+            check.setChecked(True)
+            pages[page] = check
+    choices["Select all plots"].setChecked(True)
+    choices["Select all plots"].toggled.connect(lambda enabled: [c.setChecked(enabled) for c in pages.values()])
+    buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok|QDialogButtonBox.StandardButton.Cancel)
+    buttons.accepted.connect(dialog.accept)
+    buttons.rejected.connect(dialog.reject)
+    box.addWidget(buttons)
+    if dialog.exec():
+        return {k for k,c in choices.items() if c.isChecked()},[p for p,c in pages.items() if c.isChecked()]
+
+
 def report(editor):
-    page = current_page(editor)
-    if page.revision is None:
-        raise ValueError("Open a result with a saved circuit snapshot.")
-    project = Project.load(page.revision)
+    selection = report_selection(editor)
+    if selection is None:
+        return
+    sections,pages = selection
+    current = editor.plot_pages.currentWidget()
+    project = Project.load(current.revision) if current and current.revision else editor.project
     name,_ = QFileDialog.getSaveFileName(editor,"Simulation report",filter="PDF (*.pdf)")
     if not name:
         return
-    document = QTextDocument()
-    preview = SourcePreview(project,connectivity(project))
-    preview.resize(780,450)
-    document.addResource(QTextDocument.ResourceType.ImageResource,QUrl("schematic.png"),preview.grab().toImage())
-    content = ["<h1>CircuitBench simulation report</h1>",html.escape(project.active),'<p><img src="schematic.png" width="640"></p>',
-               html.escape(project.profiles[project.active].directive()) if hasattr(project.profiles[project.active],"directive") else html.escape(str(project.profiles[project.active])),
-               "<p>"+", ".join(html.escape(p.ref+" = "+p.value) for p in project.parts)+"</p>"]
-    from PyQt6.QtGui import QImage,QPainter
-    for i,sub in enumerate(page.subplots):
-        image = QImage(900,440,QImage.Format.Format_ARGB32)
-        painter = QPainter(image)
-        sub.wave.draw(painter,900,440)
-        painter.end()
-        url = f"plot{i}.png"
-        document.addResource(QTextDocument.ResourceType.ImageResource,QUrl(url),image)
-        content.append(f'<p><img src="{url}" width="640"></p>')
-    content.append(html.escape(page.message.text()))
-    document.setHtml("".join(content))
+    from PyQt6.QtGui import QPageSize
     from PyQt6.QtPrintSupport import QPrinter
+    document = QTextDocument()
+    content = ["<h1>CircuitBench simulation report</h1>"]
+    if "Schematic and settings" in sections:
+        preview = SourcePreview(project,connectivity(project))
+        preview.resize(780,450)
+        document.addResource(QTextDocument.ResourceType.ImageResource,QUrl("schematic.png"),preview.grab().toImage())
+        content.extend(["<h2>Schematic and settings</h2>",'<p><img src="schematic.png" width="640"></p>',
+                        "<p>"+html.escape(project.profiles[project.active].directive())+"</p>"])
+    if "Operating point" in sections:
+        content.append("<h2>Operating point</h2>")
+        content.extend("<p>"+html.escape(line)+"</p>" for line in editor.report_bias)
+    with tempfile.TemporaryDirectory() as tmp:
+        from PyQt6.QtGui import QImage
+        for i,page in enumerate(pages):
+            content.append("<h2>"+html.escape(page.title)+"</h2>")
+            target = Path(tmp)/f"plot{i}.png"
+            page.export(target,True)
+            url = target.name
+            document.addResource(QTextDocument.ResourceType.ImageResource,QUrl(url),QImage(str(target)))
+            content.append(f'<p><img src="{url}" width="640"></p>')
+            if "Data points" in sections:
+                content.append("<p>"+html.escape(page.message.text())+"</p>")
+                for sub in page.subplots:
+                    for col,sample,label in sub.wave.pins:
+                        j = int(sample)
+                        frac = sample-j
+                        row = page.plot.rows[j]
+                        x = row[sub.wave.x_column].real
+                        y = row[col].real
+                        if frac:
+                            next_row = page.plot.rows[j+1]
+                            x += frac*(next_row[sub.wave.x_column].real-x)
+                            y += frac*(next_row[col].real-y)
+                        content.append(f"<p>{html.escape(label or page.plot.names[col])} ({x:.8g}, {y:.8g})</p>")
+    document.setHtml("".join(content))
     printer = QPrinter()
+    printer.setPageSize(QPageSize(QPageSize.PageSizeId.A4))
     printer.setOutputFormat(QPrinter.OutputFormat.PdfFormat)
-    printer.setOutputFileName(name)
+    printer.setOutputFileName(str(Path(name).with_suffix(".pdf")))
     document.print(printer)
 
 

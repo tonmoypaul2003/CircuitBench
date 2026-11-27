@@ -364,3 +364,21 @@ entries for substantive historical mistakes.
 
 2026-11-27 — Desktop source repository packaging correction
     Removed build/ from Git tracking and ignored the directory so future builds stay local. The versioned executable and root copy remain on disk. No runtime or schematic change. Verified ignore rules and matching local executable hashes before committing for delivery to main.
+
+2026-11-27 — Desktop v0.4 beta
+    Added interactive pin editing with short crossing labels, decimal precision
+    and color. Added fresh plot pages, one parametric summary and individual
+    waveform selection, alphanumeric session trees scoped to each schematic,
+    a maximized history view, and a simulation minimize control.
+    Reports select open plot pages, data points and available operating-point
+    readings, reuse plot export rendering and print to A4. Analysis summary
+    replaces the toolbar picker and transient profiles accept a start time.
+    Added draggable and deletable annotations, item colors, schematic node
+    identification, a readings toggle and two-terminal signed power markers.
+    Existing desktop files default transient start to zero. Older readers
+    may reject new profile or appearance fields. Legacy flat run folders
+    remain accessible by importing their saved raw waveform.
+    Verification: 46 source tests passed. Also verified session naming,
+    one summary for a two-value sweep, 25 mW absorption and 50 mW delivery.
+    Packaged smoke passed. Build and root executable hashes match.
+    Delivery: local executable, with source prepared for GitHub main.

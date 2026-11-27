@@ -165,6 +165,7 @@ class Profile:
     mode: str = "OP"
     step: str = "10u"
     stop: str = "5m"
+    start: str = "0"
     start_hz: str = "10"
     stop_hz: str = "100k"
     points: int = 50
@@ -187,7 +188,9 @@ class Profile:
         if self.mode == "TRAN":
             if not 0 < number(self.step) <= number(self.stop):
                 raise ValueError("Transient step must be positive and no greater than stop time")
-            return f".tran {self.step} {self.stop} 0 {self.step}"
+            if not 0 <= number(self.start) < number(self.stop):
+                raise ValueError("Transient start must be nonnegative and below stop time")
+            return f".tran {self.step} {self.stop} {self.start} {self.step}"
         if self.mode == "AC":
             if not 0 < number(self.start_hz) < number(self.stop_hz) or not 1 <= self.points <= 10000:
                 raise ValueError("AC needs increasing positive frequencies and 1–10000 points per decade")
@@ -212,6 +215,7 @@ class Project:
         for name, (family, parameters) in GENERIC_MODELS.items()})
     markers: list[dict] = field(default_factory=list)
     voltage_labels: dict[str, dict] = field(default_factory=dict)
+    element_colors: dict = field(default_factory=dict)
     annotations: list = field(default_factory=list)
     analysis_plan: dict = field(default_factory=dict)
     plot_layouts: dict = field(default_factory=dict)
@@ -260,7 +264,7 @@ class Project:
                     del part[option]
         if not include_label_styles or not self.plot_layouts:
             del data["plot_layouts"]
-        for key in ("annotations","analysis_plan"):
+        for key in ("annotations","analysis_plan","element_colors"):
             if not data[key]:
                 del data[key]
         if self.subcircuit_design is None:
@@ -308,6 +312,10 @@ class Project:
                     or not 1<=len(plan["values"])<=64 or not all(isinstance(v,str) for v in plan["values"])
                     or not all(isinstance(plan.get(k),str) for k in ("ref","profile")))))):
             raise ValueError("Invalid analysis setup")
+        if not isinstance(project.element_colors,dict) or any(
+                not isinstance(v,str) or not re.fullmatch(r"#[0-9a-fA-F]{6}",v)
+                for v in project.element_colors.values()):
+            raise ValueError("Invalid schematic item color")
         validate_plot_layouts(project.plot_layouts)
         for profile in project.profiles.values():
             profile.directive()
@@ -725,7 +733,14 @@ def compile_circuit(project, measurements, ports=None, scope="", depth=0):
                 sensors[ref, pin] = sensor, inner
             sensor, _ = sensors[ref, pin]
             if measurements is not None:
-                measurements.append((f"I({ref}:{pin+1})", f"i({sensor.lower()})", None))
+                if marker.get("power"):
+                    pins = by_ref[ref].pins()
+                    if len(pins)!=2:
+                        raise ValueError("Power markers require a two-terminal component")
+                    measurements.append((f"P({ref})", f"i({sensor.lower()})",
+                                         [f"v({nodes[p]})" for p in pins]))
+                else:
+                    measurements.append((f"I({ref}:{pin+1})", f"i({sensor.lower()})", None))
         else:
             nets = [marker_node(point, project, nodes) for point in marker["points"]]
             args = [f"v({node})" for node in nets]

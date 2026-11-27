@@ -18,6 +18,18 @@ class Plot:
         indices = {name.lower(): index for index, name in enumerate(self.names)}
         selected = []
         for label, first, second in measurements:
+            if isinstance(second,list):
+                if first not in indices or any(n!="v(0)" and n not in indices for n in second):
+                    continue
+                selected.append(len(self.names))
+                self.names.append(label)
+                self.units.append("power")
+                for row in self.rows:
+                    a,b = (row[indices[n]] if n!="v(0)" else 0 for n in second)
+                    current = row[indices[first]]
+                    power = ((a-b)*current.conjugate()).real/2 if self.names[0].lower()=="frequency" else (a-b)*current
+                    row.append(power)
+                continue
             if second is None and first in indices and not label.startswith("I("):
                 selected.append(indices[first])
                 continue

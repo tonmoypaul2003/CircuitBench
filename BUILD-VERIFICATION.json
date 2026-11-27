@@ -8,6 +8,6 @@
   "pdf_export": true,
   "status": "passed",
   "source_tests_passed": 46,
-  "executable_path": "build/0.3-beta/CircuitBench.exe",
-  "executable_sha256": "5e471175bb5417d748858c0a937a4b2ec0f8f5fc9a79e5d186cc90f6ce1d989d"
+  "executable_path": "build/0.4-beta/CircuitBench.exe",
+  "executable_sha256": "6c89ebea2a43deb9d18fa19fdb0acbb5fd5774b4833955037051e9ebe90af17f"
 }

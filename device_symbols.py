@@ -3,8 +3,8 @@ from PyQt6.QtCore import QPointF, Qt
 from PyQt6.QtGui import QColor, QPen, QPolygonF
 
 
-def draw_device(painter, part, family, selected):
-    color = QColor("#d46127" if selected else "#173d37")
+def draw_device(painter, part, family, selected, custom_color=None):
+    color = QColor("#d46127" if selected else (custom_color or "#173d37"))
     painter.setPen(QPen(color, .09))
 
     def path(*points):

@@ -26,7 +26,7 @@ from spice_library import MODEL_PORTS, read_library
 from subcircuit_designer import SubcircuitDesigner
 
 
-VERSION = "0.3-beta"
+VERSION = "0.4-beta"
 
 RUNTIME = Path(__file__).resolve().parent / "runtime"
 BUNDLED_SOLVER = RUNTIME / "ngspice" / "bin" / "ngspice_con.exe"
@@ -154,7 +154,7 @@ class Editor(QMainWindow):
         self.action(simulation, "Remove active profile", "", self.remove_profile)
         simulation.addSeparator()
         self.action(simulation, "Choose ngspice executable…", "", self.choose_solver)
-        self.action(simulation, "Run history…", "", self.open_run_history)
+        self.action(simulation, "Session History…", "", self.open_run_history)
         self.action(simulation, "Show plot", "", self.open_plots)
         self.action(imports, "Open saved waveform…", "", self.open_waveform)
         self.action(exports, "CSV data…", "", self.export_waveform)
@@ -165,7 +165,7 @@ class Editor(QMainWindow):
         markers = self.menuBar().addMenu("&Markers")
         for mode, title, key in (("Mark V", "Voltage", "Ctrl+M"),
                                  ("Mark VD", "Differential voltage", ""),
-                                 ("Mark I", "Current into pin", "")):
+                                 ("Mark I", "Current into pin", ""), ("Mark P","Power into component","")):
             self.action(markers, title, key, lambda mode=mode: self.set_mode(mode))
         markers.addSeparator()
         show = self.action(markers, "Show markers", "", self.toggle_markers)
@@ -216,13 +216,15 @@ class Editor(QMainWindow):
         form.addRow(self.hint)
         form.addRow(self.source_editor)
         form.addRow(self.apply)
-        self.profiles = QComboBox()
-        self.profiles.currentTextChanged.connect(self.change_profile)
+        self.profiles = QLabel()
         tools.addSeparator()
         analysis_label = QLabel(" Analysis ")
         analysis_label.setBuddy(self.profiles)
         tools.addWidget(analysis_label)
         tools.addWidget(self.profiles)
+        item_color = QPushButton("Selected item color…")
+        item_color.clicked.connect(self.color_selected)
+        form.addRow(item_color)
         self.properties_dock = self.dock("Properties", properties, Qt.DockWidgetArea.RightDockWidgetArea)
         self.action(edit, "Edit selected properties", "Alt+Return", self.edit_selection)
 
@@ -234,6 +236,7 @@ class Editor(QMainWindow):
         self.plot_window = QDialog(self)
         self.plot_window.setWindowTitle("CircuitBench Simulation")
         self.plot_window.setWindowFlag(Qt.WindowType.WindowMaximizeButtonHint, True)
+        self.plot_window.setWindowFlag(Qt.WindowType.WindowMinimizeButtonHint, True)
         self.plot_window.setWindowFlag(Qt.WindowType.WindowContextHelpButtonHint, False)
         self.plot_window.resize(950, 580)
         plots_layout = QVBoxLayout(self.plot_window)
@@ -272,9 +275,13 @@ class Editor(QMainWindow):
         self.voltage_style_button.clicked.connect(self.edit_voltage_labels)
         bias_layout.addWidget(self.voltage_style_button)
         self.bias_dock = self.dock("Readings", bias_panel, Qt.DockWidgetArea.RightDockWidgetArea)
-        self.bias_action = self.action(view, "Show schematic readings", "", self.canvas.update)
+        self.bias_action = self.action(simulation, "Show schematic readings", "", self.canvas.update)
         self.bias_action.setCheckable(True)
         self.bias_action.setChecked(True)
+        tools.addAction(self.bias_action)
+        self.action(edit,"Voltage label appearance…","",self.edit_voltage_labels)
+        from desktop04 import install
+        install(self,view,edit,simulation,controls)
         self.output_dock = self.dock("Simulation output", self.tabs, Qt.DockWidgetArea.BottomDockWidgetArea)
         view.addSeparator()
         for panel in (self.library_dock, self.properties_dock, self.marker_dock, self.bias_dock, self.output_dock):
@@ -355,7 +362,7 @@ class Editor(QMainWindow):
     def refresh_markers(self):
         self.marker_list.clear()
         for index, marker in enumerate(self.project.markers):
-            label = (f"I({marker['ref']}:{marker['pin']+1})" if marker["kind"] == "I" else
+            label = (f"P({marker['ref']})" if marker.get("power") else f"I({marker['ref']}:{marker['pin']+1})" if marker["kind"] == "I" else
                      marker["kind"] + " " + " / ".join(f"{x},{y}" for x, y in marker["points"]))
             self.marker_list.addItem(f"{index+1}. {label}")
         self.highlight_markers()
@@ -366,14 +373,12 @@ class Editor(QMainWindow):
 
     def refresh_readings(self, revision):
         self.active_readings = self.readings if revision == self.readings_revision else None
-        self.bias_action.setEnabled(bool(self.active_readings))
+
         self.voltage_style_button.setEnabled(bool(self.active_readings))
         selected = self.bias_list.selectedItems()
         previous = selected[0].data(Qt.ItemDataRole.UserRole) if selected else None
         self.bias_list.clear()
-        self.reading_nets = connectivity(self.project) if self.active_readings else {}
-        if not self.active_readings:
-            return
+        self.reading_nets = connectivity(self.project)
 
         def add_reading(text, net, pin=None):
             item = QListWidgetItem(text)
@@ -381,6 +386,11 @@ class Editor(QMainWindow):
             self.bias_list.addItem(item)
             if (net, pin) == previous:
                 self.bias_list.setCurrentItem(item)
+
+        if not self.active_readings:
+            for net in sorted(set(self.reading_nets.values())):
+                add_reading("Ground" if net=="0" else net,net)
+            return
 
         for node in self.active_readings["nodes"]:
             name = "Ground" if node["net"] == "0" else node["net"]
@@ -487,6 +497,11 @@ class Editor(QMainWindow):
 
     def action(self, menu, title, key, callback):
         action = QAction(title, self)
+        from PyQt6.QtWidgets import QStyle
+        icons = {"Run":"SP_MediaPlay","Cancel run":"SP_MediaStop","Open…":"SP_DialogOpenButton",
+                 "Save":"SP_DialogSaveButton","New":"SP_FileIcon","Analysis setup…":"SP_FileDialogDetailedView"}
+        if title in icons:
+            action.setIcon(self.style().standardIcon(getattr(QStyle.StandardPixmap,icons[title])))
         if key:
             action.setShortcut(key)
         action.triggered.connect(lambda checked=False: callback())
@@ -723,11 +738,10 @@ class Editor(QMainWindow):
         if ((self.mode == "X" and self.placement_subcircuit() is None)
                 or (self.mode in ("Q", "M", "J", "S") and self.placement_value not in self.project.device_models)):
             self.set_mode("Select")
-        self.profiles.blockSignals(True)
-        self.profiles.clear()
-        self.profiles.addItems(self.project.profiles)
-        self.profiles.setCurrentText(self.project.active)
-        self.profiles.blockSignals(False)
+        enabled = self.project.analysis_plan.get("enabled",[self.project.active]).copy()
+        if self.project.analysis_plan.get("parametric"):
+            enabled.append("Parametric Sweep")
+        self.profiles.setText(", ".join(enabled))
         revision = self.project.dump()
         self.refresh_markers()
         simulation_revision = self.project.dump(include_label_styles=False)
@@ -974,6 +988,14 @@ class Editor(QMainWindow):
 
     def add_marker(self, point):
         kind = self.mode.removeprefix("Mark ")
+        if kind == "P":
+            candidates = [p for p in self.project.parts if len(p.pins())==2
+                          and (point in p.pins() or point==(p.x,p.y))]
+            if candidates:
+                self.checkpoint()
+                self.project.markers.append({"kind":"I","ref":candidates[0].ref,"pin":0,"power":True})
+                self.refresh()
+            return
         if kind == "I":
             matches = [(part, index) for part in self.project.parts if part.kind not in "GN"
                        for index, pin in enumerate(part.pins()) if pin == point]
@@ -1069,7 +1091,28 @@ class Editor(QMainWindow):
             except ValueError as error:
                 self.error(str(error))
 
+    def color_selected(self):
+        from desktop04 import appearance
+        appearance(self)
+
     def delete(self):
+        if getattr(self.canvas,"annotation_index",None) is not None:
+            index = self.canvas.annotation_index
+            self.checkpoint()
+            if index >= len(self.project.annotations):
+                self.canvas.annotation_index = None
+                return
+            self.project.annotations.pop(index)
+            colors = {k:v for k,v in self.project.element_colors.items() if not k.startswith("text:")}
+            for k,v in self.project.element_colors.items():
+                if k.startswith("text:"):
+                    i = int(k.split(":")[1])
+                    if i!=index:
+                        colors[f"text:{i-(i>index)}"] = v
+            self.project.element_colors = colors
+            self.canvas.annotation_index = None
+            self.refresh()
+            return
         if self.selected_parts or self.selected_wires or self.selected_junctions or self.selected_markers:
             self.checkpoint()
             refs = {self.project.parts[index].ref.upper() for index in self.selected_parts}
@@ -1108,6 +1151,12 @@ class Editor(QMainWindow):
                    for pin in set(old_pins) ^ set(part.pins())):
                 part.opamp_symbol = False
         self.project, self.path = project, path
+        self.session_path = None
+        self.report_bias = None
+        self.untitled_history = None
+        self.canvas.annotation_index = None
+        from desktop04 import refresh_history
+        refresh_history(self)
         self.saved = project.dump() if path or not project.parts else Project().dump()
         self.undo_stack.clear()
         self.redo_stack.clear()
@@ -1147,6 +1196,8 @@ class Editor(QMainWindow):
             self.error(str(error))
             return False
         self.path, self.saved = path, self.project.dump()
+        from desktop04 import refresh_history
+        refresh_history(self)
         self.refresh()
         return True
 
@@ -1297,40 +1348,8 @@ class Editor(QMainWindow):
         return (self.path.parent if self.path else Path.home()) / "Simulation Runs"
 
     def open_run_history(self):
-        try:
-            folders = sorted((p.parent for p in self.runs_root().glob("*/status.json")), key=lambda folder: folder.stat().st_mtime,
-                             reverse=True)
-        except OSError as error:
-            self.error(str(error))
-            return
-        dialog = QDialog(self)
-        dialog.setWindowTitle("Simulation run history")
-        dialog.resize(540, 310)
-        layout = QVBoxLayout(dialog)
-        runs = QListWidget()
-        for folder in folders:
-            try:
-                status = json.loads((folder / "status.json").read_text(encoding="utf-8"))
-                snapshot = Project.load((folder / "project.cwb").read_text(encoding="utf-8"))
-            except (OSError, ValueError, TypeError, KeyError):
-                continue
-            item = QListWidgetItem(f"{snapshot.active}   ·   {status.get('status', 'unknown')}   ·   {folder.name}")
-            item.setData(Qt.ItemDataRole.UserRole, folder)
-            runs.addItem(item)
-        if not runs.count():
-            layout.addWidget(QLabel("No recorded runs for this project location."))
-        layout.addWidget(runs)
-        button = QPushButton("Open selected run")
-        button.setEnabled(bool(runs.count()))
-        button.clicked.connect(dialog.accept)
-        runs.itemDoubleClicked.connect(lambda _: dialog.accept())
-        runs.setCurrentRow(0)
-        layout.addWidget(button)
-        if dialog.exec() and runs.currentItem():
-            try:
-                self.load_saved_run(runs.currentItem().data(Qt.ItemDataRole.UserRole))
-            except (OSError, ValueError) as error:
-                self.error(str(error))
+        from desktop04 import show_history
+        show_history(self)
 
     def load_saved_run(self, folder):
         logs = []
@@ -1354,10 +1373,13 @@ class Editor(QMainWindow):
         except ValueError as error:
             self.error(str(error))
             return
+        self.sweep_runs = []
+        self.sweep_plan = self.project.analysis_plan.copy()
         self.run_next()
 
     def run_next(self):
         project, label = self.analysis_jobs.pop(0)
+        self.sweep_job = label.startswith("Parametric_")
         try:
             deck = netlist(project)
         except ValueError as error:
@@ -1373,7 +1395,8 @@ class Editor(QMainWindow):
             parent = self.runs_root()
             parent.mkdir(exist_ok=True)
             from analysis_setup import allocate_run
-            folder = allocate_run(parent, self.path, label)
+            from desktop04 import session_folder
+            folder = allocate_run(session_folder(self), self.path, label)
             (folder / "schematic.cir").write_text(deck, encoding="ascii")
             solver_deck = deck
             if project.profiles[project.active].mode == "OP":
@@ -1429,10 +1452,13 @@ class Editor(QMainWindow):
                     with path.open(encoding="utf-8", errors="replace") as log:
                         self.log.appendPlainText(log.read(60000))
             if code == 0 and not self.cancelled:
-                self.show_run_result(self.run_dir, self.pending_revision)
-                page = self.plot_pages.currentWidget()
-                page.title = self.run_dir.name
-                self.plot_pages.setTabText(self.plot_pages.currentIndex(),page.title)
+                if self.sweep_job:
+                    self.sweep_runs.append(self.run_dir)
+                else:
+                    self.show_run_result(self.run_dir, self.pending_revision)
+                    page = self.plot_pages.currentWidget()
+                    page.title = self.run_dir.name
+                    self.plot_pages.setTabText(self.plot_pages.currentIndex(),page.title)
                 status = "completed"
             else:
                 self.error(f"Simulation {status} (exit {code})")
@@ -1448,8 +1474,15 @@ class Editor(QMainWindow):
         except OSError as error:
             self.error(str(error))
 
+        from desktop04 import refresh_history, show_sweep
+        refresh_history(self)
         if status=='completed' and self.analysis_jobs:
             self.run_next()
+        elif status=='completed' and self.sweep_runs:
+            try:
+                show_sweep(self)
+            except (OSError,ValueError) as error:
+                self.error(str(error))
 
     def show_run_result(self, folder, revision):
         metadata = folder / "operating-point.json"
@@ -1458,6 +1491,7 @@ class Editor(QMainWindow):
         self.show_plot(load_plot(folder / "result.raw"), revision, operating_point=operating_point,
                        open_window=snapshot.profiles[snapshot.active].mode not in ("OP", "DC"))
         if self.active_readings:
+            self.report_bias = [self.bias_list.item(i).text() for i in range(self.bias_list.count())]
             self.bias_dock.show()
 
     def show_plot(self, plot, revision, *, operating_point=None, open_window=True):
@@ -1500,17 +1534,8 @@ class Editor(QMainWindow):
         return page
 
     def duplicate_plot_page(self):
-        page = self.plot_pages.currentWidget()
-        if page is not None:
-            copy = self.add_plot_page(page.wave.plot, page.revision, page.wave.columns)
-            copy.title = f"{page.title} (copy)"
-            self.refresh()
-        elif hasattr(self,"last_closed_plot"):
-            restored = self.add_plot_page(*self.last_closed_plot)
-            self.wave,self.run_revision = restored.wave,restored.revision
-            self.refresh()
-        else:
-            self.open_waveform()
+        from desktop04 import fresh_page
+        fresh_page(self)
 
     def rename_plot_page(self, index):
         page = self.plot_pages.widget(index)
@@ -1524,7 +1549,6 @@ class Editor(QMainWindow):
         page = self.plot_pages.widget(index)
         if page is None:
             return
-        self.last_closed_plot = page.plot, page.revision, page.wave.columns.copy()
         self.plot_pages.removeTab(index)
         if page.plot is self.wave.plot:
             current = self.plot_pages.currentWidget()

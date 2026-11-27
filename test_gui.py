@@ -72,7 +72,7 @@ class GuiTests(unittest.TestCase):
         self.assertEqual(restored.tiles.currentIndex(), 1)
         with tempfile.TemporaryDirectory() as folder:
             pdf = Path(folder) / "report.pdf"
-            with patch("studies.QFileDialog.getSaveFileName", return_value=(str(pdf), "")):
+            with patch("studies.report_selection",return_value=({"Schematic and settings"},[restored])), patch("studies.QFileDialog.getSaveFileName", return_value=(str(pdf), "")):
                 report(editor)
             self.assertTrue(pdf.read_bytes().startswith(b"%PDF"))
 
@@ -114,8 +114,9 @@ class GuiTests(unittest.TestCase):
             while editor.process and time.monotonic()<deadline:
                 QTest.qWait(10)
             self.assertIsNone(editor.process)
-            runs = sorted(editor.runs_root().glob("Divider_*"))
-            self.assertEqual(len(runs),3)
+            runs = sorted(editor.runs_root().glob("*/*/Divider_*/status.json"))
+            runs = [r.parent for r in runs]
+            self.assertEqual(len(runs),3,editor.log.toPlainText())
             outputs = []
             for run in runs:
                 result = load_plot(run/"result.raw")
@@ -154,7 +155,7 @@ class GuiTests(unittest.TestCase):
         editor.close_plot_page(0)
         editor.duplicate_plot_page()
         self.assertEqual(editor.plot_pages.count(),1)
-        self.assertEqual(editor.plot_pages.currentWidget().plot.names,page.plot.names)
+        self.assertFalse(editor.plot_pages.currentWidget().plot.rows)
 
     def test_click_jitter_does_not_move_part(self):
         self.window.project.add("R", (0, 0))

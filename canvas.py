@@ -5,7 +5,7 @@ from PyQt6.QtCore import QPointF, QRectF, Qt
 from PyQt6.QtGui import QColor, QPainter, QPen
 from PyQt6.QtWidgets import QApplication, QWidget
 
-from circuit import MODELED_SYMBOLS, Part, SYMBOLS, on_wire, symbol_geometry
+from circuit import MODELED_SYMBOLS, Part, SYMBOLS, connectivity, on_wire, symbol_geometry
 from device_symbols import draw_device
 from spice_library import MODEL_PORTS
 
@@ -50,6 +50,8 @@ class Canvas(QWidget):
         return round(p.x()), round(p.y())
 
     def ink(self, light):
+        if light=="#173d37" and getattr(self,"symbol_color",None):
+            return QColor(self.symbol_color)
         return QColor(DARK_COLORS.get(light, light) if self.editor.dark_theme else light)
 
     def paintEvent(self, event):
@@ -79,12 +81,15 @@ class Canvas(QWidget):
         painter.translate(origin)
         painter.scale(self.cell, self.cell)
         project = self.editor.project
-        for x,y,text in project.annotations:
+        for i,(x,y,text) in enumerate(project.annotations):
             painter.save()
             painter.translate(x,y)
             painter.scale(1/self.cell,1/self.cell)
-            painter.setPen(self.ink("#173d37"))
+            color = project.element_colors.get(f"text:{i}")
+            painter.setPen(QColor(color) if color else self.ink("#173d37"))
             painter.drawText(QPointF(0,0),text)
+            if i==getattr(self,"annotation_index",None):
+                painter.drawLine(0,3,painter.fontMetrics().horizontalAdvance(text),3)
             painter.restore()
         reading = self.editor.bias_list.selectedItems()
         net, terminal = reading[0].data(Qt.ItemDataRole.UserRole) if reading else (None, None)
@@ -115,19 +120,22 @@ class Canvas(QWidget):
             painter.save()
             painter.translate(part.x, part.y)
             painter.rotate(part.rotation * 90)
+            self.symbol_color = project.element_colors.get(part.ref)
             if part.kind == "X":
                 self.draw_subcircuit(painter, part, selected)
             elif part.kind in MODELED_SYMBOLS:
                 self.draw_modeled_symbol(painter, part, selected)
             else:
                 self.draw_symbol(painter, part.kind, selected)
+            self.symbol_color = None
             painter.restore()
             if selected and part.kind in MODELED_SYMBOLS:
                 self.draw_pin_targets(painter, part)
             painter.save()
             painter.translate(part.x, part.y)
             painter.scale(1/self.cell, 1/self.cell)
-            painter.setPen(self.ink("#162e29"))
+            color = project.element_colors.get(part.ref)
+            painter.setPen(QColor(color) if color else self.ink("#162e29"))
             powers = getattr(self.editor, "part_powers", {})
             if getattr(self.editor, "power_visible", False) and self.editor.active_readings and index in powers:
                 painter.drawText(QPointF(8, 38), engineering(powers[index], "W"))
@@ -152,8 +160,20 @@ class Canvas(QWidget):
             for point in {pin for part in project.parts for pin in part.pins()} & highlighted:
                 radius = .30 if point == terminal else .18
                 painter.drawEllipse(QPointF(*point), radius, radius)
-        if self.editor.active_readings and self.editor.bias_action.isChecked():
-            self.draw_bias(painter)
+        bias = getattr(self.editor,"bias_action",None)
+        if bias and bias.isChecked():
+            if self.editor.active_readings:
+                self.draw_bias(painter)
+            else:
+                painter.save()
+                painter.scale(1/self.cell,1/self.cell)
+                painter.setPen(self.ink("#0f766e"))
+                seen = set()
+                for (x,y),net in connectivity(project).items():
+                    if net not in seen:
+                        painter.drawText(QPointF(x*self.cell+4,y*self.cell-5),net)
+                        seen.add(net)
+                painter.restore()
         if self.editor.markers_visible:
             self.draw_markers(painter)
         if (self.underMouse() or self.library_drag) and self.editor.mode in SYMBOLS:
@@ -409,7 +429,7 @@ class Canvas(QWidget):
         family = model["type"]
         if family == "VDMOS" and "PCHAN" in model["flags"]:
             family = "PVDMOS"
-        draw_device(painter, part, family, selected)
+        draw_device(painter, part, family, selected,getattr(self,"symbol_color",None))
 
     def draw_pin_targets(self, painter, part):
         painter.save()
@@ -519,6 +539,16 @@ class Canvas(QWidget):
         if event.button() != Qt.MouseButton.LeftButton:
             return
         editor = self.editor
+        self.annotation_index = None
+        if editor.mode=="Select":
+            for i,(x,y,text) in reversed(list(enumerate(editor.project.annotations))):
+                anchor = self.origin()+QPointF(x,y)*self.cell
+                if QRectF(anchor.x(),anchor.y()-17,self.fontMetrics().horizontalAdvance(text)+5,23).contains(pos):
+                    editor.select(None)
+                    self.annotation_index = i
+                    self.drag = ("annotation",point,(x,y))
+                    self.update()
+                    return
         if editor.mode.startswith("Mark "):
             editor.add_marker(point)
         elif editor.mode == "Wire":
@@ -601,7 +631,13 @@ class Canvas(QWidget):
         if self.drag and event.button() == Qt.MouseButton.LeftButton:
             mode, start, extend = self.drag
             end = self.grid(event.position())
-            if mode == "box":
+            if mode=="annotation":
+                if end!=start:
+                    self.editor.checkpoint()
+                    item = self.editor.project.annotations[self.annotation_index]
+                    item[:2] = [extend[0]+end[0]-start[0],extend[1]+end[1]-start[1]]
+                    self.editor.refresh()
+            elif mode == "box":
                 if extend and start == end:
                     groups = (self.editor.selected_parts, self.editor.selected_wires, self.editor.selected_junctions)
                     self.editor.set_selection(*(existing ^ incoming for existing, incoming

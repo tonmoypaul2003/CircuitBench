@@ -12,6 +12,8 @@ from circuit import Project,Profile,number
 
 def allocate_run(parent,path,label):
     prefix = re.sub(r'[^\w.-]+','_',((path.stem+'_') if path else '')+label).strip('.')[:120]
+    if len(str(parent))+len(prefix)>223:
+        prefix = prefix[:max(8,223-len(str(parent)))]
     pattern = re.compile(re.escape(prefix)+r'_(\d+)_')
     n = max((int(m[1]) for p in parent.iterdir() if (m:=pattern.match(p.name))),default=0)+1
     while True:
@@ -44,7 +46,7 @@ def jobs(project):
             if part is None or number(value)<=0:
                 raise ValueError("Select an existing passive component and positive values.")
             part.value = value
-            result.append((snapshot,f"Parametric_{profile}_{ref}_{value}"))
+            result.append((snapshot,f"Parametric_{ref}_{value}"))
     if not result:
         raise ValueError("Enable at least one analysis.")
     return result
@@ -64,7 +66,7 @@ def setup(editor):
         detail = QDialog(dialog)
         detail.setWindowTitle(name)
         fields = QFormLayout(detail)
-        keys = {"OP":(),"AC":("start_hz","stop_hz","points"),"TRAN":("step","stop"),
+        keys = {"OP":(),"AC":("start_hz","stop_hz","points"),"TRAN":("step","start","stop"),
                 "DC":("sweep_source","sweep_start","sweep_stop","sweep_step")}[profile.mode]
         inputs = {}
         for key in keys:

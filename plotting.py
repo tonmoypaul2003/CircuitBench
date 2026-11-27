@@ -34,6 +34,8 @@ class Waveform(QWidget):
         self.trace_colors = {}
         self.trace_styles = {}
         self.pin_shapes = []
+        self.pin_options = {}
+        self.pin_hits = []
         self.grid_color = None
         self.x_column = 0
         self.x_scale = "Automatic"
@@ -72,6 +74,13 @@ class Waveform(QWidget):
             event.accept()
             return
         super().keyPressEvent(event)
+
+    def mouseDoubleClickEvent(self,event):
+        for i,rect in reversed(self.pin_hits):
+            if rect.contains(event.position()):
+                self.parent_page.manage_points(i)
+                return
+        super().mouseDoubleClickEvent(event)
 
     def mousePressEvent(self, event):
         self.activated.emit()
@@ -190,6 +199,7 @@ class Waveform(QWidget):
 
     def draw_chart(self, painter, width, height, report):
         if not report:
+            self.pin_hits = []
             self.screen_axes = None
             self.data_bounds = None
         rect = QRectF(0, 0, width, height)
@@ -220,6 +230,8 @@ class Waveform(QWidget):
             if self.plot.units[column] == "expression":
                 use_magnitude = any(math.isfinite(value.imag) and value.imag for value in values)
                 values = [abs(value) if use_magnitude else value.real for value in values]
+            elif self.plot.units[column] == "power":
+                values = [value.real for value in values]
             elif self.presentation == 1:
                 values = [math.degrees(math.atan2(value.imag, value.real)) for value in values]
             elif self.presentation == 2:
@@ -375,10 +387,14 @@ class Waveform(QWidget):
             if not (xmin <= px <= xmax and ymin <= value <= ymax):
                 continue
             point = location(px, value)
-            painter.setPen(QPen(self.color(column, background), 1.5))
+            color,digits = self.pin_options.get(pin_index,(None,3))
+            painter.setPen(QPen(QColor(color) if color else self.color(column, background), 1.5))
             shape = self.pin_shapes[pin_index] if pin_index < len(self.pin_shapes) else "Circle"
             self.draw_pin(painter, point, shape)
-            text = label or f"{self.plot.names[column]} ({(10**px if logarithmic else px):.8g}, {value:.8g})"
+            x = 10**px if logarithmic else px
+            text = f"{label or self.plot.names[column]} ({x:.{digits}f}, {value:.{digits}f})"
+            if not report:
+                self.pin_hits.append((pin_index,QRectF(point.x()-8,point.y()-8,16,16)))
             text = metrics.elidedText(text, Qt.TextElideMode.ElideRight, max(30, right-left-12))
             text_width = metrics.horizontalAdvance(text)
             text_x = max(left+4, min(point.x()+7, right-text_width-4))
@@ -392,6 +408,7 @@ class PlotPage(QWidget):
     def __init__(self, plot, selected=None):
         super().__init__()
         self.wave = Waveform()
+        self.wave.parent_page = self
         self.wave.plot = plot
         self.traces = QListWidget()
         self.traces.setMaximumWidth(130)
@@ -498,7 +515,7 @@ class PlotPage(QWidget):
         for item in (self.cursor_button, self.auto_pin_button, self.pin_shape, pin, remove_pin):
             pin_tools.addWidget(item)
         manage = QPushButton("Pinned points…")
-        manage.clicked.connect(self.manage_points)
+        manage.clicked.connect(lambda: self.manage_points())
         crossing = QPushButton("Intersections…")
         crossing.clicked.connect(self.intersections)
         pin_tools.addWidget(manage)
@@ -775,31 +792,51 @@ class PlotPage(QWidget):
         buttons.accepted.connect(apply)
         dialog.exec()
 
-    def manage_points(self):
+    def manage_points(self, selected=0):
         dialog = QDialog(self)
         dialog.setWindowTitle("Pinned points")
         layout = QVBoxLayout(dialog)
         points = QListWidget()
         label = QLineEdit()
+        digits = QSpinBox()
+        digits.setRange(0,12)
+        digits.setPrefix("Decimals  ")
+        color_button = QPushButton("Point color…")
+        color = None
         layout.addWidget(points)
+        layout.addWidget(digits)
+        layout.addWidget(color_button)
         layout.addWidget(label)
         def refresh():
             points.clear()
             for col,sample,name in self.wave.pins:
                 points.addItem(name or f"{self.wave.plot.names[col]} at sample {sample:g}")
         refresh()
-        points.currentRowChanged.connect(lambda row: label.setText(self.wave.pins[row][2] if row>=0 else ""))
+        def select(row):
+            nonlocal color
+            label.setText(self.wave.pins[row][2] if row>=0 else "")
+            color,precision = self.wave.pin_options.get(row,(None,3))
+            digits.setValue(precision)
+        def pick_color():
+            nonlocal color
+            chosen = QColorDialog.getColor(QColor(color or "#087e74"),dialog)
+            if chosen.isValid():
+                color = chosen.name()
+        color_button.clicked.connect(pick_color)
+        points.currentRowChanged.connect(select)
         def edit(remove):
             row = points.currentRow()
             if row<0:
                 return
             if remove:
                 self.wave.pins.pop(row)
+                self.wave.pin_options = {i-(i>row):v for i,v in self.wave.pin_options.items() if i!=row}
                 if row<len(self.wave.pin_shapes):
                     self.wave.pin_shapes.pop(row)
             else:
                 col,sample,_ = self.wave.pins[row]
                 self.wave.pins[row] = col,sample,label.text()
+                self.wave.pin_options[row] = color,digits.value()
             refresh()
             points.setCurrentRow(min(row,points.count()-1))
             self.wave.update()
@@ -807,7 +844,7 @@ class PlotPage(QWidget):
             button = QPushButton(title)
             button.clicked.connect(lambda checked=False,r=remove:edit(r))
             layout.addWidget(button)
-        points.setCurrentRow(0)
+        points.setCurrentRow(selected)
         dialog.exec()
 
     def intersections(self):
@@ -827,7 +864,7 @@ class PlotPage(QWidget):
             return
         a,b = names.index(first),names.index(second)
         count = 0
-        existing = set(w.pins)
+        existing = {(col,sample) for col,sample,_ in w.pins}
         for i,(v,u) in enumerate(zip(series[a],series[b])):
             d = v-u
             if not math.isfinite(d) or not math.isfinite(xs[i]):
@@ -843,12 +880,9 @@ class PlotPage(QWidget):
             elif ((i and series[a][i-1]==series[b][i-1]) or
                   (i+1<len(xs) and series[a][i+1]==series[b][i+1])):
                 continue
-            px = xs[i]+f*(xs[i+1]-xs[i]) if f else xs[i]
-            y = v+f*(series[a][i+1]-v) if f else v
-            x = 10**px if w.logarithmic() else px
-            pin = (cols[a],i+f,f"{first} = {second} ({x:.10g}, {y:.10g})")
-            if pin not in existing:
-                existing.add(pin)
+            pin = (cols[a],i+f,f"X{len(w.pins)+1}")
+            if pin[:2] not in existing:
+                existing.add(pin[:2])
                 w.pins.append(pin)
                 w.pin_shapes.append(self.pin_shape.currentText())
                 count+=1
@@ -857,6 +891,7 @@ class PlotPage(QWidget):
 
     def remove_pin(self):
         if self.wave.pins:
+            self.wave.pin_options.pop(len(self.wave.pins)-1,None)
             self.wave.pins.pop()
             if self.wave.pin_shapes:
                 self.wave.pin_shapes.pop()
