@@ -361,3 +361,6 @@ entries for substantive historical mistakes.
 
 2026-11-27 — GitHub delivery
     Pushed desktop source, build workflow and versioned executable to origin/main at 9a0ccef. Delivery: pushed to the desktop repository.
+
+2026-11-27 — Desktop source repository packaging correction
+    Removed build/ from Git tracking and ignored the directory so future builds stay local. The versioned executable and root copy remain on disk. No runtime or schematic change. Verified ignore rules and matching local executable hashes before committing for delivery to main.
