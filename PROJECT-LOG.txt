@@ -521,3 +521,14 @@ entries for substantive historical mistakes.
     CircuitBench.qss remains available as a separate release asset.
     Release: https://github.com/tonmoypaul2003/CircuitBench/releases/tag/v0.4.6-beta
     Delivery: published.
+
+2026-11-28 — Desktop release archive published
+    Added GitHub releases for v0.3-beta (9a0ccef), v0.4-beta (6d7d989),
+    v0.4.1-beta (bb403c3), v0.4.2-beta (7442099), and v0.4.3-beta
+    (69f8056). The existing v0.4.5-beta (a5e15c5) and v0.4.6-beta
+    (4a81291) complete the available archive. There was no v0.4.4 build.
+    Verified seven matching source tags, asset digests, and anonymous
+    executable URLs. No binaries rebuilt and no schematic changes.
+    GitHub Latest points to v0.4.6-beta. GitHub requires its prerelease
+    flag to be cleared. The version name and tag retain beta.
+    Delivery: published at https://github.com/tonmoypaul2003/CircuitBench/releases
