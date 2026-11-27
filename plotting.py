@@ -12,6 +12,12 @@ from PyQt6.QtWidgets import (QApplication, QColorDialog, QComboBox, QDialog, QDi
 from circuit import number
 from plot_math import evaluate, FUNCTIONS
 from results import Plot
+from canvas import engineering
+
+
+def display_value(value,unit):
+    units = {"voltage":"V","current":"A","power":"W","frequency":"Hz","time":"s"}
+    return engineering(value,units[unit]) if unit in units and math.isfinite(value) else f"{value:.7g}"
 
 
 LINE_STYLES = {"Solid": Qt.PenStyle.SolidLine, "Dashed": Qt.PenStyle.DashLine,
@@ -233,7 +239,7 @@ class Waveform(QWidget):
                 label = self.plot.names[column]
                 painter.setPen(self.color(column, background))
                 painter.drawText(QPointF(18, 38+index*18),
-                                 f"{label}   {rows[0][column].real:.7g} {self.plot.units[column]}")
+                                 f"{label}   {display_value(rows[0][column].real,self.plot.units[column])}")
             return
         logarithmic = self.logarithmic()
         raw_x = self.raw_x()
@@ -374,7 +380,9 @@ class Waveform(QWidget):
                     painter.drawEllipse(location(xs[sample], values[sample]), 3, 3)
             readout = "  |  ".join(
                 [f"{self.plot.names[self.x_column]} = {raw_x[sample]:.10g} {self.plot.units[self.x_column]}"]
-                + [f"{self.plot.names[col]} = {values[sample]:.10g}"
+                + [f"{self.plot.names[col]} = {values[sample]:.7g} dB" if self.presentation==2 and self.plot.units[col]!="power" else
+                   f"{self.plot.names[col]} = {values[sample]:.7g}°" if self.presentation==1 and self.plot.units[col]!="power" else
+                   f"{self.plot.names[col]} = {display_value(values[sample],self.plot.units[col])}"
                    for col, values in zip(self.columns, columns)])
             if self.reference is not None and self.reference[1] in self.columns:
                 a, col = self.reference

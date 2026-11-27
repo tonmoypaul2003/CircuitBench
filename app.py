@@ -26,7 +26,7 @@ from spice_library import MODEL_PORTS, read_library
 from subcircuit_designer import SubcircuitDesigner
 
 
-VERSION = "0.4.1-beta"
+VERSION = "0.4.2-beta"
 
 RUNTIME = Path(__file__).resolve().parent / "runtime"
 BUNDLED_SOLVER = RUNTIME / "ngspice" / "bin" / "ngspice_con.exe"
@@ -371,9 +371,10 @@ class Editor(QMainWindow):
     def refresh_markers(self):
         self.marker_list.clear()
         for index, marker in enumerate(self.project.markers):
-            label = (f"P({marker['ref']})" if marker.get("power") else f"I({marker['ref']}:{marker['pin']+1})" if marker["kind"] == "I" else
+            label = (f"p({marker['ref']})" if marker.get("power") else f"I({marker['ref']}:{marker['pin']+1})" if marker["kind"] == "I" else
                      marker["kind"] + " " + " / ".join(f"{x},{y}" for x, y in marker["points"]))
-            self.marker_list.addItem(f"{index+1}. {label}")
+            unit = "W" if marker.get("power") else "A" if marker["kind"]=="I" else "V"
+            self.marker_list.addItem(f"{index+1}. {label} ({unit})")
         self.highlight_markers()
 
     def highlight_markers(self):
@@ -1380,6 +1381,10 @@ class Editor(QMainWindow):
         if (folder / "result.raw").is_file():
             snapshot = (folder / "project.cwb").read_text(encoding="utf-8")
             self.show_run_result(folder, snapshot)
+            from desktop04 import run_title
+            page = self.plot_pages.currentWidget()
+            page.title = run_title(folder)
+            self.plot_pages.setTabText(self.plot_pages.currentIndex(),page.title)
 
     def run(self):
         if self.process is not None:
@@ -1391,12 +1396,14 @@ class Editor(QMainWindow):
             self.error(str(error))
             return
         self.sweep_runs = []
+        self.sweep_values = {}
         self.sweep_plan = self.project.analysis_plan.copy()
         self.run_next()
 
     def run_next(self):
         project, label = self.analysis_jobs.pop(0)
         self.sweep_job = label.startswith("Parametric_")
+        self.run_label = label
         try:
             deck = netlist(project)
         except ValueError as error:
@@ -1470,11 +1477,13 @@ class Editor(QMainWindow):
                         self.log.appendPlainText(log.read(60000))
             if code == 0 and not self.cancelled:
                 if self.sweep_job:
+                    self.sweep_values[self.run_dir] = self.sweep_plan["values"][len(self.sweep_runs)]
                     self.sweep_runs.append(self.run_dir)
                 else:
                     self.show_run_result(self.run_dir, self.pending_revision)
                     page = self.plot_pages.currentWidget()
-                    page.title = self.run_dir.name
+                    from desktop04 import run_title
+                    page.title = run_title(self.run_dir,self.run_label)
                     self.plot_pages.setTabText(self.plot_pages.currentIndex(),page.title)
                 status = "completed"
             else:
@@ -1487,6 +1496,7 @@ class Editor(QMainWindow):
         try:
             (self.run_dir / "status.json").write_text(json.dumps({
                 "status": status, "exit_code": code, "executable": self.run_executable,
+                "profile": self.run_label,
             }), encoding="utf-8")
         except OSError as error:
             self.error(str(error))
@@ -1521,7 +1531,16 @@ class Editor(QMainWindow):
                 netlist(snapshot, measurements)
             except (KeyError, TypeError, ValueError):
                 measurements.clear()
-        selected = plot.marker_columns(measurements)
+        self.marker_values = {}
+        if operating_point and len(plot.rows)==1:
+            selected = []
+            for index,measurement in enumerate(measurements):
+                columns = plot.marker_columns([measurement])
+                selected.extend(columns)
+                if columns:
+                    self.marker_values[index] = plot.rows[0][columns[0]].real
+        else:
+            selected = plot.marker_columns(measurements)
         self.readings_revision = revision
         self.readings = None
         if operating_point and len(plot.rows) == 1:

@@ -405,3 +405,16 @@ entries for substantive historical mistakes.
     plot, power marker activation, pin movement, run and pin deletion
     actions, and the Windows packaged smoke test. Root and versioned local
     executable hashes match. Source prepared for GitHub main.
+
+2026-11-28 — Desktop v0.4.2 beta
+    Power markers use lowercase p. Added SI-scaled W, V and A to
+    operating-point marker values and waveform readouts. Both Session
+    History trees support selecting and deleting multiple runs or full
+    sessions with confirmation. They refresh together after deletion.
+    Sweep runs now lists component values, base analysis and session in
+    a table. Saved waveforms and plot tabs use more readable run labels.
+    Existing schematic files and session directories require no migration.
+    Verified 46 tests, 25 mW, 5 mA and 5 V marker values in the divider,
+    batch session deletion across both views, the sweep table and the
+    packaged Windows smoke test. Matching root and versioned builds
+    stay local. Source and log prepared for GitHub main.

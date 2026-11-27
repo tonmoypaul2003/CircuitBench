@@ -275,14 +275,19 @@ class Canvas(QWidget):
     def marker_positions(self):
         by_ref = {part.ref.upper(): part for part in self.editor.project.parts}
         for index, marker in enumerate(self.editor.project.markers):
-            name = f"{marker['kind']}{index+1}"
+            unit = "W" if marker.get("power") else "A" if marker["kind"]=="I" else "V"
+            code = "p" if marker.get("power") else marker["kind"]
+            name = f"{code}{index+1}"
+            values = getattr(self.editor,"marker_values",{})
+            reading = values.get(index) if self.editor.active_readings else None
+            detail = engineering(reading,unit) if reading is not None else unit
             if marker["kind"] == "I":
                 part = by_ref.get(marker["ref"].upper())
                 if part and marker["pin"] < len(part.pins()):
-                    yield index, part.pins()[marker["pin"]], name
+                    yield index, part.pins()[marker["pin"]], f"{name} · {detail}"
             else:
                 for point, suffix in zip(marker["points"], ("+", "−") if marker["kind"] == "VD" else ("",)):
-                    yield index, point, name + suffix
+                    yield index, point, f"{name}{suffix} · {detail}"
 
     def draw_markers(self, painter):
         markers = list(self.marker_positions())

@@ -737,7 +737,7 @@ def compile_circuit(project, measurements, ports=None, scope="", depth=0):
                     pins = by_ref[ref].pins()
                     if len(pins)!=2:
                         raise ValueError("Power markers require a two-terminal component")
-                    measurements.append((f"P({ref})", f"i({sensor.lower()})",
+                    measurements.append((f"p({ref})", f"i({sensor.lower()})",
                                          [f"v({nodes[p]})" for p in pins]))
                 else:
                     measurements.append((f"I({ref}:{pin+1})", f"i({sensor.lower()})", None))
