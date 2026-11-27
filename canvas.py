@@ -6,12 +6,12 @@ from PyQt6.QtGui import QColor, QPainter, QPen
 from PyQt6.QtWidgets import QApplication, QWidget
 
 from circuit import MODELED_SYMBOLS, Part, SYMBOLS, connectivity, on_wire, symbol_geometry
+from desktop_theme import desktop_colors
 from device_symbols import draw_device
 from spice_library import MODEL_PORTS
 
 
 DARK_COLORS = {
-    "#edf2f0": "#172421", "#fcfdfc": "#1b2d28", "#cbd9d1": "#3d5650",
     "#86a49b": "#8aaba1", "#0f766e": "#68c8ba", "#d46127": "#ffab72",
     "#162e29": "#e2eee9", "#157c72": "#76cfc2", "#80469c": "#d9a5ec",
     "#173d37": "#c9e7dd", "#b34b1d": "#ffab72", "#1d56b3": "#82baff",
@@ -52,6 +52,11 @@ class Canvas(QWidget):
     def ink(self, light):
         if light=="#173d37" and getattr(self,"symbol_color",None):
             return QColor(self.symbol_color)
+        colors = desktop_colors(self.editor.dark_theme)
+        keys = {"#edf2f0":"panel", "#fcfdfc":"sheet", "#cbd9d1":"grid",
+                "#0f766e":"net", "#173d37":"ink", "#162e29":"ink"}
+        if light in keys:
+            return QColor(colors[keys[light]])
         return QColor(DARK_COLORS.get(light, light) if self.editor.dark_theme else light)
 
     def paintEvent(self, event):
@@ -153,7 +158,7 @@ class Canvas(QWidget):
                 if style.get("value",True):
                     labels.append(part.value)
                 self.draw_label(painter,("part",index),(part.x,part.y),labels,style,
-                                default_x=-max(10,(part.x-min(x for x,_ in part.pins()))*self.cell+5))
+                                default_x=-max(self.cell*.9+5,(part.x-min(x for x,_ in part.pins()))*self.cell+5))
             painter.restore()
         if highlighted:
             painter.setPen(QPen(highlight_ink, .09))
@@ -460,7 +465,7 @@ class Canvas(QWidget):
         family = model["type"]
         if family == "VDMOS" and "PCHAN" in model["flags"]:
             family = "PVDMOS"
-        draw_device(painter, part, family, selected,getattr(self,"symbol_color",None))
+        draw_device(painter, part, family, selected,self.ink("#173d37").name())
 
     def draw_pin_targets(self, painter, part):
         painter.save()

@@ -13,6 +13,7 @@ from circuit import number
 from plot_math import evaluate, FUNCTIONS
 from results import Plot
 from canvas import engineering
+from desktop_theme import desktop_colors
 
 
 def display_value(value,unit):
@@ -208,11 +209,14 @@ class Waveform(QWidget):
 
     def chart_background(self, report=False):
         dark = QApplication.instance().property("circuitbenchDark")
-        return self.background or QColor("#ffffff" if report else "#1b2d28" if dark else "#f7faf8")
+        return self.background or QColor("#ffffff" if report else desktop_colors(dark)["sheet"])
 
     def color(self, column, background=None):
-        base = QColor(self.colors[(column-1) % len(self.colors)])
-        if (background or self.chart_background()).lightness() < 128:
+        dark = (background or self.chart_background()).lightness() < 128
+        palette = desktop_colors(dark)
+        index = (column-1) % len(self.colors)
+        base = QColor((palette["net"],palette["copper"])[index] if index<2 else self.colors[index])
+        if dark and index>=2:
             base = base.lighter(165)
         return self.trace_colors.get(column, base)
 
@@ -230,7 +234,7 @@ class Waveform(QWidget):
             self.data_bounds = None
         rect = QRectF(0, 0, width, height)
         background = self.chart_background(report)
-        ink = QColor("#173d37" if background.lightness() >= 128 else "#f0f7f4")
+        ink = QColor(desktop_colors(background.lightness()<128)["ink"])
         ink = self.text_color or ink
         font = painter.font()
         font.setPixelSize(self.text_size)
@@ -466,6 +470,7 @@ class Waveform(QWidget):
 class PlotPage(QWidget):
     def __init__(self, plot, selected=None):
         super().__init__()
+        self.setObjectName("plotControls")
         self.wave = Waveform()
         self.wave.parent_page = self
         self.wave.plot = plot
@@ -1146,8 +1151,10 @@ class PlotReportPage(QWidget):
         controls.addStretch()
         layout.addLayout(controls)
         scroller = QScrollArea()
+        scroller.viewport().setObjectName("plotViewport")
         scroller.setWidgetResizable(True)
         content = QWidget()
+        content.setObjectName("plotStack")
         self.stack = QGridLayout(content)
         self.tiles = QComboBox()
         self.tiles.addItems(["Stacked", "Two columns"])

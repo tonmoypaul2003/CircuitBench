@@ -471,3 +471,14 @@ entries for substantive historical mistakes.
     GitHub rejected deletion of the old CircuitBench-Releases repository
     with HTTP 403 because the available credentials lacked permission.
     Delivery: published in the public CircuitBench repository.
+
+2026-11-28 — Desktop v0.4.6 beta UI refresh
+    Applied the approved slate light and dark themes to the desktop and
+    simulation windows. Added circuit-specific toolbar glyphs alongside
+    text, a blue Run button, slate docks, a subdued schematic grid,
+    and teal and copper default traces. Explicit user colors still take
+    precedence. The CWB format and analysis behavior need no migration.
+    Verified both real window themes, toolbar icons, dark plot controls
+    and export background. All 48 tests and the packaged Windows smoke
+    test passed. Root and versioned executables match and remain local.
+    Source and project log prepared for GitHub main.

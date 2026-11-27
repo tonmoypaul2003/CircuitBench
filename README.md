@@ -121,3 +121,7 @@ A denser plot grid adds axis ticks. The cursor guide dropdown offers vertical, h
 The grid shows separate sliders beside the X and Y axes. Axis Limits can also set the grid-on tick count for each axis and the common grid-off tick count. Each supports 2–25 ticks. Parametric plots include all available marker traces for each sweep value, and operating-point plots keep marker readings visible.
 
 Press **F6** to switch between schematic and simulation, or **Shift+F6** to return from simulation. Use **Ctrl+M** for voltage, **Ctrl+Shift+M** for differential voltage, **Ctrl+Alt+I** for current and **Ctrl+Alt+P** for power.
+
+## Desktop theme refresh
+
+The light and dark themes use slate panels and quiet grid lines. The blue Run control stays prominent, and drawing tools use circuit-specific line icons alongside their names. Simulation defaults to teal and copper traces, while explicit chart and schematic colors retain precedence. Use **View → Theme** to choose System, Light or Dark.

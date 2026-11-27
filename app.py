@@ -15,6 +15,7 @@ from PyQt6.QtWidgets import (
     QHBoxLayout, QVBoxLayout, QWidget,
 )
 
+from desktop_theme import apply_desktop_theme
 from canvas import Canvas, engineering
 from circuit import (GENERIC_MODELS, Profile, Project, SOURCE_DEFAULTS, SYMBOLS, WAVE_FIELDS, connectivity,
                      diode_model, example, marker_node, netlist, number, on_wire, source_tokens,
@@ -26,7 +27,7 @@ from spice_library import MODEL_PORTS, read_library
 from subcircuit_designer import SubcircuitDesigner
 
 
-VERSION = "0.4.5-beta"
+VERSION = "0.4.6-beta"
 
 RUNTIME = Path(__file__).resolve().parent / "runtime"
 BUNDLED_SOLVER = RUNTIME / "ngspice" / "bin" / "ngspice_con.exe"
@@ -147,6 +148,7 @@ class Editor(QMainWindow):
         self.action(tools, "Analysis setup…", "", lambda: setup(self))
         self.action(tools, "Netlist", "", self.preview)
         self.run_action = self.action(tools, "Run", "F5", self.run)
+        tools.widgetForAction(self.run_action).setObjectName("runButton")
         self.cancel_action = self.action(tools, "Cancel run", "", self.cancel)
         self.cancel_action.setEnabled(False)
         simulation = self.menuBar().addMenu("&Simulation")
@@ -220,7 +222,7 @@ class Editor(QMainWindow):
         self.profiles = QLabel()
         tools.addSeparator()
         self.profiles.setFrameShape(self.profiles.Shape.StyledPanel)
-        self.profiles.setStyleSheet("border: 1px solid palette(mid); border-radius: 4px; padding: 4px 8px;")
+        self.profiles.setObjectName("analysisMode")
         tools.addWidget(self.profiles)
         labels = QPushButton("Label appearance…")
         labels.clicked.connect(self.edit_label_appearance)
@@ -238,7 +240,7 @@ class Editor(QMainWindow):
         self.plot_window.setWindowFlag(Qt.WindowType.WindowMaximizeButtonHint, True)
         self.plot_window.setWindowFlag(Qt.WindowType.WindowMinimizeButtonHint, True)
         self.plot_window.setWindowFlag(Qt.WindowType.WindowContextHelpButtonHint, False)
-        self.plot_window.resize(950, 580)
+        self.plot_window.resize(1060, 670)
         schematic_shortcut = QAction("Return to schematic",self.plot_window)
         schematic_shortcut.setShortcuts(["F6","Shift+F6"])
         schematic_shortcut.triggered.connect(self.return_to_schematic)
@@ -306,6 +308,7 @@ class Editor(QMainWindow):
         self.select(None)
         self.refresh()
         self.set_mode("Select")
+        self.apply_theme()
         QApplication.styleHints().colorSchemeChanged.connect(self.apply_theme)
 
     def show_about(self):
@@ -340,20 +343,7 @@ class Editor(QMainWindow):
                            (self.theme_preference == "System"
                             and QApplication.styleHints().colorScheme() == Qt.ColorScheme.Dark))
         QApplication.instance().setProperty("circuitbenchDark", self.dark_theme)
-        self.setStyleSheet("""
-            QMainWindow { background: #e8eeeb; }
-            QToolBar { background: #edf3f0; spacing: 5px; padding: 5px; border: 0; }
-            QToolButton { border: 1px solid transparent; border-radius: 4px; padding: 5px 8px; }
-            QToolButton:hover { background: #d9e7e2; }
-            QToolButton:checked { color: #144e43; background: #d1e9df; border-color: #8bb5a7; }
-            QDockWidget::title { background: #e0ebe6; padding: 6px; }
-            QListWidget::item { padding: 5px 4px; }
-            QStatusBar { background: #e0ebe6; color: #294a42; }
-        """ if not self.dark_theme else """
-            QToolBar { spacing: 5px; padding: 5px; }
-            QDockWidget::title { padding: 6px; }
-            QListWidget::item { padding: 5px 4px; }
-        """)
+        apply_desktop_theme(self,self.dark_theme)
         self.canvas.update()
 
     def eventFilter(self, watched, event):
@@ -1715,6 +1705,9 @@ if __name__ == "__main__":
     application.setApplicationName("CircuitBench")
     application.setApplicationVersion(VERSION)
     application.setStyle("Fusion")
+    font = application.font()
+    font.setFamily("Segoe UI")
+    application.setFont(font)
     application.setWindowIcon(QIcon(str(RUNTIME / "CircuitBench.ico")))
     window = Editor()
     window.show()
