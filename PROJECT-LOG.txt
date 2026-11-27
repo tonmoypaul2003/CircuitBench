@@ -358,3 +358,6 @@ entries for substantive historical mistakes.
 
 2026-11-27 — Desktop build layout and Git delivery workflow
     Archived 0.3-beta in build/0.3-beta/CircuitBench.exe and atomically replaced the locked root executable. SHA-256 of both matches the smoke-tested package. Future Windows builds derive the output folder from the desktop version and verify both copies. Recorded commit-and-push instructions. No schematic migration. Prepared desktop sources and versioned executable for GitHub delivery.
+
+2026-11-27 — GitHub delivery
+    Pushed desktop source, build workflow and versioned executable to origin/main at 9a0ccef. Delivery: pushed to the desktop repository.
