@@ -461,3 +461,13 @@ entries for substantive historical mistakes.
     grid controls, F6, and the packaged Windows smoke test. Root and
     versioned executable hashes match. Builds stay local. Source and
     log prepared for GitHub main.
+
+2026-11-28 — Desktop v0.4.5 beta GitHub release
+    Made the CircuitBench source repository public. Published the verified
+    Windows executable as a prerelease tagged v0.4.5-beta at a5e15c5.
+    Anonymous checks confirmed access to the executable and corresponding
+    GPL source archive. GitHub's asset digest matched the local build.
+    Release: https://github.com/tonmoypaul2003/CircuitBench/releases/tag/v0.4.5-beta
+    GitHub rejected deletion of the old CircuitBench-Releases repository
+    with HTTP 403 because the available credentials lacked permission.
+    Delivery: published in the public CircuitBench repository.
