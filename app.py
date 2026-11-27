@@ -27,7 +27,7 @@ from spice_library import MODEL_PORTS, read_library
 from subcircuit_designer import SubcircuitDesigner
 
 
-VERSION = "0.4.6-beta"
+VERSION = "0.4.7-beta"
 
 RUNTIME = Path(__file__).resolve().parent / "runtime"
 BUNDLED_SOLVER = RUNTIME / "ngspice" / "bin" / "ngspice_con.exe"
@@ -1134,15 +1134,28 @@ class Editor(QMainWindow):
             button.clicked.connect(choose_color)
             form.addRow(caption,button)
         flags = {}
-        for key,caption in (("name","Show reference"),("value","Show value")) if part else (
-                ("name","Show marker ID"),("value","Show measurement and unit"),("fill","Filled point")) if marker else ():
+        if part:
+            options = (("value","Show net name"),) if part.kind=="N" else (
+                () if part.kind=="G" else (("name","Show reference"),("value","Show value")))
+        elif marker:
+            options = (("name","Show marker ID"),("value","Show measurement and unit"),("fill","Filled point"))
+        else:
+            options = ()
+        for key,caption in options:
             check = QCheckBox(caption)
             check.setChecked(style.get(key,True))
             form.addRow(check)
             flags[key] = check
-        reset = QPushButton("Reset label position")
-        reset.clicked.connect(lambda:style.pop("offset",None))
-        if note is None:
+        if part and options:
+            help_text = QLabel("Drag each visible label independently in Select mode.")
+            help_text.setWordWrap(True)
+            form.addRow(help_text)
+        if note is None and options:
+            reset = QPushButton("Reset label positions" if part else "Reset label position")
+            def reset_positions():
+                for key in ("offset","name_offset","value_offset"):
+                    style.pop(key,None)
+            reset.clicked.connect(reset_positions)
             form.addRow(reset)
         buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok|QDialogButtonBox.StandardButton.Cancel)
         buttons.accepted.connect(dialog.accept)

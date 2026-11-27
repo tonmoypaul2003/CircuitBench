@@ -221,16 +221,20 @@ class GuiTests(unittest.TestCase):
         self.window.refresh()
         canvas = self.window.canvas
         before = netlist(self.window.project)
-        for kind,index in (("part",1),("marker",0)):
+        self.window.project.parts[1].label_style["offset"] = [0.25,0]
+        for target in (("part",1,"name"),("part",1,"value"),("marker",0)):
             canvas.grab()
-            hit = next(r for key,r in canvas.label_hits if key==(kind,index))
+            hit = next(r for key,r in canvas.label_hits if key==target)
             start = hit.center().toPoint()
             end = start+QPoint(30,18)
             QTest.mousePress(canvas, Qt.MouseButton.LeftButton, pos=start)
             QTest.mouseMove(canvas,end)
             QTest.mouseRelease(canvas,Qt.MouseButton.LeftButton,pos=end)
         restored = Project.load(self.window.project.dump())
-        self.assertGreater(restored.parts[1].label_style["offset"][0],0)
+        style = restored.parts[1].label_style
+        self.assertEqual(style["offset"],[0.25,0])
+        self.assertGreater(style["name_offset"][0],0.25)
+        self.assertGreater(style["value_offset"][0],0.25)
         self.assertGreater(restored.markers[0]["label_style"]["offset"][0],0)
         self.assertEqual(netlist(restored),before)
 

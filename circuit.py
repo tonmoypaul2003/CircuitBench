@@ -117,10 +117,11 @@ def symbol_geometry(sides):
 def valid_label_style(style):
     if not isinstance(style,dict):
         return False
-    offset = style.get("offset",[0,0])
+    offsets = [style[k] for k in ("offset","name_offset","value_offset") if k in style]
     return (type(style.get("size",12)) is int and 6<=style.get("size",12)<=48
-            and isinstance(offset,list) and len(offset)==2
-            and all(type(v) in (int,float) and math.isfinite(v) for v in offset)
+            and all(isinstance(offset,list) and len(offset)==2
+                    and all(type(v) in (int,float) and math.isfinite(v) for v in offset)
+                    for offset in offsets)
             and all(k not in style or isinstance(style[k],str) and re.fullmatch(r"#[0-9a-fA-F]{6}",style[k])
                     for k in ("color","point_color","symbol_color"))
             and all(k not in style or type(style[k]) is bool for k in ("name","value","fill")))

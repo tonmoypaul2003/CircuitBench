@@ -147,14 +147,13 @@ class Canvas(QWidget):
             if getattr(self.editor, "power_visible", False) and self.editor.active_readings and index in powers:
                 painter.drawText(QPointF(8, 38), engineering(powers[index], "W"))
             if part.kind != "G":
-                labels = []
                 style = part.label_style
-                if style.get("name",True) and part.kind!="N":
-                    labels.append(part.ref)
-                if style.get("value",True):
-                    labels.append(part.value)
-                self.draw_label(painter,("part",index),(part.x,part.y),labels,style,
-                                default_x=-max(self.cell*.9+5,(part.x-min(x for x,_ in part.pins()))*self.cell+5))
+                left = -max(self.cell*.9+5,(part.x-min(x for x,_ in part.pins()))*self.cell+5)
+                fields = [("value",part.value)] if part.kind=="N" else [("name",part.ref),("value",part.value)]
+                for line,(field,text) in enumerate(fields):
+                    if style.get(field,True):
+                        self.draw_label(painter,("part",index,field),(part.x,part.y),text,style,
+                                        default_x=left,line=line,offset_key=f"{field}_offset")
             painter.restore()
         if highlighted:
             painter.setPen(QPen(highlight_ink, .09))
@@ -309,12 +308,12 @@ class Canvas(QWidget):
             name,separator,value = text.partition(" · ")
             visible = [name if style.get("name",True) else "",value if style.get("value",True) else ""]
             painter.setPen(color)
-            self.draw_label(painter,("marker",index),point,[" · ".join(filter(None,visible))] if any(visible) else [],style)
+            self.draw_label(painter,("marker",index),point," · ".join(filter(None,visible)),style)
             painter.restore()
         painter.setBrush(Qt.BrushStyle.NoBrush)
 
-    def draw_label(self,painter,key,anchor,lines,style,default_x=-9):
-        if not lines:
+    def draw_label(self,painter,key,anchor,text,style,default_x=-9,line=0,offset_key="offset"):
+        if not text:
             return
         painter.save()
         font = painter.font()
@@ -323,15 +322,14 @@ class Canvas(QWidget):
         if style.get("color"):
             painter.setPen(QColor(style["color"]))
         metrics = painter.fontMetrics()
-        width = max(metrics.horizontalAdvance(line) for line in lines)
-        baseline = QPointF(default_x-width,-7)
-        baseline += QPointF(*style.get("offset",(0,0)))*self.cell
+        width = metrics.horizontalAdvance(text)
+        baseline = QPointF(default_x-width,-7+line*metrics.height())
+        baseline += QPointF(*style.get(offset_key,style.get("offset",(0,0))))*self.cell
         if getattr(self,"label_drag",None) and self.label_drag[0]==key:
             baseline += self.label_drag[2]
-        for i,line in enumerate(lines):
-            painter.drawText(baseline+QPointF(0,i*metrics.height()),line)
+        painter.drawText(baseline,text)
         top = self.origin()+QPointF(*anchor)*self.cell+baseline-QPointF(2,metrics.ascent())
-        self.label_hits.append((key,QRectF(top.x(),top.y(),width+4,len(lines)*metrics.height())))
+        self.label_hits.append((key,QRectF(top.x(),top.y(),width+4,metrics.height())))
         painter.restore()
 
     def marker_hit(self, position):
@@ -575,7 +573,7 @@ class Canvas(QWidget):
         if editor.mode=="Select":
             for key, hit in reversed(getattr(self,"label_hits",[])):
                 if key[1]>=0 and hit.contains(pos):
-                    kind,index = key
+                    kind,index = key[:2]
                     if kind=="part":
                         editor.set_selection({index},set(),set())
                     else:
@@ -682,15 +680,17 @@ class Canvas(QWidget):
 
     def mouseReleaseEvent(self, event):
         if getattr(self,"label_drag",None) and event.button()==Qt.MouseButton.LeftButton:
-            (kind,index),origin,_ = self.label_drag
+            key,origin,_ = self.label_drag
+            kind,index = key[:2]
             self.label_drag = None
             delta = (event.position()-origin)/self.cell
             if (event.position()-origin).manhattanLength() >= QApplication.startDragDistance():
                 self.editor.checkpoint()
                 project = self.editor.project
                 style = project.parts[index].label_style if kind=="part" else project.markers[index].setdefault("label_style",{})
-                x,y = style.get("offset",(0,0))
-                style["offset"] = [x+delta.x(),y+delta.y()]
+                offset_key = f"{key[2]}_offset" if kind=="part" else "offset"
+                x,y = style.get(offset_key,style.get("offset",(0,0)))
+                style[offset_key] = [x+delta.x(),y+delta.y()]
                 self.editor.refresh()
             self.update()
             return

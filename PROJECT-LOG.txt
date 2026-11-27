@@ -532,3 +532,15 @@ entries for substantive historical mistakes.
     GitHub Latest points to v0.4.6-beta. GitHub requires its prerelease
     flag to be cleared. The version name and tag retain beta.
     Delivery: published at https://github.com/tonmoypaul2003/CircuitBench/releases
+
+2026-11-28 — Desktop v0.4.7 beta input states and independent labels
+    Added stronger disabled field shading and blue dropdown focus, open
+    and selection states in the shared light and dark Qt stylesheet.
+    Part reference and value now have independent hit targets, offsets
+    and visibility checkboxes. Net labels use their own visibility box.
+    Existing shared offsets remain the starting point when opening CWB
+    files. New offsets are appearance-only and preserve circuit topology.
+    All 50 tests passed, including a save and reload drag regression.
+    Verified Axes Fit controls and visual states in Qt, packaged smoke
+    and matching root and versioned hashes. Delivery: local build and
+    source prepared for GitHub main.
