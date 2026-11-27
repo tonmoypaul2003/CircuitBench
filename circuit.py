@@ -117,7 +117,13 @@ def symbol_geometry(sides):
 def valid_label_style(style):
     if not isinstance(style,dict):
         return False
+    parameters = style.get("hidden_parameters",[])
+    parameter_offsets = style.get("parameter_offsets",{})
+    if (not isinstance(parameters,list) or not all(isinstance(key,str) for key in parameters)
+            or not isinstance(parameter_offsets,dict)):
+        return False
     offsets = [style[k] for k in ("offset","name_offset","value_offset") if k in style]
+    offsets.extend(parameter_offsets.values())
     return (type(style.get("size",12)) is int and 6<=style.get("size",12)<=48
             and all(isinstance(offset,list) and len(offset)==2
                     and all(type(v) in (int,float) and math.isfinite(v) for v in offset)
@@ -547,6 +553,56 @@ def source_value(value):
     if index != len(tokens):
         raise ValueError("Use DC, AC, SIN, PULSE, EXP, or PWL source parameters")
     return " ".join(clauses)
+
+
+
+def part_parameters(project, part):
+    """Return stable display keys, labels and values for stored part inputs."""
+    if part.kind in "VI":
+        try:
+            tokens = source_tokens(source_value(part.value))
+        except ValueError:
+            return []
+        unit = "V" if part.kind=="V" else "A"
+        fields = []
+        if tokens and tokens[0].upper()=="DC":
+            fields.append(("dc",f"DC bias ({unit})",tokens[1]))
+            tokens = tokens[2:]
+        if tokens and tokens[0].upper()=="AC":
+            fields.append(("ac",f"AC magnitude ({unit})",tokens[1]))
+            tokens = tokens[2:]
+            phase = tokens.pop(0) if tokens and tokens[0].upper() not in WAVE_FIELDS else "0"
+            fields.append(("ac_phase","AC phase (°)",phase))
+        if tokens:
+            mode,*values = tokens
+            mode = mode.upper()
+            fields.append(("waveform","Waveform",mode))
+            if mode=="PWL":
+                values = [" ".join(values)]
+            fields.extend((f"{mode}:{i}",name,value) for i,(name,value) in enumerate(zip(WAVE_FIELDS[mode],values)))
+        return fields
+    if part.kind in "RCL":
+        name = {"R":"Resistance (Ω)","C":"Capacitance (F)","L":"Inductance (H)"}[part.kind]
+        return [("value",name,part.value)]
+    if part.kind=="N":
+        return [("value","Net name",part.value)]
+    if part.kind=="G":
+        return []
+    model = part.value.upper()
+    fields = [("model","Subcircuit" if part.kind=="X" else "Model",part.value)]
+    if part.kind=="X":
+        parameters = project.subcircuits.get(model,{}).get("parameters",{})
+    elif model in project.device_models:
+        device = project.device_models[model]
+        parameters = device["parameters"]
+        fields.extend((f"flag:{flag}",flag,"Enabled") for flag in device["flags"])
+    elif model in project.qucs_models:
+        parameters = project.qucs_models[model]
+    elif model in project.diode_models:
+        parameters = dict(zip(("IS","N"),project.diode_models[model]))
+    else:
+        parameters = {}
+    return fields+[(f"model:{key}",key,str(value)) for key,value in parameters.items()]
 
 
 def diode_model(name, current, emission):

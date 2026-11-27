@@ -11,14 +11,14 @@ from PyQt6.QtGui import QAction, QActionGroup, QColor, QDesktopServices, QIcon
 from PyQt6.QtWidgets import (
     QApplication, QCheckBox, QColorDialog, QComboBox, QDialog, QDialogButtonBox, QDockWidget, QFileDialog,
     QFormLayout, QInputDialog, QLabel, QLineEdit, QListWidget, QListWidgetItem, QMainWindow, QAbstractItemView,
-    QMessageBox, QPlainTextEdit, QPushButton, QSpinBox, QTabWidget, QToolBar,
+    QMessageBox, QPlainTextEdit, QPushButton, QScrollArea, QSpinBox, QTabWidget, QToolBar,
     QHBoxLayout, QVBoxLayout, QWidget,
 )
 
 from desktop_theme import apply_desktop_theme
 from canvas import Canvas, engineering
 from circuit import (GENERIC_MODELS, Profile, Project, SOURCE_DEFAULTS, SYMBOLS, WAVE_FIELDS, connectivity,
-                     diode_model, example, marker_node, netlist, number, on_wire, source_tokens,
+                     diode_model, example, marker_node, netlist, number, on_wire, part_parameters, source_tokens,
                      source_value, translate_selection, reusable_subcircuit)
 from plotting import PlotReportPage, Waveform
 from qucs_library import import_diodes
@@ -887,12 +887,12 @@ class Editor(QMainWindow):
             self.select(None)
             self.refresh()
 
-    def apply_part(self):
+    def apply_part(self, *, hidden_parameters=None):
         if self.selected:
             ref, value = self.ref.text().strip(), self.value.text().strip()
             if not ref or any(p is not self.selected and p.ref.upper() == ref.upper() for p in self.project.parts):
                 self.error("Component references must be nonempty and unique")
-                return
+                return False
             try:
                 if self.selected.kind in "VI":
                     source_value(value)
@@ -900,13 +900,18 @@ class Editor(QMainWindow):
                     raise ValueError("Component value must be positive")
             except ValueError as error:
                 self.error(str(error))
-                return
+                return False
             self.checkpoint()
             for marker in self.project.markers:
                 if marker["kind"] == "I" and marker["ref"].upper() == self.selected.ref.upper():
                     marker["ref"] = ref
             self.selected.ref, self.selected.value = ref, value
+            if hidden_parameters is not None:
+                self.selected.label_style["hidden_parameters"] = sorted(hidden_parameters)
+                self.selected.label_style["value"] = True
             self.refresh()
+            return True
+        return False
 
     def edit_source(self):
         part = self.selected
@@ -933,15 +938,40 @@ class Editor(QMainWindow):
                 ac.setText(tokens[index+1])
             if index+2 < len(clauses):
                 phase.setText(tokens[index+2])
-        units = "V" if part.kind == "V" else "A"
-        form.addRow(f"DC bias ({units})", dc)
-        form.addRow(f"AC magnitude ({units})", ac)
-        form.addRow("AC phase (°)", phase)
+        hidden = set(part.label_style.get("hidden_parameters",[]))
+        original_hidden = hidden.copy()
+
+        def add_parameter_row(layout, caption, field, key):
+            row = QWidget()
+            controls = QHBoxLayout(row)
+            controls.setContentsMargins(0,0,0,0)
+            controls.addWidget(field,1)
+            visible = QCheckBox()
+            visible.setAccessibleName(f"Show {caption} on canvas")
+            visible.setToolTip(f"Show {caption} on canvas")
+            visible.setChecked(key not in hidden)
+            def update_visibility(checked):
+                if checked:
+                    hidden.discard(key)
+                else:
+                    hidden.add(key)
+            visible.toggled.connect(update_visibility)
+            controls.addWidget(visible)
+            layout.addRow(caption,row)
+
+        units = "V" if part.kind=="V" else "A"
+        instructions = QLabel("Checkboxes control canvas labels. Changing a checkbox shows the source parameters as separate labels.")
+        instructions.setWordWrap(True)
+        form.addRow(instructions)
+        dialog.resize(410,dialog.height())
+        add_parameter_row(form,f"DC bias ({units})",dc,"dc")
+        add_parameter_row(form,f"AC magnitude ({units})",ac,"ac")
+        add_parameter_row(form,"AC phase (°)",phase,"ac_phase")
         ac.setPlaceholderText("Blank disables small-signal excitation")
         modes = QComboBox()
         modes.addItems(["None", *WAVE_FIELDS])
         modes.setCurrentText(existing_mode)
-        form.addRow("Transient waveform", modes)
+        add_parameter_row(form,"Transient waveform",modes,"waveform")
         group = QWidget()
         fields = QFormLayout(group)
         form.addRow(group)
@@ -966,7 +996,7 @@ class Editor(QMainWindow):
             for index, name in enumerate(WAVE_FIELDS[mode]):
                 widget = QLineEdit(values[index] if index < len(values) else "")
                 inputs.append(widget)
-                fields.addRow(name, widget)
+                add_parameter_row(fields,name,widget,f"{mode}:{index}")
 
         populate(existing_mode)
         modes.currentTextChanged.connect(populate)
@@ -989,7 +1019,9 @@ class Editor(QMainWindow):
             try:
                 source_value(value)
                 self.value.setText(value)
-                self.apply_part()
+                visibility = hidden if hidden!=original_hidden else None
+                if not self.apply_part(hidden_parameters=visibility):
+                    return
             except ValueError as error:
                 message.setText(str(error))
                 return
@@ -1146,14 +1178,41 @@ class Editor(QMainWindow):
             check.setChecked(style.get(key,True))
             form.addRow(check)
             flags[key] = check
-        if part and options:
+        parameter_checks = {}
+        detail = None
+        if part and part.kind not in "GN":
+            detail = QCheckBox("Show individual parameters")
+            detail.setChecked("hidden_parameters" in style)
+            form.addRow(detail)
+            panel = QWidget()
+            parameter_layout = QVBoxLayout(panel)
+            parameter_layout.setContentsMargins(5,5,5,5)
+            hidden = set(style.get("hidden_parameters",[]))
+            for key,name,value in part_parameters(self.project,part):
+                check = QCheckBox(f"{name} = {value}")
+                check.setChecked(key not in hidden)
+                parameter_layout.addWidget(check)
+                parameter_checks[key] = check
+            scroll = QScrollArea()
+            scroll.setWidgetResizable(True)
+            scroll.setWidget(panel)
+            scroll.setFixedHeight(min(220,30+26*len(parameter_checks)))
+            form.addRow("Parameters on canvas",scroll)
+            master = flags["value"]
+            master.setText("Show parameters")
+            def update_controls():
+                detail.setEnabled(master.isChecked())
+                scroll.setEnabled(master.isChecked() and detail.isChecked())
+            master.toggled.connect(update_controls)
+            detail.toggled.connect(update_controls)
+            update_controls()
             help_text = QLabel("Drag each visible label independently in Select mode.")
             help_text.setWordWrap(True)
             form.addRow(help_text)
         if note is None and options:
             reset = QPushButton("Reset label positions" if part else "Reset label position")
             def reset_positions():
-                for key in ("offset","name_offset","value_offset"):
+                for key in ("offset","name_offset","value_offset","parameter_offsets"):
                     style.pop(key,None)
             reset.clicked.connect(reset_positions)
             form.addRow(reset)
@@ -1165,6 +1224,13 @@ class Editor(QMainWindow):
             self.checkpoint()
             style.update(size=size.value(),**{k:v.isChecked() for k,v in flags.items()})
             if part:
+                if detail is not None:
+                    if detail.isChecked():
+                        hidden = set(style.get("hidden_parameters",[]))-parameter_checks.keys()
+                        hidden.update(key for key,check in parameter_checks.items() if not check.isChecked())
+                        style["hidden_parameters"] = sorted(hidden)
+                    else:
+                        style.pop("hidden_parameters",None)
                 part.label_style = style
             elif marker:
                 marker["label_style"] = style

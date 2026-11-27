@@ -214,6 +214,64 @@ class GuiTests(unittest.TestCase):
         sub.delete_pins({0})
         self.assertFalse(sub.wave.pins)
 
+    def test_source_visibility_is_saved_without_changing_netlist(self):
+        from unittest.mock import patch
+        from PyQt6.QtWidgets import QDialog, QDialogButtonBox
+        from circuit import Project, netlist
+
+        editor = self.window
+        editor.project = example()
+        source = editor.project.parts[0]
+        source.value = "DC 10 AC 2 15 SIN 1 2 1k 0 0 30"
+        editor.refresh()
+        editor.select(source)
+        before = netlist(editor.project)
+
+        def edit_dialog(dialog):
+            controls = {check.accessibleName():check for check in dialog.findChildren(QCheckBox)}
+            controls["Show AC phase (°) on canvas"].setChecked(False)
+            controls["Show Damping (1/s) on canvas"].setChecked(False)
+            dialog.findChild(QDialogButtonBox).button(QDialogButtonBox.StandardButton.Ok).click()
+            return 1
+
+        with patch.object(QDialog,"exec",edit_dialog):
+            editor.edit_source()
+
+        restored = Project.load(editor.project.dump())
+        self.assertEqual(restored.parts[0].label_style["hidden_parameters"],["SIN:4","ac_phase"])
+        self.assertEqual(netlist(restored),before)
+        editor.canvas.grab()
+        keys = {key for key,_ in editor.canvas.label_hits}
+        self.assertIn(("part",0,"param:ac"),keys)
+        self.assertIn(("part",0,"param:SIN:2"),keys)
+        self.assertNotIn(("part",0,"param:ac_phase"),keys)
+        self.assertNotIn(("part",0,"param:SIN:4"),keys)
+
+    def test_model_parameter_visibility_is_per_part(self):
+        from unittest.mock import patch
+        from PyQt6.QtWidgets import QDialog
+        from circuit import Project
+
+        editor = self.window
+        editor.project.add("D",(1,1))
+        editor.project.add("D",(5,1))
+        diode,other = editor.project.parts
+        editor.refresh()
+        editor.select(diode)
+
+        def edit_dialog(dialog):
+            controls = {item.text():item for item in dialog.findChildren(QCheckBox)}
+            controls["Show individual parameters"].setChecked(True)
+            controls[next(label for label in controls if label.startswith("IS ="))].setChecked(False)
+            return 1
+
+        with patch.object(QDialog,"exec",edit_dialog):
+            editor.edit_label_appearance()
+
+        restored = Project.load(editor.project.dump())
+        self.assertEqual(restored.parts[0].label_style["hidden_parameters"],["model:IS"])
+        self.assertNotIn("hidden_parameters",other.label_style)
+
     def test_schematic_label_drag_preserves_connections(self):
         from circuit import Project, netlist
         self.window.project = example()

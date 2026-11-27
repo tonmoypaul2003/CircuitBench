@@ -544,3 +544,14 @@ entries for substantive historical mistakes.
     Verified Axes Fit controls and visual states in Qt, packaged smoke
     and matching root and versioned hashes. Delivery: local build and
     source prepared for GitHub main.
+
+2026-11-28 — Desktop v0.4.7 beta parameter visibility
+    Added checkboxes alongside source inputs for canvas display only.
+    Label appearance now offers individual visibility and dragging for
+    source, passive, stored model and subcircuit parameters. The compact
+    label remains the default for existing schematics. New per-part
+    visibility and offsets are optional CWB appearance data.
+    All 52 tests passed. Verified saved visibility, part isolation and
+    identical netlists after display changes. Captured the Qt source
+    dialog and passed packaged smoke. Root and versioned hashes match.
+    Delivery: local builds and source prepared for GitHub main.

@@ -5,7 +5,7 @@ from PyQt6.QtCore import QPointF, QRectF, Qt
 from PyQt6.QtGui import QColor, QPainter, QPen
 from PyQt6.QtWidgets import QApplication, QWidget
 
-from circuit import MODELED_SYMBOLS, Part, SYMBOLS, connectivity, on_wire, symbol_geometry
+from circuit import MODELED_SYMBOLS, Part, SYMBOLS, connectivity, on_wire, part_parameters, symbol_geometry
 from desktop_theme import desktop_colors
 from device_symbols import draw_device
 from spice_library import MODEL_PORTS
@@ -149,11 +149,19 @@ class Canvas(QWidget):
             if part.kind != "G":
                 style = part.label_style
                 left = -max(self.cell*.9+5,(part.x-min(x for x,_ in part.pins()))*self.cell+5)
-                fields = [("value",part.value)] if part.kind=="N" else [("name",part.ref),("value",part.value)]
+                fields = []
+                if part.kind!="N" and style.get("name",True):
+                    fields.append(("name",part.ref))
+                if style.get("value",True):
+                    if "hidden_parameters" in style:
+                        hidden = set(style["hidden_parameters"])
+                        fields.extend((f"param:{key}", f"{name} = {value}")
+                                      for key,name,value in part_parameters(project,part) if key not in hidden)
+                    else:
+                        fields.append(("value",part.value))
                 for line,(field,text) in enumerate(fields):
-                    if style.get(field,True):
-                        self.draw_label(painter,("part",index,field),(part.x,part.y),text,style,
-                                        default_x=left,line=line,offset_key=f"{field}_offset")
+                    self.draw_label(painter,("part",index,field),(part.x,part.y),text,style,
+                                    default_x=left,line=line)
             painter.restore()
         if highlighted:
             painter.setPen(QPen(highlight_ink, .09))
@@ -312,7 +320,7 @@ class Canvas(QWidget):
             painter.restore()
         painter.setBrush(Qt.BrushStyle.NoBrush)
 
-    def draw_label(self,painter,key,anchor,text,style,default_x=-9,line=0,offset_key="offset"):
+    def draw_label(self,painter,key,anchor,text,style,default_x=-9,line=0):
         if not text:
             return
         painter.save()
@@ -324,13 +332,21 @@ class Canvas(QWidget):
         metrics = painter.fontMetrics()
         width = metrics.horizontalAdvance(text)
         baseline = QPointF(default_x-width,-7+line*metrics.height())
-        baseline += QPointF(*style.get(offset_key,style.get("offset",(0,0))))*self.cell
+        baseline += QPointF(*self.label_offset(style,key))*self.cell
         if getattr(self,"label_drag",None) and self.label_drag[0]==key:
             baseline += self.label_drag[2]
         painter.drawText(baseline,text)
         top = self.origin()+QPointF(*anchor)*self.cell+baseline-QPointF(2,metrics.ascent())
         self.label_hits.append((key,QRectF(top.x(),top.y(),width+4,metrics.height())))
         painter.restore()
+
+    @staticmethod
+    def label_offset(style,key):
+        field = key[2] if len(key)>2 else ""
+        legacy = style.get("offset",(0,0))
+        if field.startswith("param:"):
+            return style.get("parameter_offsets",{}).get(field,style.get("value_offset",legacy))
+        return style.get(f"{field}_offset",legacy) if field else legacy
 
     def marker_hit(self, position):
         if self.editor.markers_visible:
@@ -688,9 +704,12 @@ class Canvas(QWidget):
                 self.editor.checkpoint()
                 project = self.editor.project
                 style = project.parts[index].label_style if kind=="part" else project.markers[index].setdefault("label_style",{})
-                offset_key = f"{key[2]}_offset" if kind=="part" else "offset"
-                x,y = style.get(offset_key,style.get("offset",(0,0)))
-                style[offset_key] = [x+delta.x(),y+delta.y()]
+                x,y = self.label_offset(style,key)
+                offset = [x+delta.x(),y+delta.y()]
+                if kind=="part" and key[2].startswith("param:"):
+                    style.setdefault("parameter_offsets",{})[key[2]] = offset
+                else:
+                    style[f"{key[2]}_offset" if kind=="part" else "offset"] = offset
                 self.editor.refresh()
             self.update()
             return

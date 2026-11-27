@@ -7,7 +7,7 @@
   "png_export": true,
   "pdf_export": true,
   "status": "passed",
-  "source_tests_passed": 50,
+  "source_tests_passed": 52,
   "executable_path": "build/0.4.7-beta/CircuitBench.exe",
-  "executable_sha256": "61040e1e74d38ac5efe57d65475f763de2e56907cbc44b6514ce673801c8783f"
+  "executable_sha256": "607da0aa54dc53e37f016f767a0db5320a219b8211a97ca632cb5d57b279ab79"
 }
