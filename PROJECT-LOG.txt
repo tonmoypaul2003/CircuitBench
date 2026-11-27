@@ -492,3 +492,10 @@ entries for substantive historical mistakes.
     All 48 tests passed. Verified menu styling, palette customization,
     packaged Windows smoke and matching root and versioned executables.
     Delivery: local builds, source prepared for GitHub release.
+
+2026-11-28 — Desktop v0.4.6 beta published
+    Pushed source commit 13f2ae1 and published the matching Windows
+    executable and optional CircuitBench.qss as a GitHub prerelease.
+    Verified the public tag, both asset digests and anonymous access.
+    Release: https://github.com/tonmoypaul2003/CircuitBench/releases/tag/v0.4.6-beta
+    Delivery: published.
