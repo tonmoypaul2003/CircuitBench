@@ -499,3 +499,16 @@ entries for substantive historical mistakes.
     Verified the public tag, both asset digests and anonymous access.
     Release: https://github.com/tonmoypaul2003/CircuitBench/releases/tag/v0.4.6-beta
     Delivery: published.
+
+2026-11-28 — Desktop v0.4.6 beta QA maintenance
+    Reviewed waveform measurement coverage with qa-metrics and
+    ai-qa-review. The old suite missed two user-facing failures. A pin
+    cap could prioritize the interval boundary over the selected
+    extremum. Clipping could bridge an off-screen peak and report zero
+    mean and RMS. Clip plotted segments independently, preserve the
+    fractional point locations and prioritize selected measurement pins.
+    No CWB format changes. Two targeted regression tests failed on the
+    original code and passed after the fixes. Three full runs passed
+    50/50 with zero skips and zero inconsistent results in this sample.
+    Three packaged Windows smoke runs passed. Matching root and versioned
+    executables verified. Delivery: local build and source ready to push.

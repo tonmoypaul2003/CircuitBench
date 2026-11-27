@@ -297,12 +297,33 @@ def fft(values):
     return [a+b for a,b in zip(even,terms)]+[a-b for a,b in zip(even,terms)]
 
 
+def visible_segments(xs, ys, x_limits, y_limits, logarithmic):
+    """Clip each plotted segment independently and retain its fractional sample index."""
+    for index, (x1, x2, y1, y2) in enumerate(zip(xs, xs[1:], ys, ys[1:])):
+        if not all(math.isfinite(v) for v in (x1, x2, y1, y2)) or x1 == x2:
+            continue
+        start, end = 0., 1.
+        for before, after, (low, high) in ((x1, x2, x_limits), (y1, y2, y_limits)):
+            if before == after:
+                if not low <= before <= high:
+                    break
+                continue
+            t0, t1 = sorted(((low-before)/(after-before), (high-before)/(after-before)))
+            start, end = max(start, t0), min(end, t1)
+        else:
+            if start < end:
+                points = []
+                for fraction in (start, end):
+                    x = x1+(x2-x1)*fraction
+                    y = max(y_limits[0], min(y_limits[1], y1+(y2-y1)*fraction))
+                    points.append((10**x if logarithmic else x, y, index+fraction))
+                yield tuple(sorted(points))
+
+
 def measurements(editor,spectrum=False):
     page = current_page(editor)
     p = page.plot
     sub = page.subplots[page.active.currentIndex()]
-    trace_indices = {}
-    sample_indices = []
     if spectrum:
         trace_indices = {name:i for i,name in enumerate(p.names) if i}
     else:
@@ -316,33 +337,27 @@ def measurements(editor,spectrum=False):
         return
     c = trace_indices[name]
     axis = p.names[0 if spectrum else sub.wave.x_column].lower()
+    logarithmic = not spectrum and sub.wave.logarithmic()
     if spectrum:
-        if p.units[c]=="expression" and any(row[c].imag for row in p.rows):
+        if axis!="time" or p.units[c]=="expression" and any(row[c].imag for row in p.rows):
             raise ValueError("Select a real transient waveform for harmonic analysis.")
         candidates = [(row[0].real,row[c].real) for row in p.rows if math.isfinite(abs(row[c]))]
+        if len(candidates)<8:
+            raise ValueError("Select at least eight transient samples.")
+        start,end = candidates[0][0],candidates[-1][0]
     else:
         values = display_y[columns.index(c)]
-        visible = sorted((p.rows[i][sub.wave.x_column].real,y,i)
-                         for i,(x,y) in enumerate(zip(display_x,values))
-                         if xmin<=x<=xmax and ymin<=y<=ymax)
-        candidates = [(x,y) for x,y,_ in visible]
-    if not candidates:
-        raise ValueError("No samples are visible in the selected trace.")
-    bounds = prompt(editor,"Measurement interval","Start, end ("+axis+")",
-                    f"{candidates[0][0]!r}, {candidates[-1][0]!r}")
+        start,end = (10**xmin,10**xmax) if logarithmic else (xmin,xmax)
+    bounds = prompt(editor,"Measurement interval","Start, end ("+axis+")",f"{start!r}, {end!r}")
     if bounds is None:
         return
     lo,hi = sorted(number(v.strip()) for v in bounds.split(","))
-    pairs = sorted((x,y) for x,y in candidates if lo<=x<=hi)
-    if not spectrum:
-        sample_indices = [i for x,y,i in visible if lo<=x<=hi]
-    if len(pairs)<2 or pairs[0][0]==pairs[-1][0]:
-        raise ValueError("Select a range with at least two distinct samples.")
-    xs,ys = map(list,zip(*pairs))
-    span = xs[-1]-xs[0]
     if spectrum:
-        if axis!="time" or len(xs)<8:
-            raise ValueError("Select at least eight transient samples.")
+        pairs = sorted((x,y) for x,y in candidates if lo<=x<=hi)
+        if len(pairs)<8 or pairs[0][0]==pairs[-1][0]:
+            raise ValueError("Select at least eight transient samples with distinct times.")
+        xs,ys = map(list,zip(*pairs))
+        span = xs[-1]-xs[0]
         n = 2**min(15,int(math.log2(len(xs))))
         uniform = [sample(xs,ys,xs[0]+i*span/n) for i in range(n)]
         mean = sum(uniform)/n
@@ -359,32 +374,50 @@ def measurements(editor,spectrum=False):
             result.message.setText(result.message.text()+f"; estimated harmonic distortion through harmonic {harmonics.stop-1}: {100*math.sqrt(harmonic/fundamental):.4g}% (bin-centered fundamental assumed)")
         editor.open_plots()
         return
-    rms = math.sqrt(sum((b-a)*(u*u+u*v+v*v)/3 for a,b,u,v in zip(xs,xs[1:],ys,ys[1:]))/span)
-    mean = sum((b-a)*(u+v)/2 for a,b,u,v in zip(xs,xs[1:],ys,ys[1:]))/span
-    metrics = {"Minimum":min(ys),"Maximum":max(ys),"Mean":mean,"RMS":rms,
-               "Peak-to-peak":max(ys)-min(ys),"Absolute peak":max(map(abs,ys)),
+    lo,hi = max(lo,start),min(hi,end)
+    if lo>=hi:
+        raise ValueError("Choose a measurement interval overlapping the visible X axis.")
+    x_limits = (math.log10(lo),math.log10(hi)) if logarithmic else (lo,hi)
+    segments = list(visible_segments(display_x,values,x_limits,(ymin,ymax),logarithmic))
+    if not segments:
+        raise ValueError("No visible line segments in the selected interval.")
+    points = [point for segment in segments for point in segment]
+    minimum = min(points,key=lambda point:point[1])
+    maximum = max(points,key=lambda point:point[1])
+    start_point = min(points)
+    end_point = max(points)
+    span = sum(b[0]-a[0] for a,b in segments)
+    integral = sum((b-a)*(u+v)/2 for (a,u,_),(b,v,_) in segments)
+    mean = integral/span
+    rms = math.sqrt(sum((b-a)*(u*u+u*v+v*v)/3 for (a,u,_),(b,v,_) in segments)/span)
+    metrics = {"Minimum":minimum[1],"Maximum":maximum[1],"Mean":mean,"RMS":rms,
+               "Peak-to-peak":maximum[1]-minimum[1],"Absolute peak":max(abs(minimum[1]),abs(maximum[1])),
                "Standard deviation":math.sqrt(max(0,rms*rms-mean*mean)),
-               "Integral":mean*span,"Sample count":len(xs)}
-    def crossing(level,start,rising):
-        for k in range(start,len(xs)-1):
-            a,b = ys[k:k+2]
-            if (a<=level<b if rising else a>=level>b):
-                return xs[k]+(xs[k+1]-xs[k])*(level-a)/(b-a)
+               "Integral":integral,"Sample count":sum(x_limits[0]<=x<=x_limits[1] and ymin<=y<=ymax
+                                                      for x,y in zip(display_x,values))}
+    def crossings(level, rising):
+        for (x,u,i),(other_x,v,j) in segments:
+            if u<=level<v if rising else u>=level>v:
+                ratio = (level-u)/(v-u)
+                location = (10**(math.log10(x)+ratio*(math.log10(other_x)-math.log10(x)))
+                            if logarithmic else x+ratio*(other_x-x))
+                yield location,i+ratio*(j-i)
+    timing = {}
     if axis=="time":
-        low = min(ys)
-        swing = max(ys)-low
-        a = crossing(low+.1*swing,0,True)
-        b = crossing(low+.9*swing,max(0,bisect_right(xs,a)-1),True) if a is not None else None
-        if b is not None:
-            metrics["10-90% rise (s)"] = b-a
-    elif axis=="frequency":
-        cutoff = None
-        if p.units[c]!="expression" and sub.wave.presentation!=1:
-            peak = max(ys)
-            threshold = peak-20*math.log10(math.sqrt(2)) if sub.wave.presentation==2 else peak/math.sqrt(2)
-            cutoff = crossing(threshold,ys.index(peak),False)
+        swing = maximum[1]-minimum[1]
+        low = next(crossings(minimum[1]+.1*swing,True),None)
+        high = next((point for point in crossings(minimum[1]+.9*swing,True)
+                     if low is not None and point[0]>=low[0]),None)
+        if high is not None:
+            timing["10-90% rise (s)"] = [(low[1],"10%"),(high[1],"90%")]
+            metrics["10-90% rise (s)"] = high[0]-low[0]
+    elif axis=="frequency" and p.units[c]!="expression" and sub.wave.presentation!=1:
+        peak = maximum[1]
+        threshold = peak-20*math.log10(math.sqrt(2)) if sub.wave.presentation==2 else peak/math.sqrt(2)
+        cutoff = next((point for point in crossings(threshold,False) if point[0]>=maximum[0]),None)
         if cutoff is not None:
-            metrics["Upper -3 dB crossing (Hz)"] = cutoff
+            timing["Upper -3 dB crossing (Hz)"] = [(cutoff[1],"-3 dB")]
+            metrics["Upper -3 dB crossing (Hz)"] = cutoff[0]
     dialog = QDialog(editor)
     dialog.setWindowTitle("Choose waveform measurements")
     layout = QVBoxLayout(dialog)
@@ -399,31 +432,27 @@ def measurements(editor,spectrum=False):
     layout.addWidget(buttons)
     if not dialog.exec():
         return
-    text = f"{name} [{xs[0]:.6g}, {xs[-1]:.6g}]  " + ", ".join(
+    text = f"{name} [{start_point[0]:.6g}, {end_point[0]:.6g}]  " + ", ".join(
         f"{key}: {value:.7g}" for key,value in metrics.items() if checks[key].isChecked())
     page.message.setText(text)
-    points = [(xs[0],"Start"),(xs[-1],"End")]
-    if checks["Minimum"].isChecked():
-        points.append((xs[ys.index(min(ys))],"Minimum"))
-    if checks["Maximum"].isChecked():
-        points.append((xs[ys.index(max(ys))],"Maximum"))
-    if axis=="time" and "10-90% rise (s)" in checks and checks["10-90% rise (s)"].isChecked():
-        points.extend([(a,"10%"),(b,"90%")])
-    if axis=="frequency" and "Upper -3 dB crossing (Hz)" in checks and checks["Upper -3 dB crossing (Hz)"].isChecked():
-        points.append((cutoff,"-3 dB"))
+    pins = [(point[2], key) for key,point in (("Minimum",minimum),("Maximum",maximum))
+            if checks[key].isChecked()]
+    for key,markers in timing.items():
+        if checks[key].isChecked():
+            pins.extend(markers)
+    pins.extend([(start_point[2],"Start"),(end_point[2],"End")])
     if QMessageBox.question(editor,"Measurement",text+"\nMark contributing samples on the plot?")==QMessageBox.StandardButton.Yes:
-        maximum,ok = QInputDialog.getInt(editor,"Measure waveform","Maximum points to add",len(points),1,10000)
+        limit,ok = QInputDialog.getInt(editor,"Measure waveform","Maximum points to add",len(pins),1,10000)
         if ok:
             existing = {(column,sample) for column,sample,_ in sub.wave.pins}
             added = 0
-            for x,label in points:
-                i = sample_indices[min(range(len(xs)),key=lambda j:abs(xs[j]-x))]
-                if (c,i) not in existing:
-                    existing.add((c,i))
-                    sub.wave.pins.append((c,i,label))
+            for index,label in pins:
+                if (c,index) not in existing:
+                    existing.add((c,index))
+                    sub.wave.pins.append((c,index,label))
                     sub.wave.pin_shapes.append(sub.pin_shape.currentText())
                     added += 1
-                    if added>=maximum:
+                    if added>=limit:
                         break
             sub.wave.update()
     editor.open_plots()

@@ -157,6 +157,46 @@ class GuiTests(unittest.TestCase):
         self.assertEqual(editor.plot_pages.count(),1)
         self.assertFalse(editor.plot_pages.currentWidget().plot.rows)
 
+    def test_measurement_pin_cap_prioritizes_selected_minimum(self):
+        from unittest.mock import patch
+        from PyQt6.QtWidgets import QMessageBox
+        from studies import measurements
+
+        editor = self.window
+        page = editor.add_plot_page(
+            Plot("Transient", ["time", "v(out)"], ["time", "voltage"],
+                 [[0, 0], [1, 2], [2, 1], [3, 4]]), None, [1])
+        editor.open_plots()
+
+        def select_minimum(dialog):
+            for check in dialog.findChildren(QCheckBox):
+                check.setChecked(check.text() == "Minimum")
+            return 1
+
+        with patch("studies.choose", return_value="v(out)"), patch("studies.prompt", return_value="1,3"), \
+                patch("studies.QDialog.exec", select_minimum), \
+                patch("studies.QMessageBox.question", return_value=QMessageBox.StandardButton.Yes), \
+                patch("studies.QInputDialog.getInt", return_value=(1, True)):
+            measurements(editor)
+        self.assertEqual(page.wave.pins, [(1, 2, "Minimum")])
+
+    def test_waveform_measurements_integrate_visible_segments_only(self):
+        from unittest.mock import patch
+        from PyQt6.QtWidgets import QMessageBox
+        from studies import measurements
+
+        editor = self.window
+        page = editor.add_plot_page(
+            Plot("Transient", ["time", "v(out)"], ["time", "voltage"],
+                 [[0, 0], [1, 10], [2, 0]]), None, [1])
+        page.subplots[0].set_axis_limits((0, 2), (0, 2))
+        editor.open_plots()
+        with patch("studies.choose", return_value="v(out)"), patch("studies.prompt", return_value="0,2"), \
+                patch("studies.QDialog.exec", return_value=1), \
+                patch("studies.QMessageBox.question", return_value=QMessageBox.StandardButton.No):
+            measurements(editor)
+        self.assertIn("Maximum: 2, Mean: 1, RMS: 1.1547", page.message.text())
+
     def test_intersections_respect_visible_limits_and_cap(self):
         from unittest.mock import patch
         page = self.window.add_plot_page(
