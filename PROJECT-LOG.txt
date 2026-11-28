@@ -614,3 +614,10 @@ entries for substantive historical mistakes.
     Published the archived 0.4.7 and 0.5.0 beta Windows executables.
     https://github.com/tonmoypaul2003/CircuitBench/releases/tag/v0.4.7-beta
     https://github.com/tonmoypaul2003/CircuitBench/releases/tag/v0.5.0-beta
+
+2026-11-28 — Desktop v0.5.1 beta public release
+    Pushed source commit 8d9ef7a. Published the matching Windows binary
+    and verified its GitHub SHA-256 digest and Latest release designation.
+    The beta name remains on the release. Historical beta assets use
+    GitHub prerelease status. Build artifacts remain ignored in Git.
+    https://github.com/tonmoypaul2003/CircuitBench/releases/tag/v0.5.1-beta
