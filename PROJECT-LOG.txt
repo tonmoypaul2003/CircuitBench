@@ -694,3 +694,13 @@ entries for substantive historical mistakes.
     Passed 75 desktop tests, Web regression and packaged smoke. The
     Windows copies match. Delivery: local v0.5.2 beta build and source
     prepared for GitHub main.
+
+2026-11-28 — Desktop numerical waveform analysis
+    Added derivative, cumulative integral, phase unwrap and group-delay
+    plot functions. Added absolute integral, slope extrema and mean slope,
+    and two-edge geometric center frequency and loaded Q measurements.
+    Trapezoidal integration and uneven-grid differentiation follow
+    Chapra and Canale sections 21.1 and 23.3. No CWB migration.
+    Passed 76 desktop tests, Web engine regression and packaged smoke.
+    Delivery: verified local v0.5.2 beta with matching executable copies,
+    and source prepared for GitHub main.

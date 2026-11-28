@@ -10,7 +10,7 @@ from PyQt6.QtWidgets import (QApplication, QAbstractItemView, QColorDialog, QCom
                              QVBoxLayout, QWidget)
 
 from circuit import number
-from plot_math import FUNCTIONS, evaluate, level_crossings
+from plot_math import FUNCTIONS, SERIES_FUNCTIONS, evaluate, level_crossings
 from results import Plot
 from canvas import engineering
 from desktop_theme import desktop_colors
@@ -1214,7 +1214,7 @@ class PlotReportPage(QWidget):
         insert = QPushButton("Add expression")
         insert.clicked.connect(self.insert_expression)
         functions = QComboBox()
-        functions.addItems(["Function…","RMS","SampleRMS","MAX","MIN","MEAN",*sorted(FUNCTIONS)])
+        functions.addItems(["Function…","RMS","SampleRMS","MAX","MIN","MEAN",*SERIES_FUNCTIONS,*sorted(FUNCTIONS)])
         def insert_function(index):
             if index:
                 self.expression.insert(functions.itemText(index)+"()")

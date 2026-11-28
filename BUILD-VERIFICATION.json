@@ -9,8 +9,8 @@
   "design_variable_volts": 7.5,
   "noise_samples": 201,
   "status": "passed",
-  "source_tests_passed": 75,
+  "source_tests_passed": 76,
   "web_engine_tests_passed": true,
   "executable_path": "build/0.5.2-beta/CircuitBench.exe",
-  "executable_sha256": "74787fe47385aa3852d17c797c396d8a920d990510df1573d52dc6c1638c6760"
+  "executable_sha256": "157773c0c0e66e38e7276e5e49f5574e0b8a40e475a8856f4d2efe87d848dd7d"
 }

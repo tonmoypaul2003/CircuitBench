@@ -403,6 +403,11 @@ def measurements(editor,spectrum=False):
     absolute_area = sum((b-a)*(abs(u)+abs(v))/2 if u*v>=0
                         else (b-a)*(u*u+v*v)/(2*(abs(u)+abs(v)))
                         for (a,u,_),(b,v,_) in segments)
+    slopes = [(v-u)/(b-a) for (a,u,_),(b,v,_) in segments if b>a]
+    metrics.update({"Absolute integral":absolute_area,"Mean slope":sum(v-u for (_,u,_),(_,v,_) in segments)/span})
+    if slopes:
+        metrics["Maximum slope"] = max(slopes)
+        metrics["Minimum slope"] = min(slopes)
     metrics["Mean absolute value"] = absolute_area/span
     if absolute_area:
         metrics["Form factor"] = rms/metrics["Mean absolute value"]
@@ -460,7 +465,12 @@ def measurements(editor,spectrum=False):
             metrics["Lower -3 dB crossing (Hz)"] = lower[0]
         if lower is not None and cutoff is not None:
             timing["-3 dB bandwidth (Hz)"] = [(lower[1],"Lower −3 dB"),(cutoff[1],"Upper −3 dB")]
-            metrics["-3 dB bandwidth (Hz)"] = cutoff[0]-lower[0]
+            bandwidth = cutoff[0]-lower[0]
+            metrics["-3 dB bandwidth (Hz)"] = bandwidth
+            if lower[0]>0 and bandwidth>0:
+                center = math.sqrt(lower[0]*cutoff[0])
+                metrics["Geometric center (Hz)"] = center
+                metrics["Loaded Q (center / bandwidth)"] = center/bandwidth
     dialog = QDialog(editor)
     dialog.setWindowTitle("Choose waveform measurements")
     layout = QVBoxLayout(dialog)

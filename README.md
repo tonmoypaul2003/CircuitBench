@@ -57,6 +57,12 @@ The destination schematic embeds the reusable block and its dependencies. You ca
 
 **Automatic waveform measurements** saves named metrics with the schematic. Select a metric, enter a result vector and optional X bounds, and run an analysis or nested sweep. The run log and each run's `dataset.json` show the calculated values or the reason a reading is unavailable. **DC Transfer Function** in Analysis Setup reports the small-signal gain, input impedance and output impedance for the selected source and node.
 
+### Numerical waveform analysis
+
+The plot function menu includes `derivative(v(out))` for slew rate, `cumintegral(i(V1))` for accumulated charge, `unwrap(phase(v(out)))` for continuous phase in degrees, and `groupdelay(v(out)/v(in))` for group delay in seconds on a frequency sweep. Differentiation and integration use the simulation's original X values, including uneven spacing. Unwrapping assumes adjacent phase samples differ by less than 180° before wrapping. Cumulative integration skips gaps and resumes from the last total. Use the plot's linear X scale to inspect DC-inclusive spectra or the logarithmic scale for wide frequency ranges.
+
+**Measure waveform** also offers signed slope extrema, mean slope and absolute integral. When both −3 dB edges are visible, it can report geometric center frequency and loaded Q. RMS continues to weight each sample equally.
+
 ## Tests
 
 Run `python -m unittest -v`. Core tests need only Python. The electrical tests run with ngspice and cover the divider operating point, RC step response and AC cutoff, and diode current. The offscreen PyQt tests exercise editing, undo/redo, rendering, and the Run action through waveform loading and persistence.

@@ -51,6 +51,52 @@ def level_crossings(xs, ys, level, lower, upper):
                 yield x
 
 
+SERIES_FUNCTIONS = ("derivative", "cumintegral", "unwrap", "groupdelay")
+
+
+def series_transform(name, xs, values):
+    """Operate on adjacent finite samples, without bridging data gaps."""
+    result = [complex(math.nan, math.nan)]*len(values)
+    if name in ("unwrap","groupdelay"):
+        phase = result.copy()
+        previous = None
+        for i,value in enumerate(values):
+            if not math.isfinite(abs(value)) or (name=="groupdelay" and value==0):
+                previous = None
+                continue
+            angle = cmath.phase(value) if name=="groupdelay" else math.radians(value.real)
+            angle = angle if previous is None else previous+math.remainder(angle-previous,math.tau)
+            phase[i] = complex(angle)
+            previous = angle
+        if name=="unwrap":
+            return [math.degrees(value.real) for value in phase]
+        return [-value/math.tau for value in series_transform("derivative",xs,phase)]
+    if name=="cumintegral":
+        total = 0j
+        for i,value in enumerate(values):
+            if not (math.isfinite(abs(value)) and math.isfinite(xs[i])):
+                continue
+            if i and math.isfinite(abs(values[i-1])) and math.isfinite(xs[i-1]):
+                total += (xs[i]-xs[i-1])*(values[i-1]+value)/2
+            result[i] = total
+        return result
+
+    for i,value in enumerate(values):
+        if not (math.isfinite(abs(value)) and math.isfinite(xs[i])):
+            continue
+        before = i>0 and xs[i-1]!=xs[i] and math.isfinite(xs[i-1]) and math.isfinite(abs(values[i-1]))
+        after = i+1<len(xs) and xs[i+1]!=xs[i] and math.isfinite(xs[i+1]) and math.isfinite(abs(values[i+1]))
+        if before and after and xs[i-1]!=xs[i+1]:
+            h0,h1 = xs[i]-xs[i-1],xs[i+1]-xs[i]
+            left,right = (value-values[i-1])/h0,(values[i+1]-value)/h1
+            result[i] = (h1*left+h0*right)/(h0+h1)
+        elif before:
+            result[i] = (value-values[i-1])/(xs[i]-xs[i-1])
+        elif after:
+            result[i] = (values[i+1]-value)/(xs[i+1]-xs[i])
+    return result
+
+
 def evaluate(expression, plot):
     if not 0 < len(expression) <= 500:
         raise ValueError("Enter an expression of up to 500 characters")
@@ -95,6 +141,19 @@ def evaluate(expression, plot):
                     return signal(f"{name}({key.id})")
                 if isinstance(key, ast.Constant) and type(key.value) in (str, int):
                     return signal(str(key.value) if name == "trace" else f"{name}({key.value})")
+            if name in SERIES_FUNCTIONS and len(node.args)==1:
+                if name=="groupdelay" and plot.names[0].casefold()!="frequency":
+                    raise ValueError("Group delay requires a frequency sweep.")
+                operand = compile_node(node.args[0])
+                samples = []
+                for row in plot.rows:
+                    try:
+                        samples.append(complex(operand(row)))
+                    except (ArithmeticError,ValueError):
+                        samples.append(complex(math.nan,math.nan))
+                values = series_transform(name,[row[0].real for row in plot.rows],samples)
+                lookup = {id(row):value for row,value in zip(plot.rows,values)}
+                return lambda row: lookup[id(row)]
             if name in ("rms","samplerms","max","min","mean") and len(node.args)==1:
                 operand = compile_node(node.args[0])
                 values = []

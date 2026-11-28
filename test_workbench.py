@@ -106,6 +106,19 @@ class CircuitTests(unittest.TestCase):
         self.assertEqual(list(level_crossings([0,1,2],[0,2,0],1,0,2)),[.5,1.5])
         self.assertEqual(list(level_crossings([0,1,2],[0,2,0],3,0,2)),[])
 
+    def test_numerical_trace_functions_on_irregular_axes(self):
+        import cmath
+        plot = Plot("Transient",["time","y"],["time","voltage"],[[0,0],[1,1],[3,9]])
+        self.assertAlmostEqual(evaluate("derivative(y)",plot)[1].real,2)
+        self.assertEqual(evaluate("cumintegral(y)",plot),[0,.5,10.5])
+        phases = Plot("AC",["frequency","z"],["frequency","voltage"],
+                      [[f,cmath.exp(-2j*math.pi*f*.01)] for f in (10,30,60,85)])
+        for delay in evaluate("groupdelay(z)",phases):
+            self.assertAlmostEqual(delay.real,.01)
+        angles = Plot("AC",["frequency","y"],["frequency",""],[[1,170],[2,-170],[3,-160]])
+        for actual,expected in zip(evaluate("unwrap(y)",angles),(170,190,200)):
+            self.assertAlmostEqual(actual.real,expected)
+
     def test_plot_expressions(self):
         plot = Plot("AC", ["frequency", "v(out)"], ["frequency", "voltage"],
                     [[10, 0j], [100, .1j]])
