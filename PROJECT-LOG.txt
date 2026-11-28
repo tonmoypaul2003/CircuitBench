@@ -646,3 +646,9 @@ entries for substantive historical mistakes.
     Published the previously local v0.5.1 beta rebuild from 303bc92 as an
     additional asset on the existing v0.5.1 beta release.
     https://github.com/tonmoypaul2003/CircuitBench/releases/tag/v0.5.1-beta
+
+2026-11-28 — Desktop v0.5.2 beta public delivery
+    Pushed feature commit fbeec14 to GitHub main and published the matching
+    Windows binary. Verified the release is Latest and the asset SHA-256
+    matches the versioned executable. Both build copies remain ignored.
+    https://github.com/tonmoypaul2003/CircuitBench/releases/tag/v0.5.2-beta
