@@ -233,7 +233,7 @@ class GuiTests(unittest.TestCase):
             measurements(editor)
         self.assertEqual(page.wave.pins, [(1, 2, "Minimum")])
 
-    def test_waveform_rms_only_draws_its_level(self):
+    def test_waveform_rms_only_pins_first_crossing(self):
         from unittest.mock import patch
         from PyQt6.QtWidgets import QMessageBox
         from studies import measurements
@@ -254,12 +254,11 @@ class GuiTests(unittest.TestCase):
               patch("studies.QInputDialog.getInt",return_value=(1,True))):
             measurements(editor)
         self.assertEqual([name for _,_,name in page.wave.pins],["RMS"])
-        reading,lo,hi,_,_ = page.wave.pin_levels[0]
-        self.assertAlmostEqual(reading,(372/99)**.5)
-        self.assertEqual((lo,hi),(1,100))
-        self.assertFalse(page.wave.grab().isNull())
-        page.subplots[0].delete_pins({0})
+        from plot_math import evaluate
+        reading = evaluate("RMS(i(l1))",page.plot)[0].real
+        self.assertAlmostEqual(page.wave.pins[0][1],reading/2)
         self.assertFalse(page.wave.pin_levels)
+        self.assertIn(f"RMS: {reading:.7g}",page.message.text())
 
     def test_waveform_transient_cycle_measurements_offer_valid_edges(self):
         from unittest.mock import patch
@@ -301,7 +300,7 @@ class GuiTests(unittest.TestCase):
                 patch("studies.QDialog.exec", return_value=1), \
                 patch("studies.QMessageBox.question", return_value=QMessageBox.StandardButton.No):
             measurements(editor)
-        self.assertIn("Maximum: 2, Mean: 1, RMS: 1.1547", page.message.text())
+        self.assertIn("Maximum: 2, Mean: 1, RMS: 5.773503", page.message.text())
 
     def test_nested_temperature_sweep_records_axes_and_values(self):
         from pathlib import Path

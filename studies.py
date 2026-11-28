@@ -15,7 +15,7 @@ from PyQt6.QtWidgets import (QDialog, QDialogButtonBox, QCheckBox, QFileDialog, 
                              QMessageBox, QPushButton, QProgressDialog,
                              QSlider, QVBoxLayout)
 
-from plot_math import linear_square_integral
+from plot_math import level_crossings, linear_square_integral, sample_rms
 from circuit import Project, connectivity, netlist, number, reusable_subcircuit
 from results import Plot, analysis_deck, load_plot
 from subcircuit_designer import SourcePreview
@@ -392,7 +392,8 @@ def measurements(editor,spectrum=False):
     integral = sum((b-a)*(u+v)/2 for (a,u,_),(b,v,_) in segments)
     mean = integral/span
     rms = math.sqrt(energy/span)
-    metrics = {"Minimum":minimum[1],"Maximum":maximum[1],"Mean":mean,"RMS":rms,
+    trace_rms = sample_rms(row[c] for row in p.rows)
+    metrics = {"Minimum":minimum[1],"Maximum":maximum[1],"Mean":mean,"RMS":trace_rms,
                "Peak-to-peak":maximum[1]-minimum[1],"Absolute peak":max(abs(minimum[1]),abs(maximum[1])),
                "Standard deviation":math.sqrt(max(0,rms*rms-mean*mean)),
                "Integral":integral,"Sample count":sum(x_limits[0]<=x<=x_limits[1] and ymin<=y<=ymax
@@ -488,7 +489,17 @@ def measurements(editor,spectrum=False):
         if checks[key].isChecked():
             pins.extend((index,label,None) for index,label in matches)
     anchor = min(points,key=lambda point:abs(point[0]-(lo+hi)/2))
-    for key in ("Mean","RMS","Midrange","AC RMS"):
+    if checks["RMS"].isChecked():
+        for (_,first,i),(_,last,j) in segments:
+            crossing = next(level_crossings((i,j),(first,last),trace_rms,min(i,j),max(i,j)),None)
+            if crossing is None and first==last==trace_rms:
+                crossing = i
+            if crossing is not None:
+                pins.append((crossing,"RMS",None))
+                break
+        else:
+            page.message.setText(text + " · RMS has no crossing in the visible interval.")
+    for key in ("Mean","Midrange","AC RMS"):
         if checks[key].isChecked():
             pins.append((anchor[2],key,(metrics[key],lo,hi,sub.wave.x_column,sub.wave.presentation)))
     if pins and QMessageBox.question(editor,"Measurement",text+"\nAdd the selected measurements to the plot?")==QMessageBox.StandardButton.Yes:

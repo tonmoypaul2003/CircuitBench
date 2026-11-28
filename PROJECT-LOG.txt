@@ -684,3 +684,13 @@ entries for substantive historical mistakes.
     Passed 75 desktop tests, Web engine regression and packaged smoke.
     Verified packaged RMS code and matching root/versioned executable
     copies. Delivery: local v0.5.2 beta rebuild and source for GitHub main.
+
+2026-11-28 — Desktop RMS trace restored and RMS measurement point
+    Restored equal weighting of the dataset samples in RMS() and kept
+    SampleRMS() as an alias. Measure waveform uses that same value and
+    marks only the first visible crossing. Linear interpolation follows
+    Chapra and Canale, Numerical Methods for Engineers, section 18.1.1.
+    Existing expressions regain their original behavior. No CWB changes.
+    Passed 75 desktop tests, Web regression and packaged smoke. The
+    Windows copies match. Delivery: local v0.5.2 beta build and source
+    prepared for GitHub main.

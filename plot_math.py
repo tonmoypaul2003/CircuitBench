@@ -26,6 +26,15 @@ OPERATORS = {ast.Add: operator.add, ast.Sub: operator.sub, ast.Mult: operator.mu
 SIGNAL_CALL = re.compile(r'''"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|\b([vi])\(\s*([\w.#-]+)\s*\)''', re.I)
 
 
+def sample_rms(samples):
+    magnitudes = [abs(value) for value in samples]
+    magnitudes = [value for value in magnitudes if math.isfinite(value)]
+    if not magnitudes:
+        raise ValueError("No finite samples for RMS")
+    scale = max(magnitudes)
+    return scale*math.sqrt(math.fsum((value/scale)**2 for value in magnitudes)/len(magnitudes)) if scale else 0.
+
+
 def linear_square_integral(width, first, last):
     return width*(first*first+first*last+last*last)/3
 
@@ -88,26 +97,19 @@ def evaluate(expression, plot):
                     return signal(str(key.value) if name == "trace" else f"{name}({key.value})")
             if name in ("rms","samplerms","max","min","mean") and len(node.args)==1:
                 operand = compile_node(node.args[0])
-                points = []
+                values = []
                 for row in plot.rows:
                     try:
                         z = complex(operand(row))
                         value = abs(z) if z.imag else z.real
                     except (ValueError,ArithmeticError):
                         value = math.nan
-                    points.append((row[0].real,value))
-                values = [value for _,value in points if math.isfinite(value)]
+                    values.append(value)
+                values = [value for value in values if math.isfinite(value)]
                 if not values:
                     raise ValueError("No finite samples for "+name)
                 if name in ("rms","samplerms"):
-                    width = energy = 0.
-                    if name=="rms":
-                        for (x0,y0),(x1,y1) in pairwise(points):
-                            if all(math.isfinite(v) for v in (x0,y0,x1,y1)):
-                                step = abs(x1-x0)
-                                width += step
-                                energy += linear_square_integral(step,y0,y1)
-                    result = math.sqrt(energy/width if width else sum(v*v for v in values)/len(values))
+                    result = sample_rms(values)
                 elif name=="mean":
                     result = sum(values)/len(values)
                 else:

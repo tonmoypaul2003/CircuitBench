@@ -97,12 +97,12 @@ class CircuitTests(unittest.TestCase):
         self.assertEqual(netlist(reopened), previous_deck)
         self.assertEqual(netlist(Project.load(reopened.dump())), previous_deck)
 
-    def test_rms_weights_irregular_x_and_crossings_follow_display_coordinates(self):
+    def test_rms_weights_samples_equally_and_crossings_follow_display_coordinates(self):
         plot = Plot("AC",["frequency","p"],["frequency","power"],[[1,0],[10,2],[100,2]])
-        self.assertAlmostEqual(evaluate("RMS(p)",plot)[0].real,(372/99)**.5)
+        self.assertAlmostEqual(evaluate("RMS(p)",plot)[0].real,(8/3)**.5)
         self.assertAlmostEqual(evaluate("SampleRMS(p)",plot)[0].real,(8/3)**.5)
         signed = Plot("Transient",["time","y"],["time","voltage"],[[0,-1],[1,1]])
-        self.assertAlmostEqual(evaluate("RMS(y)",signed)[0].real,1/math.sqrt(3))
+        self.assertAlmostEqual(evaluate("RMS(y)",signed)[0].real,1)
         self.assertEqual(list(level_crossings([0,1,2],[0,2,0],1,0,2)),[.5,1.5])
         self.assertEqual(list(level_crossings([0,1,2],[0,2,0],3,0,2)),[])
 
