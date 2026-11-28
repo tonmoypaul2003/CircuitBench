@@ -721,3 +721,9 @@ entries for substantive historical mistakes.
     No CWB or saved-run migration. All 76 desktop tests and Windows smoke
     passed. Local executable copies match. Delivery: verified local build
     for the v0.5.2 beta release refresh.
+
+2026-11-28 — Desktop v0.5.2 beta release refresh published
+    Pushed source commit cec3f95 and refreshed the canonical Windows asset.
+    Verified the published SHA-256 and Latest designation. The original
+    executable remains attached under its archive filename.
+    https://github.com/tonmoypaul2003/CircuitBench/releases/tag/v0.5.2-beta
