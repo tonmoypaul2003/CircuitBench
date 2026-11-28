@@ -301,6 +301,14 @@ class GuiTests(unittest.TestCase):
                 patch("studies.QMessageBox.question", return_value=QMessageBox.StandardButton.No):
             measurements(editor)
         self.assertIn("Maximum: 2, Mean: 1, RMS: 5.773503", page.message.text())
+        self.assertFalse(page.wave.pins)
+        for console in (editor.log,editor.results_log):
+            output = console.toPlainText()
+            self.assertIn("Waveform measurements",output)
+            self.assertIn("Maximum: 2",output)
+            self.assertIn("Mean: 1",output)
+            self.assertIn("RMS: 5.773503",output)
+            self.assertNotIn("Sample count:",output)
 
     def test_nested_temperature_sweep_records_axes_and_values(self):
         from pathlib import Path

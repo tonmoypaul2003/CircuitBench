@@ -487,9 +487,10 @@ def measurements(editor,spectrum=False):
         return
     if not any(check.isChecked() for check in checks.values()):
         return
-    text = f"{name} [{start_point[0]:.6g}, {end_point[0]:.6g}]  " + ", ".join(
-        f"{key}: {value:.7g}" for key,value in metrics.items() if checks[key].isChecked())
-    page.message.setText(text)
+    readings = [f"{key}: {value:.7g}" for key,value in metrics.items() if checks[key].isChecked()]
+    interval = f"{name} [{start_point[0]:.6g}, {end_point[0]:.6g}]"
+    text = interval + "  " + ", ".join(readings)
+    note = ""
     peak = max((minimum,maximum),key=lambda point:abs(point[1]))
     point_metrics = (("Minimum",minimum),("Maximum",maximum),("Absolute peak",peak))
     pins = [(point[2],key,None) for key,point in point_metrics if checks[key].isChecked()]
@@ -508,10 +509,15 @@ def measurements(editor,spectrum=False):
                 pins.append((crossing,"RMS",None))
                 break
         else:
-            page.message.setText(text + " · RMS has no crossing in the visible interval.")
+            note = "RMS has no crossing in the visible interval."
     for key in ("Mean","Midrange","AC RMS"):
         if checks[key].isChecked():
             pins.append((anchor[2],key,(metrics[key],lo,hi,sub.wave.x_column,sub.wave.presentation)))
+    page.message.setText(text + (" · "+note if note else ""))
+    report = "\n".join([f"Waveform measurements — {page.title}",f"{interval} · X: {axis}",
+                        *readings,*([note] if note else [])])
+    editor.log.appendPlainText(report)
+    editor.results_log.appendPlainText("\n"+report)
     if pins and QMessageBox.question(editor,"Measurement",text+"\nAdd the selected measurements to the plot?")==QMessageBox.StandardButton.Yes:
         limit,ok = QInputDialog.getInt(editor,"Measure waveform","Maximum annotations to add",len(pins),1,10000)
         if ok:

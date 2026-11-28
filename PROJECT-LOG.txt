@@ -704,3 +704,11 @@ entries for substantive historical mistakes.
     Passed 76 desktop tests, Web engine regression and packaged smoke.
     Delivery: verified local v0.5.2 beta with matching executable copies,
     and source prepared for GitHub main.
+
+2026-11-28 — Desktop waveform measurements in simulation output
+    Confirmed plot measurements now append the trace, interval, selected
+    values and any RMS crossing note to both Diagnostics and Results.
+    Output is independent of whether the user adds plot annotations.
+    No project or saved run format changes. All 76 desktop tests and
+    packaged smoke passed. Verified matching local v0.5.2 beta executable
+    copies. Delivery: local build and source prepared for GitHub main.
