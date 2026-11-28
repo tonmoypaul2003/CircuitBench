@@ -781,3 +781,10 @@ entries for substantive historical mistakes.
     v0.5.3 beta remains Latest. No application or CWB format changes
     in this publication step.
     https://github.com/tonmoypaul2003/CircuitBench/releases/tag/v0.5.3-beta
+
+2026-11-28 — Public repository README
+    Replaced the long landing page with a concise project overview,
+    Windows download, first-run example, and license link. Preserved
+    the existing detailed instructions in USER-GUIDE.md. Verified
+    local link targets and the release download destination.
+    No application or file format changes. Delivery: GitHub main.
