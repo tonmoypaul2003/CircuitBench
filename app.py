@@ -27,7 +27,7 @@ from spice_library import MODEL_PORTS, read_library
 from subcircuit_designer import SubcircuitDesigner
 
 
-VERSION = "0.5.0-beta"
+VERSION = "0.5.1-beta"
 
 RUNTIME = Path(__file__).resolve().parent / "runtime"
 BUNDLED_SOLVER = RUNTIME / "ngspice" / "bin" / "ngspice_con.exe"
@@ -1627,6 +1627,12 @@ class Editor(QMainWindow):
                 assignment = self.sweep_assignments[len(self.sweep_runs)] if self.sweep_job else {}
                 result_info = raw.describe(snapshot.active,self.run_dir.name,assignment,
                                            snapshot.profiles[snapshot.active].mode)
+                if snapshot.run_measurements:
+                    from results import named_measurements
+                    result_info["measurements"] = named_measurements(raw,snapshot.run_measurements)
+                    for name,result in result_info["measurements"].items():
+                        summary = f'{result["value"]:.7g}' if "value" in result else result["error"]
+                        self.log.appendPlainText(f"{name} = {summary}")
                 (self.run_dir/"dataset.json").write_text(json.dumps(result_info,indent=2),encoding="utf8")
                 if self.sweep_job:
                     self.sweep_values[self.run_dir] = assignment
@@ -1669,7 +1675,7 @@ class Editor(QMainWindow):
         snapshot = Project.load(revision)
         plot = load_plot(folder / "result.raw")
         mode = snapshot.profiles[snapshot.active].mode
-        if mode in ("PZ","SENS") and len(plot.rows)==1:
+        if mode in ("PZ","SENS","TF") and len(plot.rows)==1:
             plot.title += " · operating point table"
         self.show_plot(plot, revision, operating_point=operating_point,
                        open_window=snapshot.profiles[snapshot.active].mode not in ("OP", "DC"))

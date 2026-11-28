@@ -600,3 +600,17 @@ entries for substantive historical mistakes.
 2026-11-28 — Desktop v0.5.0 beta source delivery
     Pushed the verified feature and test changes in commit 42bf287 to
     CircuitBench main. The two matching Windows executables remain local.
+
+2026-11-28 — Desktop v0.5.1 beta guided study setup and analysis
+    Replaced Monte Carlo and optimization configuration with guided forms.
+    Added editable tables for design variables, per-instance overrides
+    and simulation options. Added saved automatic waveform measurements
+    per run and sweep case, and DC transfer gain and impedance analysis.
+    Older .cwb files load with no measurements configured. Definitions
+    are optional and measured values are stored in the run dataset.
+    All 67 Desktop tests and the Web engine regression suite passed.
+    The packaged Windows smoke test passed. Root and versioned binaries
+    have the same SHA-256. Delivery: verified local build for release.
+    Published the archived 0.4.7 and 0.5.0 beta Windows executables.
+    https://github.com/tonmoypaul2003/CircuitBench/releases/tag/v0.4.7-beta
+    https://github.com/tonmoypaul2003/CircuitBench/releases/tag/v0.5.0-beta

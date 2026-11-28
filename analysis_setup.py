@@ -27,12 +27,12 @@ def allocate_run(parent,path,label):
 
 
 ANALYSIS_NAMES = {"OP":"Operating point","DC":"DC Sweep","AC":"AC sweep","TRAN":"Transient",
-                  "NOISE":"Noise","PZ":"Pole-zero","SENS":"DC Sensitivity","FOURIER":"Fourier","DISTO":"Distortion"}
+                  "NOISE":"Noise","PZ":"Pole-zero","SENS":"DC Sensitivity","TF":"DC Transfer Function","FOURIER":"Fourier","DISTO":"Distortion"}
 ANALYSIS_FIELDS = {
     "OP":(), "AC":("start_hz","stop_hz","points"), "TRAN":("step","start","stop"),
     "DC":("sweep_source","sweep_start","sweep_stop","sweep_step"),
     "NOISE":("sweep_source","output_node","start_hz","stop_hz","points"),
-    "PZ":("input_node","output_node"), "SENS":("output_node",),
+    "PZ":("input_node","output_node"), "SENS":("output_node",), "TF":("sweep_source","output_node"),
     "FOURIER":("output_node","fourier_hz","step","start","stop"),
     "DISTO":("start_hz","stop_hz","points"),
 }

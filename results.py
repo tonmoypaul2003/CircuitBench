@@ -4,7 +4,56 @@ from dataclasses import dataclass
 import math
 from pathlib import Path
 
-from circuit import Project, connectivity, netlist, shared_port_pins
+from circuit import Project, connectivity, netlist, number, shared_port_pins
+
+
+RUN_METRICS = ("Minimum","Maximum","Peak-to-peak","Mean","RMS","Integral","Value at X")
+
+
+def named_measurements(plot, definitions):
+    results = {}
+    columns = {name.casefold(): i for i,name in enumerate(plot.names)}
+    for name,metric,signal,start,stop in definitions:
+        try:
+            if metric not in RUN_METRICS:
+                raise ValueError(f"Unknown measurement {metric}")
+            col = columns.get(signal.casefold())
+            if col is None or not plot.rows:
+                raise ValueError(f"{signal} is unavailable")
+            lo = number(start) if start else plot.rows[0][0].real
+            hi = number(stop) if stop else plot.rows[-1][0].real
+            if metric=="Value at X":
+                hi = lo
+            points = []
+            for before,after in zip(plot.rows,plot.rows[1:]):
+                x0,x1 = before[0].real,after[0].real
+                left,right = max(lo,x0),min(hi,x1)
+                if x1<=x0 or left>right or not all(math.isfinite(abs(row[col])) for row in (before,after)):
+                    continue
+                a,b = (abs(row[col]) if row[col].imag else row[col].real for row in (before,after))
+                points.append((right-left,a+(b-a)*(left-x0)/(x1-x0),a+(b-a)*(right-x0)/(x1-x0)))
+            if not points:
+                raise ValueError("No samples in the measurement interval")
+            if metric=="Value at X":
+                value = points[0][1]
+            elif metric in ("Minimum","Maximum","Peak-to-peak"):
+                values = [y for _,a,b in points for y in (a,b)]
+                value = {"Minimum":min(values),"Maximum":max(values),"Peak-to-peak":max(values)-min(values)}[metric]
+            else:
+                width = sum(dx for dx,_,_ in points)
+                if width<=0:
+                    raise ValueError("The interval needs positive width")
+                if metric=="RMS":
+                    value = math.sqrt(sum(dx*(a*a+a*b+b*b)/3 for dx,a,b in points)/width)
+                else:
+                    integral = sum(dx*(a+b)/2 for dx,a,b in points)
+                    value = integral if metric=="Integral" else integral/width
+            if not math.isfinite(value):
+                raise ValueError("Nonfinite measurement")
+            results[name] = {"value":value}
+        except ValueError as error:
+            results[name] = {"error":str(error)}
+    return results
 
 
 @dataclass
@@ -15,7 +64,7 @@ class Plot:
     rows: list[list[complex]]
 
     def describe(self,profile,run,sweep=None,mode=None):
-        axes = [] if mode in ("OP","PZ","SENS") else self.names[:1]
+        axes = [] if mode in ("OP","PZ","SENS","TF") else self.names[:1]
         return {"run":run,"analysis":profile,"mode":mode,"axes":axes,
                 "vectors":[{"name":name,"unit":unit} for name,unit in zip(self.names,self.units)],
                 "samples":len(self.rows),"sweep":sweep or {}}
@@ -108,7 +157,7 @@ def analysis_deck(deck, profile=None):
     # Use the selected analysis directive directly in a control block so that
     # ngspice produces one ASCII plot, including for operating-point runs.
     body, directive, end = deck.rstrip().rsplit("\n", 2)
-    if end != ".end" or not directive.startswith((".op", ".ac ", ".tran ", ".dc ", ".noise ", ".pz ", ".sens ", ".disto ")):
+    if end != ".end" or not directive.startswith((".op", ".ac ", ".tran ", ".dc ", ".noise ", ".pz ", ".sens ", ".tf ", ".disto ")):
         raise ValueError("Expected a generated single-analysis netlist")
     extra = ""
     if directive.startswith(".noise "):

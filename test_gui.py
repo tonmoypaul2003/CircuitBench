@@ -21,6 +21,29 @@ except ModuleNotFoundError as error:
 
 @unittest.skipUnless(QApplication, "Install PyQt6 to run GUI tests")
 class GuiTests(unittest.TestCase):
+    def test_study_forms_select_temperature_without_code(self):
+        from unittest.mock import patch
+        from PyQt6.QtWidgets import QDialog, QDialogButtonBox, QLineEdit, QPlainTextEdit
+        from design_studies import trial_setup
+
+        self.window.project = example()
+        defaults = {"target":"R1","min":"1k","max":"3k","count":21,"signal":"v(out)",
+                    "goal":"5","pass_min":"4.5","pass_max":"5.5"}
+
+        def submit(dialog):
+            self.assertFalse(dialog.findChildren(QPlainTextEdit))
+            combos = dialog.findChildren(QComboBox)
+            combos[0].setCurrentIndex(combos[0].findData("@temperature"))
+            self.assertIn("20",[field.text() for field in dialog.findChildren(QLineEdit)])
+            dialog.findChild(QDialogButtonBox).button(QDialogButtonBox.StandardButton.Ok).click()
+            return dialog.result()
+
+        with patch.object(QDialog,"exec",submit):
+            for mode in ("Monte Carlo","Optimization"):
+                settings = trial_setup(self.window,mode,defaults,["R1","@temperature"])
+                self.assertEqual(settings["target"],"@temperature")
+                self.assertEqual(settings["max"],"80")
+
     @classmethod
     def setUpClass(cls):
         cls.application = QApplication.instance() or QApplication([])
@@ -243,7 +266,7 @@ class GuiTests(unittest.TestCase):
                         seed=13,distribution="uniform",pass_min="2",pass_max="6")
         with TemporaryDirectory(dir=".") as directory:
             editor.path = Path(directory).resolve()/"study.cwb"
-            with patch("design_studies.json_editor",return_value=settings):
+            with patch("design_studies.trial_setup",return_value=settings):
                 run_trials(editor,"Monte Carlo")
                 run_trials(editor,"Optimization")
             records = {record["mode"]:record for record in (

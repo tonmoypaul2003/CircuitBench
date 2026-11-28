@@ -8,13 +8,25 @@ import tempfile
 import unittest
 
 from circuit import Part, Profile, Project, connectivity, example, netlist, number, source_value
-from results import Plot, analysis_deck, load_plot
+from results import Plot, analysis_deck, load_plot, named_measurements
 from plot_math import evaluate
 from qucs_library import import_diodes
 from spice_library import read_library, read_subcircuits
 
 
 class CircuitTests(unittest.TestCase):
+    def test_saved_measurements_interpolate_and_preserve_single_run_errors(self):
+        project = example()
+        project.run_measurements = [["mean","Mean","v(out)","1","3"],
+                                    ["sample","Value at X","v(out)","2",""],
+                                    ["missing","RMS","v(absent)","",""]]
+        restored = Project.load(project.dump())
+        plot = Plot("Transient",["time","v(out)"],["time","voltage"],[[0,0],[4,8]])
+        values = named_measurements(plot,restored.run_measurements)
+        self.assertEqual(values["mean"]["value"],4)
+        self.assertEqual(values["sample"]["value"],4)
+        self.assertIn("unavailable",values["missing"]["error"])
+
     def test_design_variables_resolve_dependencies_and_reject_cycles(self):
         project = example()
         project.design_variables = {"LOAD":"2 * BASE","BASE":"1k"}
@@ -293,6 +305,16 @@ class ElectricalTests(unittest.TestCase):
         distortion = self.run_circuit(project)
         self.assertEqual(distortion.names[0],"frequency")
         self.assertAlmostEqual(abs(distortion.rows[0][distortion.names.index("v(out)")]),0,places=10)
+
+    def test_dc_transfer_function_of_divider(self):
+        project = example()
+        project.active = "Transfer"
+        project.profiles["Transfer"] = Profile("TF")
+        plot = self.run_circuit(project)
+        values = dict(zip(plot.names,plot.rows[0]))
+        self.assertAlmostEqual(values["v(transfer_function)"].real,.5)
+        self.assertAlmostEqual(values["v(output_impedance_at_v(out))"].real,500)
+        self.assertAlmostEqual(values["v(v1#input_impedance)"].real,2000)
 
     def test_dc_sensitivity_of_divider(self):
         project = example()

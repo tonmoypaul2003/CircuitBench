@@ -243,6 +243,10 @@ class Profile:
             return f".noise v({self.node(self.output_node)}) {self.sweep_source} {self.frequency_range()}"
         if self.mode=="PZ":
             return f".pz {self.node(self.input_node)} 0 {self.node(self.output_node)} 0 vol pz"
+        if self.mode=="TF":
+            if not re.fullmatch(r"[VI][A-Z0-9_]+",self.sweep_source,re.ASCII|re.I):
+                raise ValueError("Select an independent input source.")
+            return f".tf v({self.node(self.output_node)}) {self.sweep_source}"
         if self.mode=="SENS":
             return f".sens v({self.node(self.output_node)})"
         if self.mode=="DISTO":
@@ -279,6 +283,7 @@ class Project:
     simulation_options: dict = field(default_factory=dict)
     instance_variables: dict = field(default_factory=dict)
     analysis_plan: dict = field(default_factory=dict)
+    run_measurements: list = field(default_factory=list)
     plot_layouts: dict = field(default_factory=dict)
     subcircuit_design: dict | None = None
 
@@ -336,7 +341,7 @@ class Project:
                 marker.pop("label_style",None)
         if not include_label_styles or not self.plot_layouts:
             del data["plot_layouts"]
-        for key in ("annotations","analysis_plan","element_colors","design_variables","simulation_options","instance_variables"):
+        for key in ("annotations","analysis_plan","element_colors","design_variables","simulation_options","instance_variables","run_measurements"):
             if not data[key]:
                 del data[key]
         if self.subcircuit_design is None:
@@ -381,6 +386,11 @@ class Project:
                 not isinstance(note,list) or len(note) not in (3,4) or type(note[0]) is not int or type(note[1]) is not int
                 or not isinstance(note[2],str) or (len(note)==4 and not valid_label_style(note[3])) for note in project.annotations):
             raise ValueError("Invalid schematic text annotation")
+        if (not isinstance(project.run_measurements,list) or len(project.run_measurements)>32
+                or any(not isinstance(row,list) or len(row)!=5
+                       or any(not isinstance(cell,str) or len(cell)>100 for cell in row)
+                       for row in project.run_measurements)):
+            raise ValueError("Invalid saved run measurements")
         plan = project.analysis_plan
         if not isinstance(plan,dict) or (plan and (
                 not isinstance(plan.get("enabled"),list) or not all(isinstance(n,str) for n in plan["enabled"])
@@ -886,9 +896,9 @@ def netlist(project, measurements=None):
     lines, models, definitions, refs = compile_circuit(project, measurements)
     profile = project.profiles[project.active]
     directive = profile.directive()
-    if profile.mode in ("DC","NOISE") and profile.sweep_source.upper() not in refs:
+    if profile.mode in ("DC","NOISE","TF") and profile.sweep_source.upper() not in refs:
         raise ValueError(f"Analysis source {profile.sweep_source} is missing from the schematic")
-    if profile.mode in ("NOISE","PZ","SENS","FOURIER"):
+    if profile.mode in ("NOISE","PZ","SENS","TF","FOURIER"):
         nodes = set(connectivity(project).values())
         if profile.output_node.lower() not in nodes or (profile.mode=="PZ" and profile.input_node.lower() not in nodes):
             raise ValueError("Analysis needs existing named input/output nodes.")
