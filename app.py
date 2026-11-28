@@ -28,7 +28,7 @@ from spice_library import MODEL_PORTS, read_library
 from subcircuit_designer import SubcircuitDesigner
 
 
-VERSION = "0.5.2-beta"
+VERSION = "0.5.3-beta"
 
 RUNTIME = Path(__file__).resolve().parent / "runtime"
 BUNDLED_SOLVER = RUNTIME / "ngspice" / "bin" / "ngspice_con.exe"
@@ -260,7 +260,7 @@ class Editor(QMainWindow):
         self.profiles.setFrameShape(self.profiles.Shape.StyledPanel)
         self.profiles.setObjectName("analysisMode")
         tools.addWidget(self.profiles)
-        labels = QPushButton("Label appearance…")
+        labels = QPushButton("Selection appearance…")
         labels.clicked.connect(self.edit_label_appearance)
         form.addRow(labels)
         self.properties_dock = self.dock("Properties", properties, Qt.DockWidgetArea.RightDockWidgetArea)
@@ -285,7 +285,13 @@ class Editor(QMainWindow):
         self.results_log = QPlainTextEdit(readOnly=True)
         self.results_log.setLineWrapMode(QPlainTextEdit.LineWrapMode.NoWrap)
         self.results_log.setFont(QFontDatabase.systemFont(QFontDatabase.SystemFont.FixedFont))
-        self.tabs.addTab(self.results_log, "Results")
+        results_panel = QWidget()
+        results_layout = QVBoxLayout(results_panel)
+        clear_results = QPushButton("Clear")
+        clear_results.clicked.connect(self.results_log.clear)
+        results_layout.addWidget(clear_results,alignment=Qt.AlignmentFlag.AlignLeft)
+        results_layout.addWidget(self.results_log)
+        self.tabs.addTab(results_panel, "Results")
         self.tabs.addTab(self.deck, "Netlist")
         self.plot_window = QDialog(self)
         self.plot_window.setWindowTitle("CircuitBench Simulation")
@@ -328,9 +334,10 @@ class Editor(QMainWindow):
         self.component_list.currentItemChanged.connect(self.inspect_component)
         self.component_list.itemClicked.connect(lambda item: self.inspect_component(item,None)
                                                 if self.component_highlight is None else None)
-        self.component_dock = self.dock("List of components", self.component_list, Qt.DockWidgetArea.RightDockWidgetArea)
+        self.component_dock = self.dock("Inserted components", self.component_list, Qt.DockWidgetArea.RightDockWidgetArea)
         self.bias_list = QListWidget()
         self.bias_list.itemSelectionChanged.connect(self.canvas.update)
+        self.bias_list.itemDoubleClicked.connect(self.edit_reading_name)
         self.reading_nets = {}
         bias_panel = QWidget()
         bias_layout = QVBoxLayout(bias_panel)
@@ -437,6 +444,8 @@ class Editor(QMainWindow):
         for index, marker in enumerate(self.project.markers):
             label = (f"p({marker['ref']})" if marker.get("power") else f"I({marker['ref']}:{marker['pin']+1})" if marker["kind"] == "I" else
                      marker["kind"] + " " + " / ".join(f"{x},{y}" for x, y in marker["points"]))
+            if marker.get("name"):
+                label = f"{marker['name']} · {label}"
             unit = "W" if marker.get("power") else "A" if marker["kind"]=="I" else "V"
             self.marker_list.addItem(f"{index+1}. {label} ({unit})")
         self.highlight_markers()
@@ -463,11 +472,11 @@ class Editor(QMainWindow):
 
         if not self.active_readings:
             for net in sorted(set(self.reading_nets.values())):
-                add_reading("Ground" if net=="0" else net,net)
+                add_reading("Ground" if net=="0" else self.project.node_display_names.get(net,net),net)
             return
 
         for node in self.active_readings["nodes"]:
-            name = "Ground" if node["net"] == "0" else node["net"]
+            name = "Ground" if node["net"] == "0" else self.project.node_display_names.get(node["net"],node["net"])
             add_reading(f"{name}    {engineering(node['value'], 'V')}", node["net"])
         self.part_powers = {}
         volts = {n["net"]: n["value"] for n in self.active_readings["nodes"]}
@@ -1250,6 +1259,20 @@ class Editor(QMainWindow):
             except ValueError as error:
                 self.error(str(error))
 
+    def edit_reading_name(self, item):
+        net,pin = item.data(Qt.ItemDataRole.UserRole)
+        if net=="0" or pin is not None:
+            return
+        current = self.project.node_display_names.get(net,"")
+        label,accepted = QInputDialog.getText(self,"Reading name","Display name for "+net,text=current)
+        if accepted and label.strip()!=current:
+            self.checkpoint()
+            if label.strip():
+                self.project.node_display_names[net] = label.strip()[:80]
+            else:
+                self.project.node_display_names.pop(net,None)
+            self.refresh()
+
     def edit_label_appearance(self):
         part = self.selected
         marker = self.project.markers[next(iter(self.selected_markers))] if len(self.selected_markers)==1 else None
@@ -1260,7 +1283,7 @@ class Editor(QMainWindow):
             return
         style = (part.label_style if part else marker.get("label_style",{}) if marker else note[3] if len(note)>3 else {}).copy()
         dialog = QDialog(self)
-        dialog.setWindowTitle("Label appearance")
+        dialog.setWindowTitle("Selection properties")
         form = QFormLayout(dialog)
         size = QSpinBox()
         size.setRange(6,48)
@@ -1280,17 +1303,28 @@ class Editor(QMainWindow):
                     b.setText(color.name())
             button.clicked.connect(choose_color)
             form.addRow(caption,button)
+        label_editor = None
+        angle = None
+        if marker or note:
+            label_editor = QLineEdit(marker.get("name","") if marker else note[2])
+            label_editor.setMaxLength(120)
+            form.addRow("Marker name" if marker else "Annotation text",label_editor)
+        if marker or part:
+            angle = QComboBox()
+            angle.addItems(["0°","90°","180°","270°"])
+            angle.setCurrentIndex(style.get("rotation",0) if marker else part.rotation)
+            form.addRow("Orientation",angle)
         flags = {}
         if part:
             options = (("value","Show net name"),) if part.kind=="N" else (
                 () if part.kind=="G" else (("name","Show reference"),("value","Show value")))
         elif marker:
-            options = (("name","Show marker ID"),("value","Show measurement and unit"),("fill","Filled point"))
+            options = (("name","Show marker ID"),("value","Show measurement and unit"),("fill","Filled pointer"),("mirror","Mirror pointer"))
         else:
-            options = ()
+            options = (("bold","Bold"),("italic","Italic"))
         for key,caption in options:
             check = QCheckBox(caption)
-            check.setChecked(style.get(key,True))
+            check.setChecked(style.get(key,key not in ("bold","italic","mirror")))
             form.addRow(check)
             flags[key] = check
         parameter_checks = {}
@@ -1336,6 +1370,9 @@ class Editor(QMainWindow):
         buttons.rejected.connect(dialog.reject)
         form.addRow(buttons)
         if dialog.exec():
+            if part and angle.currentIndex()!=part.rotation and any(on_wire(pin,wire) for pin in part.pins() for wire in self.project.wires):
+                self.error("Remove the connected wires before rotating this part")
+                return
             self.checkpoint()
             style.update(size=size.value(),**{k:v.isChecked() for k,v in flags.items()})
             if part:
@@ -1346,10 +1383,14 @@ class Editor(QMainWindow):
                         style["hidden_parameters"] = sorted(hidden)
                     else:
                         style.pop("hidden_parameters",None)
+                part.rotation = angle.currentIndex()
                 part.label_style = style
             elif marker:
+                style["rotation"] = angle.currentIndex()
+                marker["name"] = label_editor.text().strip()
                 marker["label_style"] = style
             else:
+                note[2] = label_editor.text().strip() or note[2]
                 note[3:] = [style]
             self.refresh()
 
@@ -1569,7 +1610,9 @@ class Editor(QMainWindow):
             self.refresh()
 
     def edit_selection(self):
-        if self.selected is not None:
+        if self.selected_markers or getattr(self.canvas,"annotation_index",None) is not None:
+            self.edit_label_appearance()
+        elif self.selected is not None:
             self.properties_dock.show()
             self.value.setFocus()
             self.value.selectAll()

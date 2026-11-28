@@ -2,7 +2,7 @@
 import math
 
 from PyQt6.QtCore import QPointF, QRectF, Qt
-from PyQt6.QtGui import QColor, QPainter, QPen
+from PyQt6.QtGui import QPolygonF, QColor, QPainter, QPen
 from PyQt6.QtWidgets import QApplication, QWidget
 
 from circuit import MODELED_SYMBOLS, Part, COMPONENT_SYMBOLS as SYMBOLS, connectivity, on_wire, part_parameters, symbol_geometry
@@ -115,6 +115,8 @@ class Canvas(QWidget):
             painter.scale(1/self.cell,1/self.cell)
             font = painter.font()
             font.setPixelSize(style.get("size",12))
+            font.setBold(style.get("bold",False))
+            font.setItalic(style.get("italic",False))
             painter.setFont(font)
             color = style.get("color",project.element_colors.get(f"text:{i}"))
             painter.setPen(QColor(color) if color else self.ink("#173d37"))
@@ -323,7 +325,7 @@ class Canvas(QWidget):
         for index, marker in enumerate(self.editor.project.markers):
             unit = "W" if marker.get("power") else "A" if marker["kind"]=="I" else "V"
             code = "p" if marker.get("power") else marker["kind"]
-            name = f"{code}{index+1}"
+            name = marker.get("name") or f"{code}{index+1}"
             values = getattr(self.editor,"marker_values",{})
             reading = values.get(index) if self.editor.active_readings else None
             detail = engineering(reading,unit) if reading is not None else unit
@@ -347,7 +349,13 @@ class Canvas(QWidget):
             painter.setPen(QPen(point_color, .08))
             painter.setBrush(point_color if style.get("fill",True) else Qt.BrushStyle.NoBrush)
             radius = (6 if active else 4) / self.cell
-            painter.drawEllipse(QPointF(*point), radius, radius)
+            painter.save()
+            painter.translate(*point)
+            painter.rotate(90*style.get("rotation",0))
+            painter.scale(-1 if style.get("mirror") else 1,1)
+            painter.drawPolygon(QPolygonF([QPointF(0,0),QPointF(radius*1.4,-radius*.65),
+                                          QPointF(radius*1.0,-radius*1.65)]))
+            painter.restore()
             painter.save()
             painter.translate(*point)
             painter.scale(1/self.cell, 1/self.cell)
@@ -669,6 +677,7 @@ class Canvas(QWidget):
                           metrics.height()+3).contains(pos):
                     editor.select(None)
                     self.annotation_index = i
+                    editor.properties_dock.show()
                     self.drag = ("annotation",point,(x,y))
                     self.update()
                     return

@@ -1,5 +1,6 @@
 """Interactive simulation plots and export."""
 import math
+import re
 from pathlib import Path
 
 from PyQt6.QtCore import QIODevice, QPointF, QRectF, QSaveFile, Qt, pyqtSignal
@@ -77,15 +78,26 @@ class Waveform(QWidget):
         self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
         self.b_active = False
         self.fixed_b = None
+        self.keyboard_cursor = "Live"
+        self.cursor_step = 1
+        self.expression_guides = {}
         self.setMinimumHeight(230)
 
     def keyPressEvent(self,event):
         steps = {Qt.Key.Key_Left:-1,Qt.Key.Key_Right:1}
         if event.key() in steps and self.cursor_enabled and self.columns and self.plot.rows:
-            self.cursor = max(0,min(len(self.plot.rows)-1,(self.cursor or 0)+steps[event.key()]))
-            if self.cursor_column not in self.columns:
-                self.cursor_column = self.columns[0]
-            self.lock_b()
+            field = {"A":"reference","B":"fixed_b"}.get(self.keyboard_cursor)
+            position = getattr(self,field) if field else None
+            sample,column = position or (self.cursor or 0,self.cursor_column)
+            sample = max(0,min(len(self.plot.rows)-1,sample+steps[event.key()]*self.cursor_step))
+            column = column if column in self.columns else self.columns[0]
+            if field:
+                setattr(self,field,(sample,column))
+                if field=="fixed_b":
+                    self.b_active = False
+            else:
+                self.cursor,self.cursor_column = sample,column
+                self.lock_b()
             self.cursor_changed.emit()
             self.update()
             event.accept()
@@ -392,6 +404,27 @@ class Waveform(QWidget):
                     painter.drawEllipse(point, 3, 3)
             painter.drawPath(path)
         painter.restore()
+        painter.save()
+        painter.setClipRect(graph)
+        for label,(kind,coordinates) in self.expression_guides.items():
+            x = coordinates[0] if kind!="hline" else xmin
+            y = coordinates[-1] if kind!="vline" else ymax
+            if logarithmic and kind!="hline":
+                if x<=0:
+                    continue
+                x = math.log10(x)
+            if not (xmin<=x<=xmax and ymin<=y<=ymax):
+                continue
+            point = location(x,y)
+            painter.setPen(QPen(ink,1.25,Qt.PenStyle.DashLine))
+            if kind=="vline":
+                painter.drawLine(point,location(x,ymin))
+            elif kind=="hline":
+                painter.drawLine(point,location(xmax,y))
+            else:
+                self.draw_pin(painter,point,"Circle")
+            painter.drawText(point+QPointF(5,14 if kind=="vline" else -5),label)
+        painter.restore()
         readouts = []
         cursor_points = []
         if self.cursor_enabled and self.reference and self.reference[1] in self.columns:
@@ -402,17 +435,29 @@ class Waveform(QWidget):
         if self.cursor_enabled and second and second[1] in self.columns:
             cursor_points.append(("B",*second))
         coords = []
-        for label,index,column in cursor_points:
-            value = columns[self.columns.index(column)][index]
-            coords.append((raw_x[index],value))
+        for label,sample,column in cursor_points:
+            index = int(sample)
+            fraction = sample-index
+            series = columns[self.columns.index(column)]
+            px,value = xs[index],series[index]
+            if fraction:
+                px += fraction*(xs[index+1]-px)
+                value += fraction*(series[index+1]-value)
+            actual_x = 10**px if logarithmic else px
+            if not (math.isfinite(actual_x) and math.isfinite(value)):
+                continue
+            coords.append((actual_x,value))
             unit = self.plot.units[column]
             y_text = (f"{value:.7g} dB" if self.presentation==2 and unit not in ("power","expression") else
                       f"{value:.7g}°" if self.presentation==1 and unit not in ("power","expression") else
                       display_value(value,unit))
-            readouts.append(f"{label}  {self.plot.names[self.x_column]} = {display_value(raw_x[index],self.plot.units[self.x_column])}   {self.plot.names[column]} = {y_text}")
+            x_unit = self.plot.units[self.x_column]
+            exact_unit = {"frequency":"Hz","time":"s","voltage":"V","current":"A","power":"W"}.get(x_unit,"")
+            x_text = f"{actual_x:.11g} {exact_unit}".rstrip() if fraction else display_value(actual_x,x_unit)
+            readouts.append(f"{label}  {self.plot.names[self.x_column]} = {x_text}   {self.plot.names[column]} = {y_text}")
             painter.setPen(ink)
-            if self.cursor_lines != "Horizontal" and xmin<=xs[index]<=xmax:
-                x = location(xs[index],ymin).x()
+            if self.cursor_lines != "Horizontal" and xmin<=px<=xmax:
+                x = location(px,ymin).x()
                 painter.drawLine(QPointF(x,top),QPointF(x,bottom))
                 painter.drawText(QPointF(x+3,top+(13 if label=="A" else 26)),label)
             if ymin<=value<=ymax:
@@ -420,8 +465,8 @@ class Waveform(QWidget):
                 if self.cursor_lines != "Vertical":
                     painter.drawLine(QPointF(left,y),QPointF(right,y))
                     painter.drawText(QPointF(left+5,y-3),label)
-                if xmin<=xs[index]<=xmax:
-                    painter.drawEllipse(location(xs[index],value),3,3)
+                if xmin<=px<=xmax:
+                    painter.drawEllipse(location(px,value),3,3)
         if len(coords)==2:
             dx = coords[1][0]-coords[0][0]
             dy = coords[1][1]-coords[0][1]
@@ -599,6 +644,9 @@ class PlotPage(QWidget):
                 self.wave.update()
         set_b.clicked.connect(select_b)
         toolbar.addWidget(set_b)
+        precise = QPushButton("Cursor setup…")
+        precise.clicked.connect(self.configure_cursors)
+        toolbar.addWidget(precise)
         toolbar.addWidget(add)
         toolbar.addWidget(drop)
         toolbar.addWidget(self.presentation)
@@ -714,6 +762,91 @@ class PlotPage(QWidget):
         self.auto_pin_button.setEnabled(self.wave.cursor is not None
                                        and self.wave.cursor_column in self.wave.columns)
 
+    def configure_cursors(self):
+        wave = self.wave
+        dialog = QDialog(self)
+        dialog.setWindowTitle("Cursor setup")
+        form = QFormLayout(dialog)
+        target = QComboBox()
+        target.addItems(["A","B"])
+        form.addRow("Place cursor",target)
+        source = QComboBox()
+        source.addItem("Exact X")
+        for index,(column,sample,label) in enumerate(wave.pins):
+            if index not in wave.pin_levels and column in wave.columns:
+                source.addItem(label or f"Pin {index+1}",(sample,column))
+        form.addRow("Position",source)
+        coordinate = QLineEdit()
+        coordinate.setPlaceholderText("e.g. 81.370 or 1k")
+        form.addRow("X coordinate",coordinate)
+        trace = QComboBox()
+        for column in wave.columns:
+            trace.addItem(wave.plot.names[column],column)
+        form.addRow("Trace",trace)
+        keyboard = QComboBox()
+        keyboard.addItems(["Live","A","B"])
+        keyboard.setCurrentText(wave.keyboard_cursor)
+        form.addRow("Arrow keys move",keyboard)
+        step = QSpinBox()
+        step.setRange(1,10000)
+        step.setValue(wave.cursor_step)
+        form.addRow("Step (samples)",step)
+        source.currentIndexChanged.connect(lambda index: coordinate.setEnabled(index==0))
+        source.currentIndexChanged.connect(lambda index: trace.setEnabled(index==0))
+        error = QLabel()
+        error.setWordWrap(True)
+        form.addRow(error)
+        controls = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok|QDialogButtonBox.StandardButton.Cancel)
+        form.addRow(controls)
+        controls.rejected.connect(dialog.reject)
+
+        def apply():
+            position = source.currentData()
+            try:
+                if position is None and coordinate.text().strip():
+                    position = self.cursor_at_x(number(coordinate.text().strip()),trace.currentData())
+                if position is not None and position[1] not in wave.columns:
+                    raise ValueError("Choose a visible trace.")
+            except ValueError as issue:
+                error.setText(str(issue))
+                return
+            if position is not None:
+                if target.currentText()=="A":
+                    wave.reference = position
+                else:
+                    wave.fixed_b = position
+                    wave.b_active = False
+                self.cursor_button.setChecked(True)
+            wave.keyboard_cursor,wave.cursor_step = keyboard.currentText(),step.value()
+            wave.update()
+            dialog.accept()
+
+        controls.accepted.connect(apply)
+        dialog.exec()
+        wave.setFocus()
+
+    def cursor_at_x(self, value, column):
+        wave = self.wave
+        if column not in wave.columns:
+            raise ValueError("Choose a visible trace.")
+        wave.grab()
+        if not wave.screen_axes:
+            raise ValueError("Display a waveform first.")
+        _,xs,series,columns,*_ = wave.screen_axes
+        ys = series[columns.index(column)]
+        if wave.logarithmic():
+            if value<=0:
+                raise ValueError("Use a positive X coordinate on a logarithmic axis.")
+            value = math.log10(value)
+        for i,(x,y) in enumerate(zip(xs,ys)):
+            if not (math.isfinite(x) and math.isfinite(y)):
+                continue
+            if value==x:
+                return i,column
+            if i+1<len(xs) and min(x,xs[i+1])<value<max(x,xs[i+1]) and math.isfinite(ys[i+1]):
+                return i+(value-x)/(xs[i+1]-x),column
+        raise ValueError("The X coordinate does not intersect the selected trace.")
+
     def pin_cursor(self):
         sample, column = self.wave.cursor, self.wave.cursor_column
         if sample is not None and column in self.wave.columns:
@@ -758,6 +891,9 @@ class PlotPage(QWidget):
     def set_x_axis(self, index):
         if index < 0:
             return
+        if index!=self.wave.x_column:
+            self.wave.reference = self.wave.fixed_b = None
+            self.wave.b_active = False
         self.wave.x_column = index
         self.wave.x_scale = "Automatic"
         if index:
@@ -1214,7 +1350,7 @@ class PlotReportPage(QWidget):
         insert = QPushButton("Add expression")
         insert.clicked.connect(self.insert_expression)
         functions = QComboBox()
-        functions.addItems(["Function…","RMS","SampleRMS","MAX","MIN","MEAN",*SERIES_FUNCTIONS,*sorted(FUNCTIONS)])
+        functions.addItems(["Function…","RMS","SampleRMS","MAX","MIN","MEAN","minus3db","minus3db_db","vline","hline","point",*SERIES_FUNCTIONS,*sorted(FUNCTIONS)])
         def insert_function(index):
             if index:
                 self.expression.insert(functions.itemText(index)+"()")
@@ -1301,6 +1437,18 @@ class PlotReportPage(QWidget):
             name = expression
         if not name or len(name) > 75:
             raise ValueError("Use a trace name of up to 75 characters, for example gain = db(v(out))")
+        wave = self.subplots[self.active.currentIndex()].wave
+        shorthand = re.fullmatch(r"\[([^,]+),([^,]+)\]",expression)
+        guide = re.fullmatch(r"(vline|hline|point)\(([^()]*)\)",expression,re.I)
+        if shorthand or guide:
+            kind = "vline" if shorthand else guide[1].lower()
+            raw = shorthand.groups() if shorthand else guide[2].split(",")
+            if len(raw)!=(2 if shorthand or kind=="point" else 1):
+                raise ValueError("Use vline(x), hline(y), or point(x, y).")
+            values = tuple(number(token.strip()) for token in raw)
+            wave.expression_guides[name] = (kind,values)
+            wave.update()
+            return name
         if any(name.casefold() == existing.casefold() for existing in self.plot.names):
             raise ValueError(f"A trace named {name} already exists")
         if (len(self.plot.names)+1)*len(self.plot.rows) > 2_000_000:
@@ -1323,7 +1471,7 @@ class PlotReportPage(QWidget):
         except (ArithmeticError, ValueError) as error:
             self.message.setText(str(error))
             return
-        self.message.setText(f"Added {self.plot.names[column]}")
+        self.message.setText(f"Added {column if isinstance(column,str) else self.plot.names[column]}")
         self.expression.clear()
 
     def choose_export(self, whole_page):

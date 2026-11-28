@@ -154,13 +154,13 @@ def evaluate(expression, plot):
                 values = series_transform(name,[row[0].real for row in plot.rows],samples)
                 lookup = {id(row):value for row,value in zip(plot.rows,values)}
                 return lambda row: lookup[id(row)]
-            if name in ("rms","samplerms","max","min","mean") and len(node.args)==1:
+            if name in ("rms","samplerms","max","min","mean","minus3db","minus3db_db") and len(node.args)==1:
                 operand = compile_node(node.args[0])
                 values = []
                 for row in plot.rows:
                     try:
                         z = complex(operand(row))
-                        value = abs(z) if z.imag else z.real
+                        value = abs(z) if z.imag or name=="minus3db" else z.real
                     except (ValueError,ArithmeticError):
                         value = math.nan
                     values.append(value)
@@ -169,6 +169,10 @@ def evaluate(expression, plot):
                     raise ValueError("No finite samples for "+name)
                 if name in ("rms","samplerms"):
                     result = sample_rms(values)
+                elif name=="minus3db":
+                    result = max(values)/math.sqrt(2)
+                elif name=="minus3db_db":
+                    result = max(values)-10*math.log10(2)
                 elif name=="mean":
                     result = sum(values)/len(values)
                 else:

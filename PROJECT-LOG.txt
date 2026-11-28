@@ -727,3 +727,17 @@ entries for substantive historical mistakes.
     Verified the published SHA-256 and Latest designation. The original
     executable remains attached under its archive filename.
     https://github.com/tonmoypaul2003/CircuitBench/releases/tag/v0.5.2-beta
+
+2026-11-28 — Desktop v0.5.3 beta precision plot tools and properties
+    Added expression guides, exact A/B placement from X or plot pins,
+    selectable keyboard cursor and sample step, and -3 dB trace functions.
+    Fixed sweep range selection and blank input handling. Updated the
+    A4 report using the supplied template's schematic, component table,
+    run list, analysis settings and output layout.
+    Added Results Clear, renamed Inserted components, enabled reading
+    display aliases, and grouped marker name, orientation and mirror,
+    label colors and annotation formatting in Selection appearance.
+    Existing projects remain readable. Reading names are display aliases
+    and leave electrical node identifiers intact.
+    Passed 78 desktop tests, Web engine regression and packaged smoke.
+    Matching local executables verified. Delivery: build ready for release.

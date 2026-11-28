@@ -82,6 +82,16 @@ def validate_plot_layouts(layouts):
                     or not all(type(w.get(k)) is int for k in ("presentation","tick_count","tick_precision","zoom"))
                     or not 2 <= w["tick_count"] <= 25 or not 0 <= w["tick_precision"] <= 16
                     or w["presentation"] not in (0,1,2) or not 25 <= w["zoom"] <= 800
+                    or not isinstance(w.get("expression_guides",{}),dict)
+                    or any(not isinstance(label,str) or len(label)>75
+                           or not isinstance(entry,(list,tuple)) or len(entry)!=2
+                           or entry[0] not in ("vline","hline","point")
+                           or not isinstance(entry[1],(list,tuple)) or not entry[1]
+                           or len(entry[1])>2 or (entry[0]=="point" and len(entry[1])!=2)
+                           or not all(finite(value) for value in entry[1])
+                           for label,entry in w.get("expression_guides",{}).items())
+                    or type(w.get("cursor_step",1)) is not int or not 1<=w.get("cursor_step",1)<=10000
+                    or w.get("keyboard_cursor","Live") not in ("Live","A","B")
                     or not pair(w.get("origin"))
                     or any(k not in w or (w[k] is not None and not color(w[k])) for k in ("grid_color","background"))
                     or any(k not in w or (w[k] is not None and not (pair(w[k]) and w[k][0]<w[k][1]))
@@ -138,7 +148,8 @@ def valid_label_style(style):
                     for offset in offsets)
             and all(k not in style or isinstance(style[k],str) and re.fullmatch(r"#[0-9a-fA-F]{6}",style[k])
                     for k in ("color","point_color","symbol_color"))
-            and all(k not in style or type(style[k]) is bool for k in ("name","value","fill")))
+            and all(k not in style or type(style[k]) is bool for k in ("name","value","fill","bold","italic","mirror"))
+            and type(style.get("rotation",0)) is int and 0<=style.get("rotation",0)<=3)
 
 @dataclass
 class Part:
@@ -278,6 +289,7 @@ class Project:
     markers: list[dict] = field(default_factory=list)
     voltage_labels: dict[str, dict] = field(default_factory=dict)
     element_colors: dict = field(default_factory=dict)
+    node_display_names: dict = field(default_factory=dict)
     annotations: list = field(default_factory=list)
     design_variables: dict = field(default_factory=dict)
     simulation_options: dict = field(default_factory=dict)
@@ -336,14 +348,16 @@ class Project:
             if not include_label_styles or not part["label_style"]:
                 part.pop("label_style")
         if not include_label_styles:
+            data.pop("node_display_names",None)
             data["annotations"] = [note[:3] for note in data["annotations"]]
             for marker in data["markers"]:
                 marker.pop("label_style",None)
+                marker.pop("name",None)
         if not include_label_styles or not self.plot_layouts:
             del data["plot_layouts"]
-        for key in ("annotations","analysis_plan","element_colors","design_variables","simulation_options","instance_variables","run_measurements"):
-            if not data[key]:
-                del data[key]
+        for key in ("annotations","analysis_plan","element_colors","design_variables","simulation_options","instance_variables","run_measurements","node_display_names"):
+            if not data.get(key):
+                data.pop(key,None)
         if self.subcircuit_design is None:
             del data["subcircuit_design"]
         if not include_label_styles or not self.voltage_labels:
@@ -435,7 +449,12 @@ class Project:
                 model = project.device_models.get(part.value.upper())
                 if not model or (part.kind, tuple(part.port_names)) != MODEL_PORTS[model["type"]]:
                     raise ValueError(f"{part.ref}: device model or port order changed")
+        if not isinstance(project.node_display_names,dict) or any(
+                not isinstance(name,str) or len(name)>80 for name in project.node_display_names.values()):
+            raise ValueError("Invalid reading display name")
         for marker in project.markers:
+            if not isinstance(marker.get("name",""),str) or len(marker.get("name",""))>120:
+                raise ValueError("Invalid marker name")
             if not valid_label_style(marker.get("label_style",{})):
                 raise ValueError("Invalid marker label style")
             if marker.get("kind") == "I":

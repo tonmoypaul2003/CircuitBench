@@ -150,7 +150,10 @@ def setup(editor):
     spacing = QComboBox()
     spacing.addItems(["Value list","Linear range","Logarithmic range"])
     spacing.setCurrentText(plan.get("spacing","Value list"))
-    bounds = QLineEdit(plan.get("bounds","1k, 10k, 10"))
+    bounds = QLineEdit(plan.get("bounds",""))
+    bounds.setPlaceholderText("e.g. 0.5u, 3u, 10")
+    bounds.textEdited.connect(lambda text: spacing.setCurrentIndex(1) if text.strip() and not spacing.currentIndex() else None)
+    values.textEdited.connect(lambda text: spacing.setCurrentIndex(0) if text.strip() else None)
     for label,w in (("Base analysis",base),("Primary target",part),("Spacing",spacing),
                     ("Second target",second),("Second target values",second_values),
                     ("Explicit values",values),("Range: start, end, point count",bounds)):
@@ -159,13 +162,15 @@ def setup(editor):
         sweep.toggled.connect(w.setEnabled)
     buttons(dialog,form)
     while dialog.exec():
-        v = [s.strip() for s in values.text().split(",")]
+        v = [item.strip() for item in values.text().split(",") if item.strip()]
+        if sweep.isChecked() and not spacing.currentIndex() and not v and bounds.text().strip():
+            spacing.setCurrentIndex(1)
         if sweep.isChecked() and spacing.currentIndex():
             try:
                 start,end,count = [t.strip() for t in bounds.text().split(",")]
                 start,end,count = number(start),number(end),int(count)
-                if min(start,end)<=0 or not 2<=count<=64:
-                    raise ValueError("Use positive endpoints and 2 to 64 points.")
+                if start==end or not 2<=count<=64 or (spacing.currentIndex()==2 and min(start,end)<=0):
+                    raise ValueError("Enter distinct endpoints and 2 to 64 points. Logarithmic endpoints must be positive.")
                 if spacing.currentIndex()==2:
                     v = [format(math.exp(math.log(start)+(math.log(end)-math.log(start))*i/(count-1)),".12g") for i in range(count)]
                 else:
@@ -176,11 +181,15 @@ def setup(editor):
         draft.analysis_plan = dict(spacing=spacing.currentText(),bounds=bounds.text(),enabled=[n for n,c in checks.items() if c.isChecked()],parametric=sweep.isChecked(),
                                    profile=base.currentText(),ref=part.currentText(),values=v)
         try:
+            if sweep.isChecked() and not v:
+                raise ValueError("Enter explicit sweep values or a range with start, end and point count.")
             if sweep.isChecked() and len(v)>64:
                 raise ValueError("Choose up to 64 sweep values.")
             if sweep.isChecked() and second.currentText()!="None":
-                draft.analysis_plan.update(second_ref=second.currentText(),
-                                           second_values=[item.strip() for item in second_values.text().split(",")])
+                secondary = [item.strip() for item in second_values.text().split(",") if item.strip()]
+                if not secondary:
+                    raise ValueError("Enter at least one value for the second target.")
+                draft.analysis_plan.update(second_ref=second.currentText(),second_values=secondary)
             jobs(draft)
         except ValueError as error:
             QMessageBox.warning(dialog,"Analysis Setup",str(error))

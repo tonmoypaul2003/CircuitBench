@@ -249,7 +249,9 @@ def save_layout(editor):
                      grid_color=w.grid_color.name() if w.grid_color else None,grid=w.grid_visible,
                      grid_density=w.grid_density, y_grid_density=w.y_grid_density, text_size=w.text_size,
                      text_color=w.text_color.name() if w.text_color else None,cursor_lines=w.cursor_lines,
-                     cursor=w.cursor_enabled,presentation=w.presentation,zoom=w.zoom,origin=w.zoom_origin)
+                     cursor=w.cursor_enabled,presentation=w.presentation,zoom=w.zoom,origin=w.zoom_origin,
+                     expression_guides=w.expression_guides.copy(),cursor_step=w.cursor_step,
+                     keyboard_cursor=w.keyboard_cursor)
         states.append(state)
     editor.checkpoint()
     editor.project.plot_layouts[editor.project.active] = dict(states=states,tiles=page.tiles.currentIndex(),
@@ -287,6 +289,9 @@ def restore_layout(page,layout):
         sub.grid_button.setChecked(state["grid"])
         sub.zoom_slider.setValue(state["zoom"])
         w.zoom_origin = state["origin"]
+        w.expression_guides = state.get("expression_guides",{}).copy()
+        w.cursor_step = state.get("cursor_step",1)
+        w.keyboard_cursor = state.get("keyboard_cursor","Live")
         w.update()
 
 
@@ -581,25 +586,43 @@ def report(editor):
     from PyQt6.QtGui import QPageSize
     from PyQt6.QtPrintSupport import QPrinter
     document = QTextDocument()
-    content = ["<h1>CircuitBench simulation report</h1>"]
+    document.setDefaultStyleSheet("body {font-family: Segoe UI; color: #183633;} "
+                                  "h1,h2 {color: #165752;} th {background: #e0eeec;} .caption {color: #516463;}")
+    def table(headers,rows):
+        def cells(values,tag):
+            return "<tr>"+"".join(f"<{tag}>{html.escape(str(cell))}</{tag}>" for cell in values)+"</tr>"
+        return '<table width="100%" border="1" cellspacing="0" cellpadding="5">'+cells(headers,"th")+"".join(cells(row,"td") for row in rows)+"</table>"
+
+    title = editor.path.stem if editor.path else "Untitled schematic"
+    content = ["<h1>CircuitBench Simulation Report</h1>",f"<p><b>Circuit name</b> · {html.escape(title)}</p>"]
     if "Schematic and settings" in sections:
         preview = SourcePreview(project,connectivity(project))
         preview.resize(780,450)
         document.addResource(QTextDocument.ResourceType.ImageResource,QUrl("schematic.png"),preview.grab().toImage())
-        content.extend(["<h2>Schematic and settings</h2>",'<p><img src="schematic.png" width="640"></p>',
-                        "<p>"+html.escape(project.profiles[project.active].directive())+"</p>"])
+        content.extend(["<h2>Schematic</h2>",'<p><img src="schematic.png" width="560"></p>',
+                        '<p class="caption">Figure 1. Circuit schematic</p>',"<h2>Component table</h2>",
+                        table(("No.","Part","Value"),((i,part.ref,part.value) for i,part in enumerate(
+                            (part for part in project.parts if part.kind not in "GN"),1)))])
+    if pages:
+        content.extend(["<h2>Simulation runs</h2>",table(("No.","Run"),enumerate((page.title for page in pages),1))])
     if "Operating point" in sections:
         content.append("<h2>Operating point</h2>")
         content.extend("<p>"+html.escape(line)+"</p>" for line in editor.report_bias)
     with tempfile.TemporaryDirectory() as tmp:
         from PyQt6.QtGui import QImage
         for i,page in enumerate(pages):
-            content.append("<h2>"+html.escape(page.title)+"</h2>")
+            content.append(f"<h2>Simulation {i+1} · {html.escape(page.title)}</h2>")
+            if page.revision:
+                run_project = Project.load(page.revision)
+                content.append(table(("Feature","Value"),(("Analysis",run_project.active),
+                    ("Settings",run_project.profiles[run_project.active].directive()))))
+            content.append("<h3>Output</h3>")
             target = Path(tmp)/f"plot{i}.png"
             page.export(target,True)
             url = target.name
             document.addResource(QTextDocument.ResourceType.ImageResource,QUrl(url),QImage(str(target)))
-            content.append(f'<p><img src="{url}" width="640"></p>')
+            content.append(f'<p><img src="{url}" width="560"></p>')
+            content.append(f'<p class="caption">Figure {i+2}. {html.escape(page.title)}</p>')
             if "Data points" in sections:
                 content.append("<p>"+html.escape(page.message.text())+"</p>")
                 for sub in page.subplots:

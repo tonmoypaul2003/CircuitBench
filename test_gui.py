@@ -180,6 +180,48 @@ class GuiTests(unittest.TestCase):
         self.assertEqual(editor.plot_pages.count(),1)
         self.assertFalse(editor.plot_pages.currentWidget().plot.rows)
 
+    def test_plot_expression_guides_and_exact_cutoff_cursors(self):
+        editor = self.window
+        plot = Plot("AC",["frequency","v(out)"],["frequency","voltage"],[[10,0],[100,2],[1000,0]])
+        page = editor.add_plot_page(plot,None,[1])
+        sub = page.subplots[0]
+        editor.open_plots()
+        self.application.processEvents()
+        self.assertEqual(page.add_expression("F_l = [81.370, 0]"),"F_l")
+        page.add_expression("threshold = hline(1.414)")
+        page.add_expression("corner = point(81.370, 1.414)")
+        self.assertEqual(page.wave.expression_guides["F_l"],("vline",(81.37,0.)))
+        column = page.add_expression("Cutoff = minus3db(v(out))")
+        self.assertAlmostEqual(page.plot.rows[0][column].real,2**.5)
+        a = sub.cursor_at_x(81.37,1)
+        b = sub.cursor_at_x(622.594,1)
+        self.assertAlmostEqual(10**(1+a[0]),81.37)
+        self.assertAlmostEqual(10**(1+b[0])-10**(1+a[0]),541.224)
+        sub.wave.reference,sub.wave.fixed_b = a,b
+        self.assertFalse(sub.wave.grab().isNull())
+        sub.wave.keyboard_cursor,sub.wave.cursor_step = "A",2
+        QTest.keyClick(sub.wave,Qt.Key.Key_Right)
+        self.assertEqual(sub.wave.reference,(2,1))
+        self.assertEqual(sub.wave.fixed_b,b)
+
+    def test_parametric_setup_uses_range_if_value_list_is_empty(self):
+        from unittest.mock import patch
+        from PyQt6.QtWidgets import QDialog, QLineEdit
+        from analysis_setup import setup
+
+        self.window.project = example()
+        def configure(dialog):
+            next(check for check in dialog.findChildren(QCheckBox) if check.text()=="Parametric Sweep").setChecked(True)
+            next(field for field in dialog.findChildren(QLineEdit) if field.placeholderText()=="e.g. 0.5u, 3u, 10").setText("0.5u, 3u, 10")
+            return 1
+        with patch.object(QDialog,"exec",configure):
+            setup(self.window)
+        plan = self.window.project.analysis_plan
+        self.assertEqual(plan["spacing"],"Linear range")
+        self.assertEqual(len(plan["values"]),10)
+        self.assertAlmostEqual(float(plan["values"][0]),.5e-6)
+        self.assertAlmostEqual(float(plan["values"][-1]),3e-6)
+
     def test_set_b_locks_independently_of_a_and_live_cursor(self):
         from PyQt6.QtWidgets import QPushButton
 
