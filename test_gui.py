@@ -180,6 +180,36 @@ class GuiTests(unittest.TestCase):
         self.assertEqual(editor.plot_pages.count(),1)
         self.assertFalse(editor.plot_pages.currentWidget().plot.rows)
 
+    def test_set_b_locks_independently_of_a_and_live_cursor(self):
+        from PyQt6.QtWidgets import QPushButton
+
+        editor = self.window
+        page = editor.add_plot_page(Plot("Transient",["time","v(out)"],["time","voltage"],
+                                         [[0,0],[1,2],[2,0],[3,1]]),None,[1])
+        editor.open_plots()
+        self.application.processEvents()
+        sub = page.subplots[0]
+        wave = sub.wave
+        wave.grab()
+        rect = wave.screen_axes[0]
+        start = QPoint(round(rect.left()+4),round(rect.center().y()))
+        end = QPoint(round(rect.right()-4),round(rect.center().y()))
+        buttons = {b.text():b for b in sub.findChildren(QPushButton)}
+        QTest.mouseClick(wave,Qt.MouseButton.LeftButton,pos=start)
+        buttons["Set A"].click()
+        a = wave.reference
+        buttons["Set B"].click()
+        QTest.mouseClick(wave,Qt.MouseButton.LeftButton,pos=end)
+        b = wave.fixed_b
+        self.assertIsNotNone(a)
+        self.assertIsNotNone(b)
+        self.assertNotEqual(a,b)
+        QTest.mouseClick(wave,Qt.MouseButton.LeftButton,pos=start)
+        self.assertEqual((wave.reference,wave.fixed_b),(a,b))
+        buttons["Set B"].click()
+        self.assertIsNone(wave.fixed_b)
+        self.assertEqual(wave.reference,a)
+
     def test_measurement_pin_cap_prioritizes_selected_minimum(self):
         from unittest.mock import patch
         from PyQt6.QtWidgets import QMessageBox

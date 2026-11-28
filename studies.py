@@ -398,6 +398,12 @@ def measurements(editor,spectrum=False):
                                                       for x,y in zip(display_x,values))}
     metrics.update({"Midrange":(minimum[1]+maximum[1])/2,
                     "AC RMS":metrics["Standard deviation"],"Squared integral":energy})
+    absolute_area = sum((b-a)*(abs(u)+abs(v))/2 if u*v>=0
+                        else (b-a)*(u*u+v*v)/(2*(abs(u)+abs(v)))
+                        for (a,u,_),(b,v,_) in segments)
+    metrics["Mean absolute value"] = absolute_area/span
+    if absolute_area:
+        metrics["Form factor"] = rms/metrics["Mean absolute value"]
     if rms:
         metrics["Crest factor"] = metrics["Absolute peak"]/rms
 
@@ -410,6 +416,8 @@ def measurements(editor,spectrum=False):
                 yield location,i+ratio*(j-i)
     timing = {}
     if axis=="time":
+        metrics["Rising zero crossings"] = sum(1 for _ in crossings(0,True))
+        metrics["Falling zero crossings"] = sum(1 for _ in crossings(0,False))
         swing = maximum[1]-minimum[1]
         low = next(crossings(minimum[1]+.1*swing,True),None)
         high = next((point for point in crossings(minimum[1]+.9*swing,True)
@@ -443,6 +451,14 @@ def measurements(editor,spectrum=False):
         if cutoff is not None:
             timing["Upper -3 dB crossing (Hz)"] = [(cutoff[1],"-3 dB")]
             metrics["Upper -3 dB crossing (Hz)"] = cutoff[0]
+        lower = next((point for point in reversed(list(crossings(threshold,True)))
+                      if point[0]<=maximum[0]),None)
+        if lower is not None:
+            timing["Lower -3 dB crossing (Hz)"] = [(lower[1],"Lower −3 dB")]
+            metrics["Lower -3 dB crossing (Hz)"] = lower[0]
+        if lower is not None and cutoff is not None:
+            timing["-3 dB bandwidth (Hz)"] = [(lower[1],"Lower −3 dB"),(cutoff[1],"Upper −3 dB")]
+            metrics["-3 dB bandwidth (Hz)"] = cutoff[0]-lower[0]
     dialog = QDialog(editor)
     dialog.setWindowTitle("Choose waveform measurements")
     layout = QVBoxLayout(dialog)

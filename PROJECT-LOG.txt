@@ -662,3 +662,14 @@ entries for substantive historical mistakes.
     All 73 desktop tests passed, including RMS-only AC and timed cycles.
     The packaged smoke test passed and both local EXE copies match.
     Delivery: local v0.5.2 beta rebuild and source prepared for GitHub main.
+
+2026-11-28 — Desktop locked plot cursors and additional measurements
+    B now locks when placed, independently of A and subsequent live
+    cursor movement. Added mean absolute value, form factor, rising and
+    falling zero-crossing counts, and lower cutoff and -3 dB bandwidth.
+    Verified that RMS-only annotation shows its level without endpoint
+    pins, and that selecting a minimum adds only the requested marker.
+    Existing projects and plot settings require no migration.
+    All 74 desktop tests and the packaged Windows smoke test passed.
+    Delivery: verified local v0.5.2 beta rebuild, root and versioned
+    copies match. Source prepared for main.

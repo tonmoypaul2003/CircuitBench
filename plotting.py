@@ -76,6 +76,7 @@ class Waveform(QWidget):
         self.screen_axes = None
         self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
         self.b_active = False
+        self.fixed_b = None
         self.setMinimumHeight(230)
 
     def keyPressEvent(self,event):
@@ -84,6 +85,7 @@ class Waveform(QWidget):
             self.cursor = max(0,min(len(self.plot.rows)-1,(self.cursor or 0)+steps[event.key()]))
             if self.cursor_column not in self.columns:
                 self.cursor_column = self.columns[0]
+            self.lock_b()
             self.cursor_changed.emit()
             self.update()
             event.accept()
@@ -108,6 +110,7 @@ class Waveform(QWidget):
         elif event.button() == Qt.MouseButton.RightButton:
             self.reference = None
             self.b_active = False
+            self.fixed_b = None
             self.clear_cursor()
 
     def clear_cursor(self):
@@ -126,7 +129,15 @@ class Waveform(QWidget):
             self.cursor_changed.emit()
             self.update()
 
+    def lock_b(self):
+        if self.b_active and self.cursor is not None:
+            self.fixed_b = self.cursor,self.cursor_column
+            self.b_active = False
+
     def mouseReleaseEvent(self,event):
+        if event.button()==Qt.MouseButton.LeftButton and self.pin_drag is None:
+            self.lock_b()
+            self.update()
         self.pin_drag = None
         super().mouseReleaseEvent(event)
 
@@ -290,7 +301,7 @@ class Waveform(QWidget):
             painter.drawLine(QPointF(legend_x, legend_y-4), QPointF(legend_x+13, legend_y-4))
             painter.drawText(QPointF(legend_x+17, legend_y), name)
             legend_x += label_width
-        cursor_footer = 18 if report and self.cursor_enabled and (self.cursor is not None or self.reference) else 0
+        cursor_footer = 18 if report and self.cursor_enabled and (self.cursor is not None or self.reference or self.fixed_b) else 0
         left, right, top, bottom = 74, width-26, legend_y+27, height-43-cursor_footer
         valid_x = [x for x in xs if math.isfinite(x)]
         valid_y = [y for values in columns for x, y in zip(xs, values)
@@ -385,8 +396,11 @@ class Waveform(QWidget):
         cursor_points = []
         if self.cursor_enabled and self.reference and self.reference[1] in self.columns:
             cursor_points.append(("A",*self.reference))
-        if self.cursor is not None and self.cursor_column in self.columns:
-            cursor_points.append(("B",self.cursor,self.cursor_column))
+        second = self.fixed_b
+        if second is None and self.cursor is not None:
+            second = self.cursor,self.cursor_column
+        if self.cursor_enabled and second and second[1] in self.columns:
+            cursor_points.append(("B",*second))
         coords = []
         for label,index,column in cursor_points:
             value = columns[self.columns.index(column)][index]
@@ -562,16 +576,18 @@ class PlotPage(QWidget):
         anchor.clicked.connect(set_anchor)
         toolbar.addWidget(anchor)
         set_b = QPushButton("Set B")
-        set_b.setToolTip("Keep A fixed and select the second point on the trace")
+        set_b.setToolTip("Arm B, then click or drag to lock it. Click again to clear B.")
         def select_b():
             self.cursor_button.setChecked(True)
-            self.wave.b_active = not self.wave.b_active
-            if self.wave.b_active:
-                self.wave.setFocus()
-                readout.setText("Click the waveform or use the arrow keys to place B")
-                self.wave.update()
-            else:
+            if self.wave.fixed_b is not None or self.wave.b_active:
+                self.wave.fixed_b = None
+                self.wave.b_active = False
                 self.wave.clear_cursor()
+            else:
+                self.wave.b_active = True
+                self.wave.setFocus()
+                readout.setText("Click or drag on the waveform to lock B")
+                self.wave.update()
         set_b.clicked.connect(select_b)
         toolbar.addWidget(set_b)
         toolbar.addWidget(add)
