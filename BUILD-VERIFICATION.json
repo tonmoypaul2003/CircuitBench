@@ -11,6 +11,6 @@
   "status": "passed",
   "source_tests_passed": 71,
   "web_engine_tests_passed": true,
-  "executable_path": "build/0.5.1-beta/CircuitBench.exe",
-  "executable_sha256": "6b09b7b19ed050f598f20233f13385e5a5375d352dc0a671ae5468aac5283343"
+  "executable_path": "build/0.5.2-beta/CircuitBench.exe",
+  "executable_sha256": "b05b1928a0cb6908fb2e97172328e4fb09b5fb2937136fbedf2ac569583fb539"
 }

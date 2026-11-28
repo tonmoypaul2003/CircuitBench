@@ -176,7 +176,7 @@ def show_history(editor):
 
 def fresh_page(editor):
     current = editor.plot_pages.currentWidget()
-    if current and current.plot.rows:
+    if hasattr(current,'plot') and current.plot.rows:
         plot = Plot("New plot",current.plot.names,current.plot.units,current.plot.rows)
         editor.add_plot_page(plot,current.revision,[])
     else:

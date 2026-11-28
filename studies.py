@@ -34,8 +34,8 @@ def prompt(parent, title, label, default):
 
 def current_page(editor):
     page = editor.plot_pages.currentWidget()
-    if page is None:
-        raise ValueError("Open a simulation result first.")
+    if not hasattr(page,'plot'):
+        raise ValueError("Select a graph tab first.")
     return page
 
 
@@ -471,7 +471,7 @@ def report_selection(editor):
     pages = {}
     for i in range(editor.plot_pages.count()):
         page = editor.plot_pages.widget(i)
-        if page.plot.rows:
+        if hasattr(page,'plot') and page.plot.rows:
             check = QCheckBox(page.title)
             box.addWidget(check)
             check.setChecked(True)

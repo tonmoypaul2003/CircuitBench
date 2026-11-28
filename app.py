@@ -1,5 +1,6 @@
 """CircuitBench desktop entry point."""
 from datetime import datetime
+import io
 import json
 import os
 from pathlib import Path
@@ -8,7 +9,7 @@ import sys
 import tempfile
 
 from PyQt6.QtCore import QEvent, QSignalBlocker, QItemSelectionModel, QPointF, QProcess, QSettings, Qt, QUrl
-from PyQt6.QtGui import QAction, QActionGroup, QColor, QDesktopServices, QIcon
+from PyQt6.QtGui import QAction, QActionGroup, QColor, QDesktopServices, QFontDatabase, QIcon
 from PyQt6.QtWidgets import (
     QApplication, QCheckBox, QColorDialog, QComboBox, QDialog, QDialogButtonBox, QDockWidget, QFileDialog,
     QFormLayout, QInputDialog, QLabel, QLineEdit, QListWidget, QListWidgetItem, QMainWindow, QAbstractItemView,
@@ -23,12 +24,12 @@ from circuit import (GENERIC_MODELS, Profile, Project, SOURCE_DEFAULTS, COMPONEN
                      source_value, translate_selection, reusable_subcircuit)
 from plotting import PlotReportPage, Waveform
 from qucs_library import import_diodes
-from results import analysis_deck, bias_deck, bias_readings, load_plot, trim_bias_vectors
+from results import analysis_deck, bias_deck, bias_readings, load_plot, Plot, trim_bias_vectors
 from spice_library import MODEL_PORTS, read_library
 from subcircuit_designer import SubcircuitDesigner
 
 
-VERSION = "0.5.1-beta"
+VERSION = "0.5.2-beta"
 
 RUNTIME = Path(__file__).resolve().parent / "runtime"
 BUNDLED_SOLVER = RUNTIME / "ngspice" / "bin" / "ngspice_con.exe"
@@ -282,6 +283,10 @@ class Editor(QMainWindow):
         log_layout.addWidget(self.log)
         self.deck = QPlainTextEdit(readOnly=True)
         self.tabs.addTab(self.diagnostics, "Diagnostics")
+        self.results_log = QPlainTextEdit(readOnly=True)
+        self.results_log.setLineWrapMode(QPlainTextEdit.LineWrapMode.NoWrap)
+        self.results_log.setFont(QFontDatabase.systemFont(QFontDatabase.SystemFont.FixedFont))
+        self.tabs.addTab(self.results_log, "Results")
         self.tabs.addTab(self.deck, "Netlist")
         self.plot_window = QDialog(self)
         self.plot_window.setWindowTitle("CircuitBench Simulation")
@@ -1600,15 +1605,13 @@ class Editor(QMainWindow):
         from desktop04 import show_history
         show_history(self)
 
-    def append_run_diagnostics(self, folder, successful):
+    def append_run_diagnostics(self, folder):
         for name in ("stdout.log", "stderr.log"):
             path = folder / name
             if path.is_file():
-                with path.open(encoding="utf-8",errors="replace") as stream:
-                    lines = stream.read(60000).splitlines()
-                if successful and name=="stdout.log":
-                    lines = [line for line in lines if line.lstrip().lower().startswith(("warning","error","note:"))]
-                self.log.appendPlainText("\n".join(lines).strip())
+                message = path.read_text(encoding="utf-8",errors="replace").strip()
+                if message:
+                    self.log.appendPlainText(f"{name.removesuffix('.log').upper()} — {message}")
 
     def describe_run(self, plot, snapshot, assignment, folder, measurements):
         mode = snapshot.profiles[snapshot.active].mode
@@ -1637,11 +1640,32 @@ class Editor(QMainWindow):
             summary = f'{result["value"]:.7g}' if "value" in result else result["error"]
             lines.append(f"  {name} = {summary}")
         self.log.appendPlainText("\n".join(lines))
+        with io.StringIO() as output:
+            output.write("\n".join([str(folder),*lines])+"\n\n")
+            if plot.rows:
+                output.write("\t".join(f"{name} [{unit}]" if unit else name
+                                       for name,unit in zip(plot.names,plot.units))+"\n")
+                for row in plot.rows:
+                    output.write("\t".join(self.result_number(value) for value in row)+"\n")
+            if mode=="FOURIER":
+                from design_studies import fourier_data
+                summary, harmonics = fourier_data(folder/"stdout.log")
+                output.write("\n"+summary+"\n")
+                output.write("Harmonic\tFrequency (Hz)\tMagnitude\tPhase (°)\tRelative magnitude\tRelative phase (°)\n")
+                for row in harmonics:
+                    output.write("\t".join(row)+"\n")
+            self.results_log.appendPlainText(output.getvalue().rstrip()+"\n")
+
+    @staticmethod
+    def result_number(value):
+        if value.imag:
+            return f"{value.real:.15g}{value.imag:+.15g}j"
+        return f"{value.real:.15g}"
 
     def load_saved_run(self, folder):
-        successful = (folder / "result.raw").is_file()
+        self.results_log.clear()
         self.log.setPlainText(str(folder))
-        self.append_run_diagnostics(folder,successful)
+        self.append_run_diagnostics(folder)
         self.tabs.setCurrentWidget(self.diagnostics)
         if (folder / "result.raw").is_file():
             snapshot = (folder / "project.cwb").read_text(encoding="utf-8")
@@ -1664,6 +1688,7 @@ class Editor(QMainWindow):
         except ValueError as error:
             self.error(str(error))
             return
+        self.results_log.clear()
         self.sweep_runs = []
         self.sweep_values = {}
         self.sweep_plan = self.project.analysis_plan.copy()
@@ -1741,7 +1766,7 @@ class Editor(QMainWindow):
         self.cancel_action.setEnabled(False)
         status = "cancelled" if self.cancelled else "failed"
         try:
-            self.append_run_diagnostics(self.run_dir,code == 0 and not self.cancelled)
+            self.append_run_diagnostics(self.run_dir)
             if code == 0 and not self.cancelled:
                 raw = load_plot(self.run_dir/"result.raw")
                 snapshot = Project.load(self.pending_revision)
@@ -1796,18 +1821,31 @@ class Editor(QMainWindow):
         mode = snapshot.profiles[snapshot.active].mode
         if mode in ("PZ","SENS","TF") and len(plot.rows)==1:
             plot.title += " · operating point table"
+        if mode=="FOURIER":
+            from design_studies import fourier_data, fourier_table
+            summary, harmonics = fourier_data(folder/"stdout.log")
+            if harmonics:
+                title = "Fourier harmonics"
+                page = QWidget()
+                page.title, page.revision = title, snapshot.dump(include_label_styles=False)
+                layout = QVBoxLayout(page)
+                layout.addWidget(QLabel(summary))
+                layout.addWidget(fourier_table(harmonics,page))
+                self.plot_pages.addTab(page,title)
+                magnitude_unit = next((unit for name,unit in zip(plot.names,plot.units)
+                                       if name.lower()==f"v({snapshot.profiles[snapshot.active].output_node.lower()})"),"")
+                plot = Plot("Fourier spectrum",["frequency","harmonic magnitude"],["frequency",magnitude_unit],
+                            [[float(row[1]),float(row[2])] for row in harmonics])
+                spectrum = self.add_plot_page(plot,page.revision,[1])
+                self.wave, self.run_revision = spectrum.wave, page.revision
+                spectrum.wave.x_scale = "Linear"
+                self.open_plots()
+                return
         self.show_plot(plot, revision, operating_point=operating_point,
-                       open_window=snapshot.profiles[snapshot.active].mode not in ("OP", "DC"))
+                       open_window=mode not in ("OP", "DC"))
         if self.active_readings:
             self.report_bias = [self.bias_list.item(i).text() for i in range(self.bias_list.count())]
             self.bias_dock.show()
-        if mode=="FOURIER":
-            from design_studies import fourier_table
-            page = self.plot_pages.currentWidget()
-            summary,table = fourier_table(folder/"stdout.log",page)
-            table.setMinimumHeight(205)
-            page.layout().insertWidget(1,QLabel(summary))
-            page.layout().insertWidget(2,table)
 
     def show_plot(self, plot, revision, *, operating_point=None, open_window=True):
         measurements = []
@@ -1890,8 +1928,11 @@ class Editor(QMainWindow):
         if page is None:
             return
         self.plot_pages.removeTab(index)
-        if page.plot is self.wave.plot:
+        if getattr(page,"plot",None) is self.wave.plot and hasattr(page,"wave"):
             current = self.plot_pages.currentWidget()
+            if not hasattr(current,"wave"):
+                current = next((self.plot_pages.widget(i) for i in range(self.plot_pages.count())
+                                if hasattr(self.plot_pages.widget(i),"wave")),None)
             self.wave = current.wave if current is not None else Waveform()
             self.run_revision = current.revision if current is not None else None
         page.deleteLater()
@@ -1913,14 +1954,14 @@ class Editor(QMainWindow):
 
     def export_plot_page(self,whole_page=True):
         page = self.plot_pages.currentWidget()
-        if page:
+        if hasattr(page,"choose_export"):
             page.choose_export(whole_page)
         else:
             self.error("Open a simulation plot first.")
 
     def export_waveform(self):
         page = self.plot_pages.currentWidget()
-        plot = page.wave.plot if page is not None else self.wave.plot
+        plot = page.wave.plot if hasattr(page,"wave") else self.wave.plot
         if plot is None:
             self.error("Open or generate a waveform first")
             return

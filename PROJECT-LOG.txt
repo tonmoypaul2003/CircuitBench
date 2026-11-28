@@ -633,3 +633,16 @@ entries for substantive historical mistakes.
     the Web engine regression and the packaged Windows smoke test passed.
     Delivery: verified local v0.5.1 beta build with matching executable
     copies, and source staged for GitHub main.
+
+2026-11-28 — Desktop v0.5.2 beta Fourier and simulation results
+    Replaced the component inspection ring with a glow on the symbol.
+    Fourier opens a frequency/magnitude spectrum and a separate harmonic
+    table tab. Diagnostics retains solver output and Results prints scalar
+    readings, complete waveform data, measurements, and Fourier harmonics.
+    Existing CWB files and stored runs require no migration.
+    All 71 desktop tests, Web engine regression and packaged smoke passed.
+    Root and versioned executables have matching SHA-256 digests.
+    Delivery: verified local v0.5.2 beta prepared for GitHub main and release.
+    Published the previously local v0.5.1 beta rebuild from 303bc92 as an
+    additional asset on the existing v0.5.1 beta release.
+    https://github.com/tonmoypaul2003/CircuitBench/releases/tag/v0.5.1-beta

@@ -17,15 +17,9 @@ from results import Plot, RUN_METRICS
 from studies import simulate
 
 
-def fourier_table(path, parent=None):
-    table = QTableWidget(0, 6, parent)
-    table.setHorizontalHeaderLabels(("Harmonic","Frequency (Hz)","Magnitude","Phase (°)",
-                                      "Relative magnitude","Relative phase (°)"))
-    table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
-    table.verticalHeader().hide()
-    table.setAlternatingRowColors(True)
-    table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
+def fourier_data(path):
     summary = "Fourier harmonics are unavailable for this run."
+    rows = []
     active = False
     if path.is_file():
         for line in path.read_text(encoding="utf8",errors="replace").splitlines():
@@ -38,15 +32,26 @@ def fourier_table(path, parent=None):
                 summary += " · " + line.split("THD:",1)[1].split(",",1)[0].strip() + " THD"
             cells = line.split()
             if len(cells)==6 and cells[0].isdigit():
-                row = table.rowCount()
-                table.insertRow(row)
-                for column,value in enumerate(cells):
-                    item = QTableWidgetItem(value)
-                    item.setTextAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
-                    table.setItem(row,column,item)
-            elif table.rowCount():
+                rows.append(cells)
+            elif rows:
                 break
-    return summary,table
+    return summary,rows
+
+
+def fourier_table(rows, parent):
+    table = QTableWidget(len(rows),6,parent)
+    table.setHorizontalHeaderLabels(("Harmonic","Frequency (Hz)","Magnitude","Phase (°)",
+                                      "Relative magnitude","Relative phase (°)"))
+    table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
+    table.verticalHeader().hide()
+    table.setAlternatingRowColors(True)
+    table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
+    for row,cells in enumerate(rows):
+        for column,value in enumerate(cells):
+            item = QTableWidgetItem(value)
+            item.setTextAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
+            table.setItem(row,column,item)
+    return table
 
 
 def edit_rows(editor, title, columns, rows, validate, fixed=False, choices=(), row_fields=None, new_row=None):
@@ -531,7 +536,7 @@ def edit_run_measurements(editor):
     vectors = [f"v({node})" for node in sorted(set(connectivity(editor.project).values()) - {"0"})]
     vectors.extend(f"i({part.ref.lower()})" for part in editor.project.parts if part.kind=="V")
     loaded = editor.wave.plot
-    if loaded and editor.run_revision == editor.project.dump(include_label_styles=False):
+    if loaded and not (profile.mode=="FOURIER" and loaded.names[0]=="frequency") and editor.run_revision == editor.project.dump(include_label_styles=False):
         vectors.extend(loaded.names[1:] if profile.mode not in ("OP","TF","SENS","PZ") else loaded.names)
     vectors = list(dict.fromkeys(vectors))
     if profile.mode in ("TRAN","FOURIER"):

@@ -72,6 +72,8 @@ class Canvas(QWidget):
         return round(p.x()), round(p.y())
 
     def ink(self, light):
+        if getattr(self,"glow_ink",None) is not None:
+            return self.glow_ink
         if light=="#173d37" and getattr(self,"symbol_color",None):
             return QColor(self.symbol_color)
         colors = desktop_colors(self.editor.dark_theme)
@@ -148,17 +150,28 @@ class Canvas(QWidget):
             selected = index in self.editor.selected_parts
             painter.save()
             painter.translate(part.x, part.y)
-            if part is getattr(self.editor,"component_highlight",None):
-                painter.setPen(QPen(highlight_ink,.12))
-                painter.drawEllipse(QPointF(),2.65,2.65)
             painter.rotate(part.rotation * 90)
             self.symbol_color = part.label_style.get("symbol_color",project.element_colors.get(part.ref))
-            if part.kind == "X":
-                self.draw_subcircuit(painter, part, selected)
-            elif part.kind in MODELED_SYMBOLS:
-                self.draw_modeled_symbol(painter, part, selected)
-            else:
-                self.draw_symbol(painter, part.kind, selected)
+
+            def draw_component():
+                if part.kind == "X":
+                    self.draw_subcircuit(painter, part, selected)
+                elif part.kind in MODELED_SYMBOLS:
+                    self.draw_modeled_symbol(painter, part, selected)
+                else:
+                    self.draw_symbol(painter, part.kind, selected)
+
+            if part is getattr(self.editor,"component_highlight",None):
+                self.glow_ink = QColor(highlight_ink)
+                self.glow_ink.setAlpha(65)
+                for dx,dy in ((-.10,0),(.10,0),(0,-.10),(0,.10)):
+                    painter.save()
+                    painter.translate(dx,dy)
+                    draw_component()
+                    painter.restore()
+                self.glow_ink = highlight_ink
+            draw_component()
+            self.glow_ink = None
             self.symbol_color = None
             painter.restore()
             if selected and part.kind in MODELED_SYMBOLS:
