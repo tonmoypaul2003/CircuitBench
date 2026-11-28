@@ -741,3 +741,8 @@ entries for substantive historical mistakes.
     and leave electrical node identifiers intact.
     Passed 78 desktop tests, Web engine regression and packaged smoke.
     Matching local executables verified. Delivery: build ready for release.
+
+2026-11-28 — Desktop v0.5.3 beta published
+    Pushed feature commit 4f127c3. Published the Windows executable and
+    verified the Latest release designation and matching SHA-256.
+    https://github.com/tonmoypaul2003/CircuitBench/releases/tag/v0.5.3-beta
