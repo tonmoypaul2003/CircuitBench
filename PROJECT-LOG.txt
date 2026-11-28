@@ -712,3 +712,12 @@ entries for substantive historical mistakes.
     No project or saved run format changes. All 76 desktop tests and
     packaged smoke passed. Verified matching local v0.5.2 beta executable
     copies. Delivery: local build and source prepared for GitHub main.
+
+2026-11-28 — Desktop v0.5.2 beta simulation output refinement
+    Diagnostics shows the run, analysis settings, engine messages and
+    selected readings. Results retains scalar analysis values, harmonic
+    results and measurements with channel summaries instead of sample
+    tables. Complete waveform data remains available in plots and CSV.
+    No CWB or saved-run migration. All 76 desktop tests and Windows smoke
+    passed. Local executable copies match. Delivery: verified local build
+    for the v0.5.2 beta release refresh.

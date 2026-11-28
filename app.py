@@ -1,6 +1,5 @@
 """CircuitBench desktop entry point."""
 from datetime import datetime
-import io
 import json
 import os
 from pathlib import Path
@@ -1609,58 +1608,69 @@ class Editor(QMainWindow):
         for name in ("stdout.log", "stderr.log"):
             path = folder / name
             if path.is_file():
-                message = path.read_text(encoding="utf-8",errors="replace").strip()
+                lines = path.read_text(encoding="utf-8",errors="replace").splitlines()
+                if name=="stdout.log":
+                    fourier = False
+                    for i,line in enumerate(lines):
+                        if line.lstrip().startswith("Fourier analysis for"):
+                            fourier = True
+                            lines[i] = ""
+                        elif fourier and (not line.strip() or line.split()[0].isdigit()
+                                          or line.lstrip().startswith(("No. Harmonics","Harmonic","---"))):
+                            lines[i] = ""
+                        else:
+                            fourier = False
+                message = "\n".join(lines).strip()
                 if message:
                     self.log.appendPlainText(f"{name.removesuffix('.log').upper()} — {message}")
 
     def describe_run(self, plot, snapshot, assignment, folder, measurements):
-        mode = snapshot.profiles[snapshot.active].mode
-        lines = [f"{snapshot.active} — completed"]
+        from desktop04 import run_title
+        profile = snapshot.profiles[snapshot.active]
+        mode = profile.mode
+        context = [f"{snapshot.active} — completed",f"Run: {run_title(folder)}",
+                   f"Analysis: {profile.directive()}"]
         if assignment:
-            lines.append("Sweep: " + ", ".join(f"{key} = {value}" for key,value in assignment.items()))
-        bias_path = folder/"operating-point.json"
-        if mode=="OP" and bias_path.is_file() and plot.rows:
-            data = bias_readings(plot,json.loads(bias_path.read_text(encoding="utf8")))
-            lines.extend(f"  {row['net']} = {engineering(row['value'],'V')}" for row in data["nodes"])
-            for row in data["currents"]:
-                part = snapshot.parts[row["part"]]
-                lines.append(f"  {part.ref}, pin {row['pin']+1} = {engineering(row['value'],'A')}")
-        elif mode in ("OP","TF","PZ","SENS") and len(plot.rows)==1:
-            for name,value in zip(plot.names,plot.rows[0]):
-                label = name.removeprefix("v(").removesuffix(")") if name.startswith("v(") else name
-                label = label.replace("_"," ")
-                lines.append(f"  {label}: {value:.7g}" if value.imag else f"  {label}: {value.real:.7g}")
+            context.append("Sweep: " + ", ".join(f"{key} = {value}" for key,value in assignment.items()))
+        scalar = len(plot.rows)==1 and mode in ("OP","TF","PZ","SENS")
+        readings = []
+        if scalar:
+            for name,unit,value in zip(plot.names,plot.units,plot.rows[0]):
+                readings.append(f"  {name} [{unit}]: {value:.7g}" if value.imag else
+                                f"  {name} = {engineering(value.real, {'voltage':'V','current':'A','power':'W'}.get(unit,unit))}")
         elif plot.rows:
             axis = plot.names[0]
-            lines.append(f"  {len(plot.rows):,} samples · {axis} from {plot.rows[0][0].real:.7g} to {plot.rows[-1][0].real:.7g}")
-            lines.append(f"  {len(plot.names)-1} waveform vectors available in Simulation Plots.")
-            if mode=="FOURIER":
-                lines.append("  Fourier harmonics and THD are available in the results table.")
+            context.append(f"  {len(plot.rows):,} samples · {axis} from {plot.rows[0][0].real:.7g} to {plot.rows[-1][0].real:.7g}")
+        selected = []
+        if snapshot.markers and plot.rows:
+            from copy import copy
+            signals = []
+            netlist(snapshot,signals)
+            marked = copy(plot)
+            marked.names, marked.units = plot.names.copy(),plot.units.copy()
+            # For waveform runs, list marked channels without copying the waveform.
+            marked.rows = [plot.rows[0].copy()] if scalar else []
+            for column in marked.marker_columns(signals):
+                name = marked.names[column]
+                if scalar:
+                    selected.append(f"  {name} = {marked.rows[0][column]:.7g}")
+                else:
+                    selected.append(f"  {name} — waveform in Simulation Plots")
         for name,result in measurements.items():
             summary = f'{result["value"]:.7g}' if "value" in result else result["error"]
-            lines.append(f"  {name} = {summary}")
-        self.log.appendPlainText("\n".join(lines))
-        with io.StringIO() as output:
-            output.write("\n".join([str(folder),*lines])+"\n\n")
-            if plot.rows:
-                output.write("\t".join(f"{name} [{unit}]" if unit else name
-                                       for name,unit in zip(plot.names,plot.units))+"\n")
-                for row in plot.rows:
-                    output.write("\t".join(self.result_number(value) for value in row)+"\n")
-            if mode=="FOURIER":
-                from design_studies import fourier_data
-                summary, harmonics = fourier_data(folder/"stdout.log")
-                output.write("\n"+summary+"\n")
-                output.write("Harmonic\tFrequency (Hz)\tMagnitude\tPhase (°)\tRelative magnitude\tRelative phase (°)\n")
-                for row in harmonics:
-                    output.write("\t".join(row)+"\n")
-            self.results_log.appendPlainText(output.getvalue().rstrip()+"\n")
-
-    @staticmethod
-    def result_number(value):
-        if value.imag:
-            return f"{value.real:.15g}{value.imag:+.15g}j"
-        return f"{value.real:.15g}"
+            selected.append(f"  {name} = {summary}")
+        summary = ["Selected results",*dict.fromkeys(selected)] if selected else []
+        self.log.appendPlainText("\n".join([*context,*summary]))
+        output = [*context,*readings,*summary]
+        if not scalar and plot.rows:
+            output.extend(["Waveform channels (samples in Simulation Plots or CSV)",
+                           *(f"  {name} [{unit}]" if unit else f"  {name}" for name,unit in zip(plot.names[1:],plot.units[1:]))])
+        if mode=="FOURIER":
+            from design_studies import fourier_data
+            heading,harmonics = fourier_data(folder/"stdout.log")
+            output.extend([heading,"Harmonic\tFrequency (Hz)\tMagnitude\tPhase (°)\tRelative magnitude\tRelative phase (°)",
+                           *("\t".join(row) for row in harmonics)])
+        self.results_log.appendPlainText("\n".join(output)+"\n")
 
     def load_saved_run(self, folder):
         self.results_log.clear()
@@ -1731,7 +1741,8 @@ class Editor(QMainWindow):
         self.run_dir = folder
         self.pending_revision = revision
         self.cancelled = False
-        self.log.appendPlainText(f"Run folder: {folder}")
+        from desktop04 import run_title
+        self.log.appendPlainText(f"Run: {run_title(folder,label)}\nRun folder: {folder}\nEngine: {self.solver}")
         self.tabs.setCurrentWidget(self.diagnostics)
         process = QProcess(self)
         self.process = process
