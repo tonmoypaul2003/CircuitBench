@@ -771,3 +771,13 @@ entries for substantive historical mistakes.
     No project or saved plot migration. Passed 78 desktop tests,
     wide and narrow Windows layout checks, and the packaged smoke.
     Delivery: matching local v0.5.3 beta executables and source for main.
+
+2026-11-28 — Desktop v0.5.3 beta release refresh and asset cleanup
+    Published the verified Windows EXE from ee72930 with the revised
+    simulation toolbar and subplot layout. Removed the superseded
+    Windows assets from v0.5.3, v0.5.2 and v0.5.1 beta, keeping the
+    newest build of each as CircuitBench.exe. Verified matching SHA-256
+    for the retained assets and exactly one EXE on each of 14 releases.
+    v0.5.3 beta remains Latest. No application or CWB format changes
+    in this publication step.
+    https://github.com/tonmoypaul2003/CircuitBench/releases/tag/v0.5.3-beta
