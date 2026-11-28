@@ -1,5 +1,16 @@
 # CircuitBench user guide
 
+**Latest release · v0.5.3 beta**
+
+[Download for Windows x64](https://github.com/tonmoypaul2003/CircuitBench/releases/download/v0.5.3-beta/CircuitBench.exe) · [Release notes](https://github.com/tonmoypaul2003/CircuitBench/releases/tag/v0.5.3-beta)
+
+## What's new in v0.5.3 beta
+
+- **Simulation workspace.** The top bar holds subplot and export controls. Sweep runs and Saved waveforms sit at the far right. Select a graph to control it from the shared toolbar, or choose Focus plot to expand it.
+- **Precision plotting.** Place A and B by X coordinate or from existing pins, choose which cursor the arrow keys move, and set the step in samples. Add line and point guides from the expression box and plot peak-relative −3 dB levels.
+- **Schematic properties.** Edit marker names and pointer orientation, annotation text and formatting, and component label appearance. Double-click a node in Readings to edit its display name.
+- **Simulation output.** Clear the Results pane from its toolbar. Export an A4 report with the schematic, component table, run settings, and selected plots.
+
 Independent Python/PyQt6 schematic editor and ngspice front end. The [architecture proposal](reference/ARCHITECTURE-PROPOSAL.md) records how its workflow relates to the investigation.
 
 Workbench source and tests are licensed under [GPL-3.0-only](LICENSE). See the [workflow coverage and roadmap](PARITY.md) for the original evidence, current functionality, and comparison gaps.
@@ -22,7 +33,7 @@ Search the part library for **Vsin**, **Vpulse**, **Vpwl**, **Vexp**, or their c
 - Press **P** to search for a part, **Enter** to select it for placement, or **F** to fit the schematic.
 - A crossing joins only at an explicit junction or an electrical endpoint. A shared net label connects matching names. Ground maps to SPICE node 0.
 - Choose an analysis in Properties and configure it with **Profile**. **Run** generates a frozen project snapshot, a plain schematic netlist, and a solver input deck. Each job keeps its waveform, logs, and status in a unique run directory.
-- Use the **Simulation** menu to create or duplicate named profiles, including DC source sweeps, and reopen prior results and logs through **Run history**.
+- Use the **Simulation** menu to create or duplicate named profiles, including DC source sweeps, and reopen prior results and logs through **Simulation → Session History…**.
 - Use **Markers → Voltage** on a wire or pin, **Differential voltage** on the positive and negative nodes in that order, or **Current into pin** on a device terminal. Marked signals appear automatically on the next run. Use the same menu to hide, remove, or clear markers. Voltage markers are anchored to sheet positions, so check them after rewiring.
 - Use **View → Theme** to choose System, Light, or Dark. The desktop remembers your choice. Open **View → Measurement markers** to select markers from the list, or click them on the schematic in **Select** mode. Shift-click to select multiple markers, press **Delete** to remove them, and use **Undo** to restore them.
 - Operating-point runs label the schematic with node voltages and current arrows. The **Readings** panel lists the same values and directions. Select a reading to highlight its net on the schematic. Current readings also mark the measured terminal. Use **View → Show schematic readings** to toggle the labels. Operating-point and DC sweep results keep the schematic in view. Use **Simulation → Show plot** to open the result.
@@ -39,29 +50,39 @@ The destination schematic embeds the reusable block and its dependencies. You ca
 
 ### Build and export a plot
 
-- Use **Add subplot** and choose **Stacked** or **Two columns** to arrange plots on the same tab. Click a graph to make its subplot active. The **Plot 1**, **Plot 2**, etc. selector controls where expressions are inserted and which plot is exported or removed. Each subplot has its own traces, colors, display mode, and labels.
+- Use **Add subplot** and choose **Stacked** or **Two columns** to arrange plots on the same tab. Click a graph to make it active and bring its controls into the shared toolbar. Choose **Focus plot** to fill the pane with the active graph. Toggle it off to resume comparing subplots. The **Plot 1**, **Plot 2**, etc. selector controls where expressions are inserted and which plot is exported or removed. Each subplot has its own traces, colors, display mode, and labels.
 - Click or drag near a trace, then use **Pin on graph** to save the cursor's last sample. For manual placement, select a trace and use **Pin by X** to enter a coordinate and optional label.
 - Use **Fit data** to clear manual limits and zoom. Scroll over the graph or use the right-side **+**, **−**, and slider to zoom from 25% to 800%. **Fit data** returns to 100%. **Axis limits** provides per-axis fit, manual ranges, engineering suffixes, tick count and precision, and linear or logarithmic X. Choose **Linear** for a range that starts at zero.
 - To inspect a **V–I curve**, select the device voltage as **X signal** and the device or pin current as the trace. The plot, cursor, pins, and exports use those coordinates.
+- For a bandwidth measurement, open **Cursor setup…**, select A, and enter the lower cutoff X coordinate or select its pin. Repeat for B at the upper cutoff. The readout gives ΔX in the plotted X-axis units. Use **Arrow keys move** and **Step (samples)** for keyboard navigation.
+- Add a vertical guide with `F_l = vline(81.370)` or `F_l = [81.370, 0]`. Use `hline(y)` for a horizontal guide or `point(x, y)` for a point. Use `minus3db(v(out))` for a half-power level in linear magnitude and `minus3db_db(db(v(out)))` for a peak-relative level on a dB trace.
 - Choose a marker shape before pinning a sample. In **Appearance**, edit the selected trace's line pattern, width, and color, change the title and axis names, or choose plot and grid colors.
 - Use the lower expression box to create as many derived traces as needed, one at a time. For example, enter `gain = db(v(out) / v(in))`, `double = multiply(v(out), 2)`, or `log_frequency = log10(frequency)`. Functions include `log`, `ln`, `loge` (natural log), `log10`, `db` (20 log₁₀ of magnitude), `abs`, `mag`, `real`, `imag`, `phase` (degrees), `sqrt`, `exp`, `sin`, `cos`, `pow`, and `multiply`. Undefined samples are shown as gaps. Use `trace("signal name")` for a signal name containing spaces or punctuation.
 - **Export plot** writes the selected subplot. **Export page** writes every subplot in the current tab. Choose PNG or PDF in the save dialog. PDF reports contain up to two rows of plots per physical page. Exports include the current trace colors, labels, pins, and cursor. Choose **Save layout for active profile** to reuse plot settings when rerunning the analysis.
 
 ### Parameterized designs and simulation studies
 
-- Open **Edit > Design variables** to define named expressions such as `{"BASE":"1k","LOAD":"2 * BASE"}`. Enter `{LOAD}` as a passive value. Select a reusable block and use **Edit > Instance parameters** to override its exposed variables for that instance.
-- In **Analysis setup**, select one or more analyses. A component sweep can vary a passive reference, a design variable such as `$LOAD`, or `@temperature`. Add a second target to run every combination, up to 64. Each run saves a `dataset.json` manifest with the analysis mode, axis, vectors, units, sample count and sweep values.
-- **Analysis setup** offers noise density, pole-zero and DC sensitivity referenced to ground, Fourier of a selected transient node, and small-signal distortion. Fourier harmonics and THD appear in the solver log. The distortion plot displays the final spectrum written by ngspice.
-- The part library includes controlled and behavioral sources and XSPICE gates with analog inputs and outputs. For current-controlled sources, enter the sensing voltage-source reference and gain, such as `V1 2`. Behavioral values use `V=` or `I=` followed by an expression, such as `V=2*v(in)`. In **Simulation > Simulation options**, use `{"couplings":[["L1","L2","0.99"]]}` to couple a transformer’s two inductors. The same editor accepts temperature, initial conditions, node sets, and solver tolerances. Imported model libraries can follow relative includes within the selected library directory.
+- Open **Edit > Design variables** to add `BASE` with value `1k` and `LOAD` with expression `2 * BASE` in the table. Enter `{LOAD}` as a passive value. Select a reusable block and use **Edit > Instance parameters** to override its exposed variables for that instance.
+- In **Analysis setup**, select one or more analyses. A component sweep can vary a passive reference, a design variable such as `$LOAD`, or `@temperature`. For a **Value list**, enter comma-separated values such as `0.5u, 1u, 3u`. For a **Linear range** or **Logarithmic range**, enter start, end, and point count, such as `0.5u, 3u, 10`. Add a second target to run every combination, up to 64. Each run saves a `dataset.json` manifest with the analysis mode, axis, vectors, units, sample count and sweep values.
+- **Analysis setup** offers noise density, pole-zero and DC sensitivity referenced to ground, Fourier of a selected transient node, and small-signal distortion. Fourier opens a spectrum graph and a separate harmonics table with THD. The distortion plot displays the final spectrum written by ngspice.
+- The part library includes controlled and behavioral sources and XSPICE gates with analog inputs and outputs. For current-controlled sources, enter the sensing voltage-source reference and gain, such as `V1 2`. Behavioral values use `V=` or `I=` followed by an expression, such as `V=2*v(in)`. In **Simulation > Simulation options**, add an **Inductor coupling** row, select `L1` and `L2`, and enter a coefficient such as `0.99`. The same editor accepts temperature, initial conditions, node sets, and solver tolerances. Imported model libraries can follow relative includes within the selected library directory.
 - **Simulation > Design studies** includes a live tuning slider with Apply and Cancel, seeded Monte Carlo with a yield window, and bounded grid optimization. Each study varies one parameter. Yield and optimization use the selected signal’s final sample. Completed studies appear in **Session History** and retain their settings, results and solver errors.
 
-**Automatic waveform measurements** saves named metrics with the schematic. Select a metric, enter a result vector and optional X bounds, and run an analysis or nested sweep. The run log and each run's `dataset.json` show the calculated values or the reason a reading is unavailable. **DC Transfer Function** in Analysis Setup reports the small-signal gain, input impedance and output impedance for the selected source and node.
+**Automatic waveform measurements** saves named metrics with the schematic. Select a metric and signal from the dropdown, then review or edit the prefilled X bounds, and run an analysis or nested sweep. The run log and each run's `dataset.json` show the calculated values or the reason a reading is unavailable. **DC Transfer Function** in Analysis Setup reports the small-signal gain, input impedance and output impedance for the selected source and node.
 
 ### Numerical waveform analysis
 
 The plot function menu includes `derivative(v(out))` for slew rate, `cumintegral(i(V1))` for accumulated charge, `unwrap(phase(v(out)))` for continuous phase in degrees, and `groupdelay(v(out)/v(in))` for group delay in seconds on a frequency sweep. Differentiation and integration use the simulation's original X values, including uneven spacing. Unwrapping assumes adjacent phase samples differ by less than 180° before wrapping. Cumulative integration skips gaps and resumes from the last total. Use the plot's linear X scale to inspect DC-inclusive spectra or the logarithmic scale for wide frequency ranges.
 
-**Measure waveform** also offers signed slope extrema, mean slope and absolute integral. When both −3 dB edges are visible, it can report geometric center frequency and loaded Q. RMS continues to weight each sample equally.
+**Measure waveform** also offers signed slope extrema, mean slope and absolute integral. When both −3 dB edges are visible, it can report geometric center frequency and loaded Q. **RMS** weights each sample equally, matching the `RMS()` expression. The optional RMS annotation marks one visible crossing. Confirmed measurements appear in Diagnostics and Results.
+
+### Inspect the schematic and simulation output
+
+Open **View → Inserted components** to select a part and highlight it on the schematic. In **Properties → Selection appearance…**, adjust a selected part’s label visibility, size, colors, or orientation. Select a marker to name it, rotate or mirror its pointer, and set its appearance. Select a text annotation to edit the content and apply bold or italic. Labels can be repositioned by dragging.
+
+Double-click a node in **Readings** to edit its display name. Circuit connectivity and SPICE node identifiers use the underlying net name.
+
+**Diagnostics** shows the run name, analysis settings, solver messages, failures, and selected readings. **Results** shows scalar values, Fourier harmonics, measurements, and a waveform channel summary. Both panes have a **Clear** button. Open a plot or export CSV to inspect the full waveform samples.
 
 ## Tests
 
@@ -91,16 +112,19 @@ Use 64-bit Python 3.15 and install `requirements-build.txt`. Run `.\build-window
 
 Open **Simulation → Simulation studies** or use **Simulation studies** in the plot window.
 
-- Click a trace, press **Set A**, then click or drag to position B. The readout gives the differences and, on a time axis, the reciprocal time difference. **Cursor** hides both lines for printing. **Save layout for active profile** stores the current page in the schematic. Save the project to keep it across sessions.
+- Click a trace and press **Set A** to anchor it. Press **Set B**, then click or drag on the trace to lock B. The readout gives the differences and, on a time axis, the reciprocal time difference. **Cursor** hides both lines for printing. **Save layout for active profile** stores the current page in the schematic. Save the project to keep it across sessions.
 - **Measure waveform** uses a selected interval and can pin the contributing samples. **Frequency spectrum** resamples transient data onto a uniform grid and uses a Hann window. Its distortion estimate assumes a bin-centered fundamental that is the strongest tone. The window should contain several whole periods of the settled signal.
 - **Analysis → Analysis setup** enables several analyses for one Run. Click a profile to edit its settings, or enable **Parametric Sweep**, select a base analysis and enter component values. Each job saves its snapshot, netlist, waveform and logs under **Simulation Runs** beside the schematic (in the user home folder for unsaved projects).
-- Use **Set A** on the first sample and **Set B** to place the second. Trace expressions accept RMS, MAX, MIN and MEAN over finite samples. **Measure waveform** lets you select statistics for an interval.
 - Use **View → Canvas dots**, **Draw → Text annotation** and **File → Export → Schematic diagram** to prepare PNG or PDF diagrams.
 - **Compare saved runs** overlays a common signal and lists value or profile changes. **Show operating-point power** annotates the schematic with signed watts. **Transient component power** plots instantaneous absorbed power and measures its average and peak over the chosen interval.
-- **Export simulation report** writes a PDF from the selected result's schematic snapshot, profile, component values, subplots and measurement summary.
+- **Export simulation report** opens a section picker. Choose the schematic and settings, operating-point readings when available, visible plot pages, and optional pinned data. The A4 PDF uses the selected run’s snapshot and the current plot presentation.
 - In **Draw**, use **Schematic diagnostics** to locate connection problems. Use **Add part revision to library** to archive a reusable block in a folder, then **Browse reusable part library** to search and preview revisions before importing. Double-click an embedded schematic block to inspect its internal circuit and follow nested instances. The designer summarizes external pins, electrical nets and shared connections.
 
-## Desktop v0.3 beta plot controls
+## Earlier desktop updates
+
+The notes below document earlier releases. Use the workflows above for the current controls.
+
+### Desktop v0.3 beta plot controls
 
 Use **File → Examples** for the built-in circuits, **File → Export** for schematic diagrams, active plots, plot pages and CSV data, and **Import** for models, reusable parts and saved waveforms.
 
@@ -108,7 +132,7 @@ Click a waveform and use the left and right arrows to step through samples. **Se
 
 The expression bar accepts typed formulas, offers the supported math functions, and can insert a selected or typed variable name. Press Enter to add the expression to the current subplot. After closing the last plot page, **Add plot page** can reopen its waveform.
 
-## Desktop v0.4 beta
+### Desktop v0.4 beta
 
 Analysis Setup controls the selections shown in the toolbar. Transient profiles accept a start time. A parametric batch produces one summary of the final sample versus component value. Use **Sweep runs** to open an individual waveform.
 
@@ -118,19 +142,19 @@ Open **Simulation → Session History** for a maximized tree or **View → Sessi
 
 Select or drag annotation text on the canvas and press Delete to remove it. **Label appearance** in Edit and Properties works with annotations and component symbols. **Show schematic readings** toggles the net labels and operating-point overlay. Use the power marker on a two-terminal component. Positive watts indicate absorption and negative watts indicate delivery. AC uses average real power for peak-amplitude phasors.
 
-## Desktop v0.4.2 beta
+### Desktop v0.4.2 beta
 
 Power markers use lowercase **p**. Marker units are W for power, V for voltage and A for current. The schematic shows SI-scaled values after a matching operating-point run, and plot readouts show scaled values when inspecting samples.
 
 In either session tree, Ctrl-click or Shift-click to select multiple runs or sessions. Press **Delete** or choose **Delete selected** and confirm. Deleting a session removes its saved runs. **Sweep runs** shows a table with component value, base analysis and session. **Saved waveforms** lists available runs for the current schematic. History and plot tabs use descriptive display labels while retaining the existing run directories.
 
-## Desktop v0.4.3 beta
+### Desktop v0.4.3 beta
 
 Drag a component or marker label in Select mode to reposition it. Labels start to the left. Select a part, marker or annotation and use **Label appearance** in Properties or Edit for text size and color. Parts have separate reference and value toggles. Markers can hide their ID or measurement and use filled or hollow points.
 
 A denser plot grid adds axis ticks. The cursor guide dropdown offers vertical, horizontal or both directions, and the readout shows A, B and their differences. **Appearance → Chart text** controls the plot font. **Pinned points** controls per-point label size, text color and fill.
 
-## Desktop v0.4.5 beta
+### Desktop v0.4.5 beta
 
 **Intersections** asks for a maximum count and inserts up to that many new crossings inside the displayed axes. **Measure waveform** uses the active subplot, its axis assignments and its displayed trace values. Measurement pins use visible samples and honor a maximum count. Use Ctrl-click or Shift-click in **Pinned points** to select several pins, then press Delete, or use **Delete all**.
 
@@ -150,7 +174,7 @@ Edit **CircuitBench.qss** to change the shared Qt widget rules and the light and
 
 In **Source parameters**, the checkbox next to each input controls its canvas label. Changing one switches the source from its compact value string to individual labels. DC bias, AC magnitude, AC phase, waveform type and each waveform input can be shown independently.
 
-For any part, open **Properties → Label appearance** and enable **Show individual parameters** to choose fields. Available fields include passive values and stored model or subcircuit parameters. Turn off **Show parameters** to hide the whole group or turn off **Show individual parameters** to restore the compact label. Drag individual labels in Select mode. Visibility and placement are saved per component.
+For any part, open **Properties → Selection appearance…** and enable **Show individual parameters** to choose fields. Available fields include passive values and stored model or subcircuit parameters. Turn off **Show parameters** to hide the whole group or turn off **Show individual parameters** to restore the compact label. Drag individual labels in Select mode. Visibility and placement are saved per component.
 
 ### Accent color
 

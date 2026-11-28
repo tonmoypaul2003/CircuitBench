@@ -788,3 +788,10 @@ entries for substantive historical mistakes.
     the existing detailed instructions in USER-GUIDE.md. Verified
     local link targets and the release download destination.
     No application or file format changes. Delivery: GitHub main.
+
+2026-11-28 — Public user guide updated for v0.5.3 beta
+    Added the current download and release notes at the top. Updated
+    plot, sweep, report, schematic and output instructions to match
+    the current desktop controls. Retained earlier release notes
+    under a historical heading. No application or format changes.
+    Delivery: documentation for GitHub main.
