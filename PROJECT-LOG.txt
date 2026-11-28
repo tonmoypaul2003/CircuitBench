@@ -567,3 +567,13 @@ entries for substantive historical mistakes.
     labels, accent save/reset and both palettes. Packaged smoke passed
     and root and versioned hashes match. Delivery: local builds and
     source prepared for GitHub main.
+
+2026-11-28 — Desktop Qucs capability study
+    Compared the supplied Qucs 0.0.19 Win32 package with pinned Qucs-S
+    source f296489 and the current CircuitBench Desktop capabilities.
+    Documented simulator workflows, 45 feature areas and a staged roadmap
+    in reference/QUCS-FEATURE-STUDY.md. Verified source references against
+    the pinned checkout and bound the legacy binary by REA SHA-256.
+    Native enumeration was unavailable and the legacy solver failed to
+    launch on this Windows host. No simulation behavior or CWB migration
+    changes. Delivery: documentation prepared for GitHub main.
