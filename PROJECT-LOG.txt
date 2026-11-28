@@ -763,3 +763,11 @@ entries for substantive historical mistakes.
     narrower windows. Saved projects and plot layouts need no migration.
     Passed 78 desktop tests, Windows layout checks and packaged smoke.
     Delivery: matching local v0.5.3 beta executables and source for main.
+
+2026-11-28 — Desktop simulation toolbar spacing
+    Moved the run-history controls to the right edge of the heading.
+    Pin and cursor controls share the trace row on wide windows.
+    Axis controls remain grouped. Tool groups wrap on narrow windows.
+    No project or saved plot migration. Passed 78 desktop tests,
+    wide and narrow Windows layout checks, and the packaged smoke.
+    Delivery: matching local v0.5.3 beta executables and source for main.

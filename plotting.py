@@ -554,28 +554,41 @@ class Waveform(QWidget):
 
 
 class ToolbarGroups(QWidget):
-    """Lay out two groups side by side when their controls fit."""
-    def __init__(self, left, right):
+    """Keep toolbar groups compact and wrap on narrow windows."""
+    def __init__(self, left, right, trailing=None):
         super().__init__()
         self.setSizePolicy(QSizePolicy.Policy.Expanding,QSizePolicy.Policy.Maximum)
-        self.left, self.right = left, right
-        self.groups = QBoxLayout(QBoxLayout.Direction.TopToBottom,self)
+        self.left, self.right, self.trailing = left, right, trailing
+        self.groups = QGridLayout(self)
         self.groups.setContentsMargins(0,0,0,0)
         self.groups.setSpacing(8)
-        self.groups.addWidget(left)
-        self.groups.addWidget(right)
+        self.wide = None
+        self.arrange(False)
 
     def minimumSizeHint(self):
-        return QSize(max(self.left.minimumSizeHint().width(),self.right.minimumSizeHint().width()),
-                     self.groups.minimumSize().height())
+        width = max(self.left.minimumSizeHint().width(),self.right.minimumSizeHint().width())
+        if self.trailing is not None:
+            width = max(width,self.left.minimumSizeHint().width()+self.trailing.minimumSizeHint().width()+8)
+        return QSize(width,self.groups.minimumSize().height())
+
+    def arrange(self, wide):
+        self.wide = wide
+        self.groups.addWidget(self.left,0,0,alignment=Qt.AlignmentFlag.AlignTop)
+        self.groups.addWidget(self.right,0 if wide else 1,1 if wide else 0,
+                              1,1 if wide else 3,alignment=Qt.AlignmentFlag.AlignTop)
+        if self.trailing is not None:
+            self.groups.addWidget(self.trailing,0,2)
+        self.groups.setColumnStretch(0,0 if wide else 1)
+        self.groups.setColumnStretch(1,1 if wide else 0)
+        self.updateGeometry()
 
     def resizeEvent(self,event):
-        needed = self.left.sizeHint().width()+self.right.sizeHint().width()+self.groups.spacing()
-        direction = (QBoxLayout.Direction.LeftToRight if event.size().width()>=needed
-                     else QBoxLayout.Direction.TopToBottom)
-        if direction!=self.groups.direction():
-            self.groups.setDirection(direction)
-            self.updateGeometry()
+        needed = self.left.sizeHint().width()+self.right.sizeHint().width()+8
+        if self.trailing is not None:
+            needed += self.trailing.sizeHint().width()+8
+        wide = event.size().width()>=needed
+        if wide!=self.wide:
+            self.arrange(wide)
         super().resizeEvent(event)
 
 
@@ -691,7 +704,6 @@ class PlotPage(QWidget):
         left_layout = QVBoxLayout(left_tools)
         left_layout.setContentsMargins(0,0,0,0)
         left_layout.addLayout(toolbar)
-        left_layout.addStretch()
         right_tools = QWidget()
         right_layout = QVBoxLayout(right_tools)
         right_layout.setContentsMargins(0,0,0,0)
@@ -711,7 +723,7 @@ class PlotPage(QWidget):
         for button in (self.limits_button, fit, appearance, self.grid_button):
             graph_tools.addWidget(button)
         graph_tools.addStretch()
-        right_layout.addLayout(graph_tools)
+        left_layout.addLayout(graph_tools)
         pin_tools = QHBoxLayout()
         for item in (self.cursor_button, self.auto_pin_button, self.pin_shape, pin, remove_pin):
             pin_tools.addWidget(item)

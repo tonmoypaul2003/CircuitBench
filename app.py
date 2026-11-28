@@ -324,11 +324,14 @@ class Editor(QMainWindow):
         controls.addWidget(studies_button)
         for control in (button,close_page,studies_button):
             control.setAutoDefault(False)
-        controls.addStretch()
+        history_tools = QWidget()
+        history_layout = QHBoxLayout(history_tools)
+        history_layout.setContentsMargins(0,0,0,0)
+        history_layout.addStretch()
         self.plot_page_tools = QStackedWidget()
         self.empty_plot_page_tools = QWidget()
         self.plot_page_tools.addWidget(self.empty_plot_page_tools)
-        plots_layout.addWidget(ToolbarGroups(global_tools,self.plot_page_tools))
+        plots_layout.addWidget(ToolbarGroups(global_tools,self.plot_page_tools,history_tools))
         self.plot_pages = QTabWidget()
         self.plot_pages.setTabsClosable(True)
         self.plot_pages.currentChanged.connect(self.sync_plot_page_tools)
@@ -364,7 +367,7 @@ class Editor(QMainWindow):
         tools.addAction(self.bias_action)
         self.action(edit,"Voltage label appearance…","",self.edit_voltage_labels)
         from desktop04 import install
-        install(self,view,edit,simulation,controls)
+        install(self,view,edit,simulation,history_layout)
         self.output_dock = self.dock("Simulation output", self.tabs, Qt.DockWidgetArea.BottomDockWidgetArea)
         view.addSeparator()
         for panel in (self.library_dock, self.properties_dock, self.component_dock, self.marker_dock, self.bias_dock, self.output_dock):
