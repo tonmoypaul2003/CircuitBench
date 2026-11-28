@@ -15,6 +15,7 @@ from PyQt6.QtWidgets import (QDialog, QDialogButtonBox, QCheckBox, QFileDialog, 
                              QMessageBox, QPushButton, QProgressDialog,
                              QSlider, QVBoxLayout)
 
+from plot_math import linear_square_integral
 from circuit import Project, connectivity, netlist, number, reusable_subcircuit
 from results import Plot, analysis_deck, load_plot
 from subcircuit_designer import SourcePreview
@@ -387,7 +388,7 @@ def measurements(editor,spectrum=False):
     start_point = min(points)
     end_point = max(points)
     span = sum(b[0]-a[0] for a,b in segments)
-    energy = sum((b-a)*(u*u+u*v+v*v)/3 for (a,u,_),(b,v,_) in segments)
+    energy = sum(linear_square_integral(b-a,u,v) for (a,u,_),(b,v,_) in segments)
     integral = sum((b-a)*(u+v)/2 for (a,u,_),(b,v,_) in segments)
     mean = integral/span
     rms = math.sqrt(energy/span)

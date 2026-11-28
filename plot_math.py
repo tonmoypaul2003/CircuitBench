@@ -1,6 +1,7 @@
 """Evaluate numeric expressions over simulation samples."""
 import ast
 import cmath
+from itertools import pairwise
 import math
 import operator
 import re
@@ -23,6 +24,22 @@ FUNCTIONS = {
 OPERATORS = {ast.Add: operator.add, ast.Sub: operator.sub, ast.Mult: operator.mul,
              ast.Div: operator.truediv, ast.Pow: _power}
 SIGNAL_CALL = re.compile(r'''"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|\b([vi])\(\s*([\w.#-]+)\s*\)''', re.I)
+
+
+def linear_square_integral(width, first, last):
+    return width*(first*first+first*last+last*last)/3
+
+
+def level_crossings(xs, ys, level, lower, upper):
+    previous = None
+    for (x0,y0),(x1,y1) in pairwise(zip(xs,ys)):
+        if not all(math.isfinite(v) for v in (x0,x1,y0,y1)) or y0==y1:
+            continue
+        if min(y0,y1)<=level<=max(y0,y1):
+            x = x0+(x1-x0)*(level-y0)/(y1-y0)
+            if lower<=x<=upper and x!=previous:
+                previous = x
+                yield x
 
 
 def evaluate(expression, plot):
@@ -69,21 +86,32 @@ def evaluate(expression, plot):
                     return signal(f"{name}({key.id})")
                 if isinstance(key, ast.Constant) and type(key.value) in (str, int):
                     return signal(str(key.value) if name == "trace" else f"{name}({key.value})")
-            if name in ("rms","max","min","mean") and len(node.args)==1:
+            if name in ("rms","samplerms","max","min","mean") and len(node.args)==1:
                 operand = compile_node(node.args[0])
-                values = []
+                points = []
                 for row in plot.rows:
                     try:
                         z = complex(operand(row))
-                        value = abs(z) if z.imag or name=="rms" else z.real
-                        if math.isfinite(value):
-                            values.append(value)
+                        value = abs(z) if z.imag else z.real
                     except (ValueError,ArithmeticError):
-                        continue
+                        value = math.nan
+                    points.append((row[0].real,value))
+                values = [value for _,value in points if math.isfinite(value)]
                 if not values:
                     raise ValueError("No finite samples for "+name)
-                result = (math.sqrt(sum(v*v for v in values)/len(values)) if name=="rms" else
-                          sum(values)/len(values) if name=="mean" else (max if name=="max" else min)(values))
+                if name in ("rms","samplerms"):
+                    width = energy = 0.
+                    if name=="rms":
+                        for (x0,y0),(x1,y1) in pairwise(points):
+                            if all(math.isfinite(v) for v in (x0,y0,x1,y1)):
+                                step = abs(x1-x0)
+                                width += step
+                                energy += linear_square_integral(step,y0,y1)
+                    result = math.sqrt(energy/width if width else sum(v*v for v in values)/len(values))
+                elif name=="mean":
+                    result = sum(values)/len(values)
+                else:
+                    result = (max if name=="max" else min)(values)
                 return lambda row: result
             if name in FUNCTIONS and len(node.args) == (2 if name in ("pow", "multiply") else 1):
                 function = FUNCTIONS[name]

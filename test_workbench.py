@@ -9,7 +9,7 @@ import unittest
 
 from circuit import Part, Profile, Project, connectivity, example, netlist, number, source_value
 from results import Plot, analysis_deck, load_plot, named_measurements
-from plot_math import evaluate
+from plot_math import evaluate, level_crossings
 from qucs_library import import_diodes
 from spice_library import read_library, read_subcircuits
 
@@ -96,6 +96,15 @@ class CircuitTests(unittest.TestCase):
         self.assertTrue(reopened.parts[0].legacy_pin_layout)
         self.assertEqual(netlist(reopened), previous_deck)
         self.assertEqual(netlist(Project.load(reopened.dump())), previous_deck)
+
+    def test_rms_weights_irregular_x_and_crossings_follow_display_coordinates(self):
+        plot = Plot("AC",["frequency","p"],["frequency","power"],[[1,0],[10,2],[100,2]])
+        self.assertAlmostEqual(evaluate("RMS(p)",plot)[0].real,(372/99)**.5)
+        self.assertAlmostEqual(evaluate("SampleRMS(p)",plot)[0].real,(8/3)**.5)
+        signed = Plot("Transient",["time","y"],["time","voltage"],[[0,-1],[1,1]])
+        self.assertAlmostEqual(evaluate("RMS(y)",signed)[0].real,1/math.sqrt(3))
+        self.assertEqual(list(level_crossings([0,1,2],[0,2,0],1,0,2)),[.5,1.5])
+        self.assertEqual(list(level_crossings([0,1,2],[0,2,0],3,0,2)),[])
 
     def test_plot_expressions(self):
         plot = Plot("AC", ["frequency", "v(out)"], ["frequency", "voltage"],

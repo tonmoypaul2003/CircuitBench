@@ -10,7 +10,7 @@ from PyQt6.QtWidgets import (QApplication, QAbstractItemView, QColorDialog, QCom
                              QVBoxLayout, QWidget)
 
 from circuit import number
-from plot_math import evaluate, FUNCTIONS
+from plot_math import FUNCTIONS, evaluate, level_crossings
 from results import Plot
 from canvas import engineering
 from desktop_theme import desktop_colors
@@ -455,7 +455,8 @@ class Waveform(QWidget):
                 lo,hi = max(lo,xmin),min(hi,xmax)
                 if lo>hi:
                     continue
-                px = (lo+hi)/2
+                crossings = list(level_crossings(xs,series,value,lo,hi))
+                px = crossings[0] if crossings else lo
             if not (xmin <= px <= xmax and ymin <= value <= ymax):
                 continue
             point = location(px, value)
@@ -473,14 +474,21 @@ class Waveform(QWidget):
                 painter.setPen(QPen(painter.pen().color(),1.5))
             shape = self.pin_shapes[pin_index] if pin_index < len(self.pin_shapes) else "Circle"
             painter.setBrush(painter.pen().color() if fill else Qt.BrushStyle.NoBrush)
-            self.draw_pin(painter, point, shape)
+            if level is None:
+                self.draw_pin(painter, point, shape)
+            else:
+                for crossing in crossings:
+                    marker = location(crossing,value)
+                    self.draw_pin(painter,marker,shape)
+                    if not report:
+                        self.pin_hits.append((pin_index,QRectF(marker.x()-8,marker.y()-8,16,16)))
             painter.setBrush(Qt.BrushStyle.NoBrush)
             if text_color:
                 painter.setPen(QColor(text_color))
             x = 10**px if logarithmic else px
             text = (f"{label} = {value:.{max(4,digits)}g}" if level is not None
                     else f"{label or self.plot.names[column]} ({x:.{digits}f}, {value:.{digits}f})")
-            if not report:
+            if not report and level is None:
                 self.pin_hits.append((pin_index,QRectF(point.x()-8,point.y()-8,16,16)))
             text = metrics.elidedText(text, Qt.TextElideMode.ElideRight, max(30, right-left-12))
             text_width = metrics.horizontalAdvance(text)
@@ -490,7 +498,8 @@ class Waveform(QWidget):
             if offset:
                 text_x = max(left+4,min(text_x+offset.x(),right-text_width-4))
                 text_y = max(top+metrics.ascent(),min(text_y+offset.y(),bottom))
-                painter.drawLine(point,QPointF(text_x,text_y))
+                if level is None or crossings:
+                    painter.drawLine(point,QPointF(text_x,text_y))
             label_box = QRectF(text_x-3,text_y-metrics.ascent(),text_width+6,metrics.height())
             if not report:
                 self.pin_hits.append((pin_index,label_box))
@@ -1205,7 +1214,7 @@ class PlotReportPage(QWidget):
         insert = QPushButton("Add expression")
         insert.clicked.connect(self.insert_expression)
         functions = QComboBox()
-        functions.addItems(["Function…","RMS","MAX","MIN","MEAN",*sorted(FUNCTIONS)])
+        functions.addItems(["Function…","RMS","SampleRMS","MAX","MIN","MEAN",*sorted(FUNCTIONS)])
         def insert_function(index):
             if index:
                 self.expression.insert(functions.itemText(index)+"()")

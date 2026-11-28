@@ -673,3 +673,14 @@ entries for substantive historical mistakes.
     All 74 desktop tests and the packaged Windows smoke test passed.
     Delivery: verified local v0.5.2 beta rebuild, root and versioned
     copies match. Source prepared for main.
+
+2026-11-28 — Desktop measurement intersections and RMS weighting
+    Measurement level guides now mark actual trace crossings in the
+    visible span. Guides without a crossing keep a label and line.
+    RMS() uses interval-weighted integration over the full dataset X
+    axis. SampleRMS() retains the previous equal-sample calculation.
+    Saved schematics require no migration. Saved RMS expressions now
+    use the interval-weighted calculation when evaluated.
+    Passed 75 desktop tests, Web engine regression and packaged smoke.
+    Verified packaged RMS code and matching root/versioned executable
+    copies. Delivery: local v0.5.2 beta rebuild and source for GitHub main.
