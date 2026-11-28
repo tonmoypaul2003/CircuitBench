@@ -596,3 +596,7 @@ entries for substantive historical mistakes.
     noise, manifest, model loading and PNG/PDF exports. Local versioned
     and root executables match. Verification is in BUILD-VERIFICATION.json.
     Delivery: local Windows build and source committed for GitHub main.
+
+2026-11-28 — Desktop v0.5.0 beta source delivery
+    Pushed the verified feature and test changes in commit 42bf287 to
+    CircuitBench main. The two matching Windows executables remain local.
