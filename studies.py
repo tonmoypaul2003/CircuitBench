@@ -387,14 +387,20 @@ def measurements(editor,spectrum=False):
     start_point = min(points)
     end_point = max(points)
     span = sum(b[0]-a[0] for a,b in segments)
+    energy = sum((b-a)*(u*u+u*v+v*v)/3 for (a,u,_),(b,v,_) in segments)
     integral = sum((b-a)*(u+v)/2 for (a,u,_),(b,v,_) in segments)
     mean = integral/span
-    rms = math.sqrt(sum((b-a)*(u*u+u*v+v*v)/3 for (a,u,_),(b,v,_) in segments)/span)
+    rms = math.sqrt(energy/span)
     metrics = {"Minimum":minimum[1],"Maximum":maximum[1],"Mean":mean,"RMS":rms,
                "Peak-to-peak":maximum[1]-minimum[1],"Absolute peak":max(abs(minimum[1]),abs(maximum[1])),
                "Standard deviation":math.sqrt(max(0,rms*rms-mean*mean)),
                "Integral":integral,"Sample count":sum(x_limits[0]<=x<=x_limits[1] and ymin<=y<=ymax
                                                       for x,y in zip(display_x,values))}
+    metrics.update({"Midrange":(minimum[1]+maximum[1])/2,
+                    "AC RMS":metrics["Standard deviation"],"Squared integral":energy})
+    if rms:
+        metrics["Crest factor"] = metrics["Absolute peak"]/rms
+
     def crossings(level, rising):
         for (x,u,i),(other_x,v,j) in segments:
             if u<=level<v if rising else u>=level>v:
@@ -411,6 +417,25 @@ def measurements(editor,spectrum=False):
         if high is not None:
             timing["10-90% rise (s)"] = [(low[1],"10%"),(high[1],"90%")]
             metrics["10-90% rise (s)"] = high[0]-low[0]
+        high_fall = next(crossings(minimum[1]+.9*swing,False),None)
+        low_fall = next((point for point in crossings(minimum[1]+.1*swing,False)
+                         if high_fall is not None and point[0]>=high_fall[0]),None)
+        if low_fall is not None:
+            timing["90-10% fall (s)"] = [(high_fall[1],"90% falling"),(low_fall[1],"10% falling")]
+            metrics["90-10% fall (s)"] = low_fall[0]-high_fall[0]
+        edges = iter(crossings(metrics["Midrange"],True))
+        first,second = next(edges,None),next(edges,None)
+        if first and second and second[0]>first[0]:
+            period = second[0]-first[0]
+            falling = next((point for point in crossings(metrics["Midrange"],False)
+                            if first[0]<point[0]<second[0]),None)
+            markers = [(first[1],"Cycle start"),(second[1],"Next cycle")]
+            for key,value in (("Period (s)",period),("Frequency (Hz)",1/period)):
+                timing[key] = markers
+                metrics[key] = value
+            if falling:
+                timing["Duty cycle (%)"] = [markers[0],(falling[1],"Falling edge"),markers[1]]
+                metrics["Duty cycle (%)"] = 100*(falling[0]-first[0])/period
     elif axis=="frequency" and p.units[c]!="expression" and sub.wave.presentation!=1:
         peak = maximum[1]
         threshold = peak-20*math.log10(math.sqrt(2)) if sub.wave.presentation==2 else peak/math.sqrt(2)
@@ -432,25 +457,38 @@ def measurements(editor,spectrum=False):
     layout.addWidget(buttons)
     if not dialog.exec():
         return
+    if not any(check.isChecked() for check in checks.values()):
+        return
     text = f"{name} [{start_point[0]:.6g}, {end_point[0]:.6g}]  " + ", ".join(
         f"{key}: {value:.7g}" for key,value in metrics.items() if checks[key].isChecked())
     page.message.setText(text)
-    pins = [(point[2], key) for key,point in (("Minimum",minimum),("Maximum",maximum))
-            if checks[key].isChecked()]
-    for key,markers in timing.items():
+    peak = max((minimum,maximum),key=lambda point:abs(point[1]))
+    point_metrics = (("Minimum",minimum),("Maximum",maximum),("Absolute peak",peak))
+    pins = [(point[2],key,None) for key,point in point_metrics if checks[key].isChecked()]
+    if checks["Peak-to-peak"].isChecked():
+        pins.extend((point[2],label,None) for point,label in ((minimum,"Peak-to-peak low"),(maximum,"Peak-to-peak high")))
+    for key,matches in timing.items():
         if checks[key].isChecked():
-            pins.extend(markers)
-    pins.extend([(start_point[2],"Start"),(end_point[2],"End")])
-    if QMessageBox.question(editor,"Measurement",text+"\nMark contributing samples on the plot?")==QMessageBox.StandardButton.Yes:
-        limit,ok = QInputDialog.getInt(editor,"Measure waveform","Maximum points to add",len(pins),1,10000)
+            pins.extend((index,label,None) for index,label in matches)
+    anchor = min(points,key=lambda point:abs(point[0]-(lo+hi)/2))
+    for key in ("Mean","RMS","Midrange","AC RMS"):
+        if checks[key].isChecked():
+            pins.append((anchor[2],key,(metrics[key],lo,hi,sub.wave.x_column,sub.wave.presentation)))
+    if pins and QMessageBox.question(editor,"Measurement",text+"\nAdd the selected measurements to the plot?")==QMessageBox.StandardButton.Yes:
+        limit,ok = QInputDialog.getInt(editor,"Measure waveform","Maximum annotations to add",len(pins),1,10000)
         if ok:
-            existing = {(column,sample) for column,sample,_ in sub.wave.pins}
+            w = sub.wave
+            existing = {(column,sample,entry,w.pin_levels[row]) if row in w.pin_levels else (column,sample)
+                        for row,(column,sample,entry) in enumerate(w.pins)}
             added = 0
-            for index,label in pins:
-                if (c,index) not in existing:
-                    existing.add((c,index))
-                    sub.wave.pins.append((c,index,label))
-                    sub.wave.pin_shapes.append(sub.pin_shape.currentText())
+            for index,label,level in pins:
+                identity = (c,index,label,level) if level is not None else (c,index)
+                if identity not in existing:
+                    existing.add(identity)
+                    if level is not None:
+                        w.pin_levels[len(w.pins)] = level
+                    w.pins.append((c,index,label))
+                    w.pin_shapes.append(sub.pin_shape.currentText())
                     added += 1
                     if added>=limit:
                         break
@@ -521,7 +559,11 @@ def report(editor):
             if "Data points" in sections:
                 content.append("<p>"+html.escape(page.message.text())+"</p>")
                 for sub in page.subplots:
-                    for col,sample,label in sub.wave.pins:
+                    for index,(col,sample,label) in enumerate(sub.wave.pins):
+                        if index in sub.wave.pin_levels:
+                            value,lo,hi,_,_ = sub.wave.pin_levels[index]
+                            content.append(f"<p>{html.escape(label)} = {value:.8g} [{lo:.8g}, {hi:.8g}]</p>")
+                            continue
                         j = int(sample)
                         frac = sample-j
                         row = page.plot.rows[j]

@@ -652,3 +652,13 @@ entries for substantive historical mistakes.
     Windows binary. Verified the release is Latest and the asset SHA-256
     matches the versioned executable. Both build copies remain ignored.
     https://github.com/tonmoypaul2003/CircuitBench/releases/tag/v0.5.2-beta
+
+2026-11-28 — Desktop waveform measurement annotations and techniques
+    Removed automatic Start and End pins. Selected scalar levels such as
+    RMS and mean use labeled horizontal annotations. Point and timing
+    annotations follow the selected metrics. Added AC RMS, midrange,
+    squared integral, crest factor, fall time, period, frequency and
+    duty cycle. Existing projects require no migration.
+    All 73 desktop tests passed, including RMS-only AC and timed cycles.
+    The packaged smoke test passed and both local EXE copies match.
+    Delivery: local v0.5.2 beta rebuild and source prepared for GitHub main.

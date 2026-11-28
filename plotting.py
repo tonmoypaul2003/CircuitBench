@@ -45,6 +45,7 @@ class Waveform(QWidget):
         self.pin_text = {}
         self.pin_hits = []
         self.pin_offsets = {}
+        self.pin_levels = {}
         self.pin_drag = None
         self.grid_color = None
         self.x_column = 0
@@ -428,6 +429,19 @@ class Waveform(QWidget):
             if frac:
                 px += frac*(xs[i+1]-px)
                 value += frac*(series[i+1]-value)
+            level = self.pin_levels.get(pin_index)
+            if level is not None:
+                value,lo,hi,axis,mode = level
+                if (axis,mode)!=(self.x_column,self.presentation):
+                    continue
+                if logarithmic:
+                    if lo<=0:
+                        continue
+                    lo,hi = math.log10(lo),math.log10(hi)
+                lo,hi = max(lo,xmin),min(hi,xmax)
+                if lo>hi:
+                    continue
+                px = (lo+hi)/2
             if not (xmin <= px <= xmax and ymin <= value <= ymax):
                 continue
             point = location(px, value)
@@ -439,6 +453,10 @@ class Waveform(QWidget):
             painter.setFont(pin_font)
             metrics = painter.fontMetrics()
             painter.setPen(QPen(QColor(color) if color else self.color(column, background), 1.5))
+            if level is not None:
+                painter.setPen(QPen(painter.pen().color(),1,Qt.PenStyle.DashLine))
+                painter.drawLine(location(lo,value),location(hi,value))
+                painter.setPen(QPen(painter.pen().color(),1.5))
             shape = self.pin_shapes[pin_index] if pin_index < len(self.pin_shapes) else "Circle"
             painter.setBrush(painter.pen().color() if fill else Qt.BrushStyle.NoBrush)
             self.draw_pin(painter, point, shape)
@@ -446,7 +464,8 @@ class Waveform(QWidget):
             if text_color:
                 painter.setPen(QColor(text_color))
             x = 10**px if logarithmic else px
-            text = f"{label or self.plot.names[column]} ({x:.{digits}f}, {value:.{digits}f})"
+            text = (f"{label} = {value:.{max(4,digits)}g}" if level is not None
+                    else f"{label or self.plot.names[column]} ({x:.{digits}f}, {value:.{digits}f})")
             if not report:
                 self.pin_hits.append((pin_index,QRectF(point.x()-8,point.y()-8,16,16)))
             text = metrics.elidedText(text, Qt.TextElideMode.ElideRight, max(30, right-left-12))
@@ -1046,7 +1065,7 @@ class PlotPage(QWidget):
         keep = [i for i in range(len(w.pins)) if i not in removed]
         w.pins = [w.pins[i] for i in keep]
         w.pin_shapes = [w.pin_shapes[i] if i<len(w.pin_shapes) else "Circle" for i in keep]
-        for field in ("pin_options","pin_offsets","pin_text"):
+        for field in ("pin_options","pin_offsets","pin_text","pin_levels"):
             values = getattr(w,field)
             setattr(w,field,{j:values[i] for j,i in enumerate(keep) if i in values})
         w.update()

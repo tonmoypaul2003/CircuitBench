@@ -203,6 +203,59 @@ class GuiTests(unittest.TestCase):
             measurements(editor)
         self.assertEqual(page.wave.pins, [(1, 2, "Minimum")])
 
+    def test_waveform_rms_only_draws_its_level(self):
+        from unittest.mock import patch
+        from PyQt6.QtWidgets import QMessageBox
+        from studies import measurements
+
+        editor = self.window
+        page = editor.add_plot_page(Plot("AC",["frequency","i(l1)"],["frequency","current"],
+                                         [[1,0],[10,2],[100,2]]), None,[1])
+        editor.open_plots()
+
+        def select_rms(dialog):
+            for check in dialog.findChildren(QCheckBox):
+                check.setChecked(check.text()=="RMS")
+            return 1
+
+        with (patch("studies.choose",return_value="i(l1)"),patch("studies.prompt",return_value="1,100"),
+              patch("studies.QDialog.exec",select_rms),
+              patch("studies.QMessageBox.question",return_value=QMessageBox.StandardButton.Yes),
+              patch("studies.QInputDialog.getInt",return_value=(1,True))):
+            measurements(editor)
+        self.assertEqual([name for _,_,name in page.wave.pins],["RMS"])
+        reading,lo,hi,_,_ = page.wave.pin_levels[0]
+        self.assertAlmostEqual(reading,(372/99)**.5)
+        self.assertEqual((lo,hi),(1,100))
+        self.assertFalse(page.wave.grab().isNull())
+        page.subplots[0].delete_pins({0})
+        self.assertFalse(page.wave.pin_levels)
+
+    def test_waveform_transient_cycle_measurements_offer_valid_edges(self):
+        from unittest.mock import patch
+        from PyQt6.QtWidgets import QMessageBox
+        from studies import measurements
+
+        editor = self.window
+        page = editor.add_plot_page(Plot("Transient",["time","v(out)"],["time","voltage"],
+                                         [[0,0],[1,2],[2,0],[3,2],[4,0]]), None,[1])
+        editor.open_plots()
+
+        def select_cycle(dialog):
+            expected = {"90-10% fall (s)","Period (s)","Frequency (Hz)","Duty cycle (%)"}
+            self.assertTrue(expected <= {check.text() for check in dialog.findChildren(QCheckBox)})
+            for check in dialog.findChildren(QCheckBox):
+                check.setChecked(check.text() in expected)
+            return 1
+
+        with (patch("studies.choose",return_value="v(out)"),patch("studies.prompt",return_value="0,4"),
+              patch("studies.QDialog.exec",select_cycle),
+              patch("studies.QMessageBox.question",return_value=QMessageBox.StandardButton.No)):
+            measurements(editor)
+        self.assertIn("Period (s): 2",page.message.text())
+        self.assertIn("Frequency (Hz): 0.5",page.message.text())
+        self.assertIn("Duty cycle (%): 50",page.message.text())
+
     def test_waveform_measurements_integrate_visible_segments_only(self):
         from unittest.mock import patch
         from PyQt6.QtWidgets import QMessageBox
