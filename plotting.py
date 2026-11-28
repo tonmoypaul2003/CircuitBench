@@ -248,8 +248,10 @@ class Waveform(QWidget):
             for index, column in enumerate(self.columns[:max(0, (height-42)//18)]):
                 label = self.plot.names[column]
                 painter.setPen(self.color(column, background))
-                painter.drawText(QPointF(18, 38+index*18),
-                                 f"{label}   {display_value(rows[0][column].real,self.plot.units[column])}")
+                value = rows[0][column]
+                rendered = (f"{value.real:.7g}{value.imag:+.7g}j" if value.imag else
+                            display_value(value.real,self.plot.units[column]))
+                painter.drawText(QPointF(18, 38+index*18),f"{label}   {rendered}")
             return
         logarithmic = self.logarithmic()
         raw_x = self.raw_x()

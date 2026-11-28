@@ -91,7 +91,7 @@ def simulate(editor, project, deck=None):
         raise ValueError("Choose an ngspice executable first.")
     with tempfile.TemporaryDirectory() as tmp:
         folder = Path(tmp)
-        (folder/"circuit.cir").write_text(analysis_deck(deck or netlist(project)),encoding="ascii")
+        (folder/"circuit.cir").write_text(analysis_deck(deck or netlist(project),project.profiles[project.active]),encoding="ascii")
         subprocess.run([editor.solver,"-n","-b","circuit.cir"], cwd=tmp, capture_output=True,
                        timeout=20, check=True, creationflags=getattr(subprocess,"CREATE_NO_WINDOW",0))
         if not (folder/"result.raw").exists():

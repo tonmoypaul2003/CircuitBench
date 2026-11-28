@@ -1,13 +1,14 @@
 """Desktop analysis selection, batch preparation and diagram export."""
 from datetime import datetime
 import math
+from itertools import product
 import re
 from pathlib import Path
 from PyQt6.QtWidgets import (QDialog,QFormLayout,QCheckBox,QPushButton,QDialogButtonBox,
                              QComboBox,QLabel,QLineEdit,QInputDialog,QFileDialog,QMessageBox)
 from PyQt6.QtGui import QPdfWriter,QPainter
 from PyQt6.QtCore import Qt
-from circuit import Project,Profile,number
+from circuit import Project,Profile,number,resolve_design
 
 
 def allocate_run(parent,path,label):
@@ -25,6 +26,46 @@ def allocate_run(parent,path,label):
             n+=1
 
 
+ANALYSIS_NAMES = {"OP":"Operating point","DC":"DC Sweep","AC":"AC sweep","TRAN":"Transient",
+                  "NOISE":"Noise","PZ":"Pole-zero","SENS":"DC Sensitivity","FOURIER":"Fourier","DISTO":"Distortion"}
+ANALYSIS_FIELDS = {
+    "OP":(), "AC":("start_hz","stop_hz","points"), "TRAN":("step","start","stop"),
+    "DC":("sweep_source","sweep_start","sweep_stop","sweep_step"),
+    "NOISE":("sweep_source","output_node","start_hz","stop_hz","points"),
+    "PZ":("input_node","output_node"), "SENS":("output_node",),
+    "FOURIER":("output_node","fourier_hz","step","start","stop"),
+    "DISTO":("start_hz","stop_hz","points"),
+}
+
+
+def targets(project):
+    return [p.ref for p in project.parts if p.kind in "RCL"]+[f"${name}" for name in project.design_variables]+["@temperature"]
+
+
+def set_target(project,target,value):
+    numeric = number(value)
+    if target.startswith("$") and target[1:] in project.design_variables:
+        project.design_variables[target[1:]] = value
+        resolve_design(project.design_variables,number)
+    elif target=="@temperature" and numeric>-273.15:
+        project.simulation_options["temperature"] = value
+    else:
+        part = next((p for p in project.parts if p.ref==target and p.kind in "RCL"),None)
+        if part is None or numeric<=0:
+            raise ValueError("Use a valid sweep target and value. Passive values must be positive.")
+        part.value = value
+
+
+def assignments(plan):
+    first = [(plan["ref"],value) for value in plan["values"]]
+    second = [(plan["second_ref"],value) for value in plan.get("second_values",[])]
+    if second and plan["ref"]==plan["second_ref"]:
+        raise ValueError("Choose different targets for the two sweep axes.")
+    if len(first)*max(1,len(second))>64:
+        raise ValueError("Choose at most 64 sweep combinations.")
+    return [dict(pair) for pair in product(first,second)] if second else [dict([item]) for item in first]
+
+
 def jobs(project):
     plan = project.analysis_plan
     names = plan.get("enabled",[project.active])
@@ -36,17 +77,16 @@ def jobs(project):
         snapshot.active = name
         result.append((snapshot,name))
     if plan.get("parametric"):
-        ref,values,profile = (plan[k] for k in ("ref","values","profile"))
+        profile = plan["profile"]
         if profile not in project.profiles:
             raise ValueError("Choose an existing parametric base profile.")
-        for value in values:
+        for index,assignment in enumerate(assignments(plan),1):
             snapshot = Project.load(project.dump())
             snapshot.active = profile
-            part = next((p for p in snapshot.parts if p.ref==ref and p.kind in ("R","L","C")),None)
-            if part is None or number(value)<=0:
-                raise ValueError("Select an existing passive component and positive values.")
-            part.value = value
-            result.append((snapshot,f"Parametric_{ref}_{value}"))
+            for target,value in assignment.items():
+                set_target(snapshot,target,value)
+            label = "_".join(f"{name}_{value}" for name,value in assignment.items())
+            result.append((snapshot,f"Parametric_{label}_{index:02}"))
     if not result:
         raise ValueError("Enable at least one analysis.")
     return result
@@ -55,8 +95,9 @@ def jobs(project):
 def setup(editor):
     project = editor.project
     draft = Project.load(project.dump())
-    if not any(p.mode=="DC" for p in draft.profiles.values()):
-        draft.profiles["DC Sweep"] = Profile("DC")
+    for mode,name in ANALYSIS_NAMES.items():
+        if not any(p.mode==mode for p in draft.profiles.values()):
+            draft.profiles.setdefault(name,Profile(mode))
     dialog = QDialog(editor)
     dialog.setWindowTitle("Analysis Setup")
     form = QFormLayout(dialog)
@@ -66,8 +107,7 @@ def setup(editor):
         detail = QDialog(dialog)
         detail.setWindowTitle(name)
         fields = QFormLayout(detail)
-        keys = {"OP":(),"AC":("start_hz","stop_hz","points"),"TRAN":("step","start","stop"),
-                "DC":("sweep_source","sweep_start","sweep_stop","sweep_step")}[profile.mode]
+        keys = ANALYSIS_FIELDS[profile.mode]
         inputs = {}
         for key in keys:
             inputs[key] = QLineEdit(str(getattr(profile,key)))
@@ -99,15 +139,20 @@ def setup(editor):
     base.addItems(draft.profiles.keys())
     base.setCurrentText(plan.get("profile",project.active))
     part = QComboBox()
-    part.addItems([p.ref for p in project.parts if p.kind in ("R","L","C")])
+    part.addItems(targets(project))
     part.setCurrentText(plan.get("ref",""))
+    second = QComboBox()
+    second.addItems(["None",*targets(project)])
+    second.setCurrentText(plan.get("second_ref","None"))
+    second_values = QLineEdit(", ".join(plan.get("second_values",[])))
     values = QLineEdit(", ".join(plan.get("values",[])))
     values.setPlaceholderText("e.g. 1k, 2.2k, 4.7k")
     spacing = QComboBox()
     spacing.addItems(["Value list","Linear range","Logarithmic range"])
     spacing.setCurrentText(plan.get("spacing","Value list"))
     bounds = QLineEdit(plan.get("bounds","1k, 10k, 10"))
-    for label,w in (("Base analysis",base),("Component",part),("Spacing",spacing),
+    for label,w in (("Base analysis",base),("Primary target",part),("Spacing",spacing),
+                    ("Second target",second),("Second target values",second_values),
                     ("Explicit values",values),("Range: start, end, point count",bounds)):
         form.addRow(label,w)
         w.setEnabled(sweep.isChecked())
@@ -133,6 +178,9 @@ def setup(editor):
         try:
             if sweep.isChecked() and len(v)>64:
                 raise ValueError("Choose up to 64 sweep values.")
+            if sweep.isChecked() and second.currentText()!="None":
+                draft.analysis_plan.update(second_ref=second.currentText(),
+                                           second_values=[item.strip() for item in second_values.text().split(",")])
             jobs(draft)
         except ValueError as error:
             QMessageBox.warning(dialog,"Analysis Setup",str(error))

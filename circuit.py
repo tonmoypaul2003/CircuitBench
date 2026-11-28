@@ -8,6 +8,7 @@ import math
 from pathlib import Path
 import re
 from tempfile import NamedTemporaryFile
+from plot_math import resolve_design, design_scalar
 from qucs_library import PARAMETERS
 from spice_library import MODEL_PORTS, model_statement, validate_subcircuit
 
@@ -19,6 +20,13 @@ SYMBOLS = {
     "X": ("SPICE subcircuit", ""),
     "Q": ("Bipolar transistor", ""), "M": ("MOSFET", ""), "J": ("JFET", ""),
     "S": ("Voltage-controlled switch", ""),
+}
+COMPONENT_SYMBOLS = SYMBOLS | {
+    "E": ("Voltage-controlled voltage", "1"), "U": ("Voltage-controlled current", "1m"),
+    "F": ("Current-controlled current", "V1 1"), "H": ("Current-controlled voltage", "V1 1"),
+    "B": ("Behavioral source", "V=0"),
+    "Y": ("XSPICE two-input logic gate", "AND 5 1 3 1n"),
+    "Z": ("XSPICE inverter", "5 1 3 1n"),
 }
 GENERIC_MODELS = {
     "GENERIC_NPN": ("NPN", {"IS": "1e-14", "BF": "100"}),
@@ -156,6 +164,10 @@ class Part:
             offsets = ((-3, -1), (-3, 1), (0, -3), (0, 3), (3, 0))
         elif self.kind == "X" or self.legacy_pin_layout:
             offsets = self.box_offsets()
+        elif self.kind=="Y":
+            offsets = ((-2,-1),(-2,1),(2,0))
+        elif self.kind in ("E","U"):
+            offsets = SWITCH_PINS
         elif self.kind in MODELED_SYMBOLS:
             offsets = self.device_offsets()
         else:
@@ -193,6 +205,14 @@ class Profile:
     sweep_start: str = "0"
     sweep_stop: str = "10"
     sweep_step: str = "1"
+    input_node: str = "in"
+    output_node: str = "out"
+    fourier_hz: str = "1k"
+
+    def frequency_range(self):
+        if not 0<number(self.start_hz)<number(self.stop_hz) or not 1<=self.points<=10000:
+            raise ValueError("Use increasing positive frequencies and 1–10000 points per decade")
+        return f"dec {self.points} {self.start_hz} {self.stop_hz}"
 
     def directive(self):
         if self.mode == "OP":
@@ -205,17 +225,35 @@ class Profile:
             if not step or not 0 < (stop-start)/step <= 100000:
                 raise ValueError("DC sweep step must reach the stop value within 100000 steps")
             return f".dc {source} {self.sweep_start} {self.sweep_stop} {self.sweep_step}"
-        if self.mode == "TRAN":
+        if self.mode in ("TRAN","FOURIER"):
             if not 0 < number(self.step) <= number(self.stop):
                 raise ValueError("Transient step must be positive and no greater than stop time")
             if not 0 <= number(self.start) < number(self.stop):
                 raise ValueError("Transient start must be nonnegative and below stop time")
+            if self.mode=="FOURIER":
+                if number(self.fourier_hz)<=0 or number(self.stop)-number(self.start)<1/number(self.fourier_hz):
+                    raise ValueError("Fourier analysis needs a positive frequency and at least one period.")
+                self.node(self.output_node)
             return f".tran {self.step} {self.stop} {self.start} {self.step}"
         if self.mode == "AC":
-            if not 0 < number(self.start_hz) < number(self.stop_hz) or not 1 <= self.points <= 10000:
-                raise ValueError("AC needs increasing positive frequencies and 1–10000 points per decade")
-            return f".ac dec {self.points} {self.start_hz} {self.stop_hz}"
+            return f".ac {self.frequency_range()}"
+        if self.mode=="NOISE":
+            if not re.fullmatch(r"[VI][A-Z0-9_]+",self.sweep_source,re.ASCII|re.I):
+                raise ValueError("Noise needs an input voltage or current source reference.")
+            return f".noise v({self.node(self.output_node)}) {self.sweep_source} {self.frequency_range()}"
+        if self.mode=="PZ":
+            return f".pz {self.node(self.input_node)} 0 {self.node(self.output_node)} 0 vol pz"
+        if self.mode=="SENS":
+            return f".sens v({self.node(self.output_node)})"
+        if self.mode=="DISTO":
+            return f".disto {self.frequency_range()}"
         raise ValueError(f"Unknown analysis {self.mode}")
+
+    @staticmethod
+    def node(name):
+        if not re.fullmatch(r"[A-Za-z0-9_][A-Za-z0-9_+-]*",name,re.ASCII):
+            raise ValueError("Enter an existing circuit node name.")
+        return name
 
 
 @dataclass
@@ -237,6 +275,9 @@ class Project:
     voltage_labels: dict[str, dict] = field(default_factory=dict)
     element_colors: dict = field(default_factory=dict)
     annotations: list = field(default_factory=list)
+    design_variables: dict = field(default_factory=dict)
+    simulation_options: dict = field(default_factory=dict)
+    instance_variables: dict = field(default_factory=dict)
     analysis_plan: dict = field(default_factory=dict)
     plot_layouts: dict = field(default_factory=dict)
     subcircuit_design: dict | None = None
@@ -258,7 +299,7 @@ class Project:
         index = 1
         while f"{kind}{index}" in used:
             index += 1
-        self.parts.append(Part(f"{kind}{index}", kind, *point, SYMBOLS[kind][1]))
+        self.parts.append(Part(f"{kind}{index}", kind, *point, COMPONENT_SYMBOLS[kind][1]))
 
     def add_profile(self, name, mode, copy_active=False):
         name = name.strip()
@@ -278,6 +319,10 @@ class Project:
 
     def dump(self, *, include_label_styles=True):
         data = asdict(self)
+        for profile in data["profiles"].values():
+            for key,default in (("input_node","in"),("output_node","out"),("fourier_hz","1k")):
+                if profile[key]==default:
+                    profile.pop(key)
         for part in data["parts"]:
             for option in ("opamp_symbol", "port_sides"):
                 if not part[option]:
@@ -291,7 +336,7 @@ class Project:
                 marker.pop("label_style",None)
         if not include_label_styles or not self.plot_layouts:
             del data["plot_layouts"]
-        for key in ("annotations","analysis_plan","element_colors"):
+        for key in ("annotations","analysis_plan","element_colors","design_variables","simulation_options","instance_variables"):
             if not data[key]:
                 del data[key]
         if self.subcircuit_design is None:
@@ -313,8 +358,11 @@ class Project:
         data["junctions"] = list(map(tuple, data["junctions"]))
         data["profiles"] = {key: Profile(**value) for key, value in data["profiles"].items()}
         project = cls(**data)
+        resolve_design(project.design_variables,number)
+        if not isinstance(project.instance_variables,dict):
+            raise ValueError("Invalid instance overrides")
         if (project.active not in project.profiles
-                or any(p.kind not in SYMBOLS or type(p.x) is not int or type(p.y) is not int
+                or any(p.kind not in COMPONENT_SYMBOLS or type(p.x) is not int or type(p.y) is not int
                        or type(p.rotation) is not int or not isinstance(p.value, str)
                        or type(p.legacy_pin_layout) is not bool
                        or type(p.opamp_symbol) is not bool or (p.opamp_symbol and not p.is_op07())
@@ -753,6 +801,8 @@ def emit_subcircuit(name, model, depth):
         raise ValueError("Subcircuits can be nested up to eight levels.")
     if "source" in model:
         project = Project.load(json.dumps(model["source"]))
+        if project.simulation_options:
+            raise ValueError("Simulation options belong on the top-level schematic.")
         ports = validate_design(project)["ports"]
         port_map = {}
         for port in ports:
@@ -766,13 +816,83 @@ def emit_subcircuit(name, model, depth):
     return [" ".join([".subckt", name, *model["ports"], *defaults]), *model["body"], f".ends {name}"]
 
 
+def simulation_cards(project):
+    options = project.simulation_options
+    if not isinstance(options,dict) or set(options)-{"temperature","ic","nodeset","couplings","reltol","abstol"}:
+        raise ValueError("Unsupported simulation options")
+    nodes = set(connectivity(project).values())
+    variables = resolve_design(project.design_variables,number)
+    cards = []
+    if "temperature" in options:
+        temp = design_scalar(options["temperature"],variables,number)
+        if temp<=-273.15:
+            raise ValueError("Temperature must exceed absolute zero")
+        cards.append(f".temp {temp:.15g}")
+    for name in ("reltol","abstol"):
+        if name in options:
+            value = design_scalar(options[name],variables,number)
+            if value<=0:
+                raise ValueError(f"{name} must be positive")
+            cards.append(f".options {name}={value:.15g}")
+    for mode in ("ic","nodeset"):
+        values = options.get(mode,{})
+        if not isinstance(values,dict):
+            raise ValueError(f"{mode} must map node names to values")
+        for node,value in values.items():
+            if node=="0" or node not in nodes:
+                raise ValueError(f"Unknown or grounded {mode} node: {node}")
+            cards.append(f".{mode} V({Profile.node(node)})={design_scalar(value,variables,number):.15g}")
+    inductors = {p.ref.upper() for p in project.parts if p.kind=="L"}
+    couplings = options.get("couplings",[])
+    if not isinstance(couplings,list):
+        raise ValueError("Couplings must be a list of [inductor, inductor, coefficient]")
+    for i,entry in enumerate(couplings,1):
+        if (not isinstance(entry,list) or len(entry)!=3
+                or not all(isinstance(x,str) and x.upper() in inductors for x in entry[:2])
+                or entry[0].upper()==entry[1].upper()):
+            raise ValueError("A coupling needs two distinct existing inductors.")
+        first,second,value = entry
+        factor = design_scalar(value,variables,number)
+        if not 0<factor<=1:
+            raise ValueError("Coupling coefficient must be greater than zero and at most one.")
+        cards.append(f"KCWB{i} {first} {second} {factor:.15g}")
+    return cards
+
+
+def behavioral_value(value, variables, nodes, renamed):
+    match = re.fullmatch(r"([VI])\s*=\s*([A-Za-z0-9_ .+*/^(),{}-]{1,160})",value,re.I|re.ASCII)
+    if not match:
+        raise ValueError("Behavioral sources use V=expression or I=expression.")
+    expression = match[2]
+    expression = re.sub(r"\{([A-Za-z_][A-Za-z0-9_]*)\}",
+                        lambda m: f"({design_scalar(m[1],variables,number):.15g})",expression)
+    if "{" in expression or "}" in expression:
+        raise ValueError("Use {variable} for a named design value.")
+    def check_voltage(match):
+        names = [name.strip().lower() for name in match[1].split(",")]
+        if len(names)>2 or any(name not in nodes for name in names):
+            raise ValueError("Behavioral voltage references must be existing nodes.")
+        return "v("+",".join(renamed.get(name,name) for name in names)+")"
+    expression = re.sub(r"\bv\(([^()]*)\)",check_voltage,expression,flags=re.I)
+    remainder = re.sub(r"\bv\([^()]+\)","0",expression,flags=re.I)
+    remainder = re.sub(r"(?<![A-Za-z_])(?:\d+(?:\.\d*)?|\.\d+)(?:e[+-]?\d+)?(?:meg|[tgkmunpf])?", "",remainder,flags=re.I)
+    if not set(re.findall(r"[A-Za-z_]+",remainder.lower()))<={
+            "time","abs","sqrt","exp","log","ln","log10","sin","cos","tanh","min","max","pow","pi"}:
+        raise ValueError("Unsupported behavioral source function or variable.")
+    return f"{match[1].upper()}={expression}"
+
+
 def netlist(project, measurements=None):
     lines, models, definitions, refs = compile_circuit(project, measurements)
     profile = project.profiles[project.active]
     directive = profile.directive()
-    if profile.mode == "DC" and profile.sweep_source.upper() not in refs:
-        raise ValueError(f"DC sweep source {profile.sweep_source} is missing from the schematic")
-    return "\n".join(["CircuitBench", *lines, *models, *definitions, directive, ".end", ""])
+    if profile.mode in ("DC","NOISE") and profile.sweep_source.upper() not in refs:
+        raise ValueError(f"Analysis source {profile.sweep_source} is missing from the schematic")
+    if profile.mode in ("NOISE","PZ","SENS","FOURIER"):
+        nodes = set(connectivity(project).values())
+        if profile.output_node.lower() not in nodes or (profile.mode=="PZ" and profile.input_node.lower() not in nodes):
+            raise ValueError("Analysis needs existing named input/output nodes.")
+    return "\n".join(["CircuitBench", *lines, *models, *definitions, *simulation_cards(project), directive, ".end", ""])
 
 
 def compile_circuit(project, measurements, ports=None, scope="", depth=0):
@@ -782,7 +902,10 @@ def compile_circuit(project, measurements, ports=None, scope="", depth=0):
         raise ValueError("Place electrical components and connect a ground reference")
     neighbors = {}
     refs, models, pin_counts = set(), set(), {}
-    subcircuits = set()
+    subcircuits = {}
+    for ref,overrides in project.instance_variables.items():
+        if not isinstance(overrides,dict) or not any(p.ref==ref and p.kind=="X" for p in devices):
+            raise ValueError(f"Invalid subcircuit override for {ref}")
     lines = []
     names = {}
     if ports is not None:
@@ -792,10 +915,12 @@ def compile_circuit(project, measurements, ports=None, scope="", depth=0):
             while local in reserved:
                 local += "_"
             names[node] = ports.get(node, "0" if node == "0" else local)
+    variables = resolve_design(project.design_variables,number)
     by_ref = {p.ref.upper(): p for p in devices}
     used_names = set(by_ref)
     used_nodes = set(nodes.values())
     sensors = {}
+    reserved_model_names = set(project.device_models)|set(project.diode_models)|set(project.qucs_models)
     for index, marker in enumerate(project.markers if ports is None else (), 1):
         if marker["kind"] == "I":
             ref, pin = marker["ref"].upper(), marker["pin"]
@@ -838,23 +963,86 @@ def compile_circuit(project, measurements, ports=None, scope="", depth=0):
             if groups:
                 pin_indices = [group[0] for group in groups]
                 terminals = [terminals[i] for i in pin_indices]
-        if part.kind in "RCLVID" and terminals[0] == terminals[1]:
+        if part.kind in "RCLVIDEUFHB" and terminals[0] == terminals[1]:
             raise ValueError(f"{ref}: both pins are on the same net")
         for node in terminals:
             pin_counts.setdefault(node, []).append(ref)
             neighbors.setdefault(node, set()).update(terminals)
         value = part.value.strip()
         if part.kind in "RCL":
-            if number(value) <= 0:
+            concrete = design_scalar(value,variables,number)
+            if concrete <= 0:
                 raise ValueError(f"{ref}: value must be positive")
+            try:
+                number(value)
+            except ValueError:
+                value = f"{concrete:.15g}"
+        elif part.kind in "EUFH":
+            if part.kind in "FH":
+                source,_,gain = value.partition(" ")
+                if source.upper() not in by_ref or by_ref[source.upper()].kind!="V":
+                    raise ValueError(f"{ref}: choose an existing voltage source and gain")
+                value = f"{source.upper()} {design_scalar(gain,variables,number):.15g}"
+            else:
+                value = f"{design_scalar(value,variables,number):.15g}"
+            if part.kind=="U":
+                ref = "G"+ref
+        elif part.kind=="B":
+            value = behavioral_value(value,variables,set(nodes.values()),names)
+        elif part.kind in "YZ":
+            tokens = value.split()
+            gate = tokens.pop(0).lower() if part.kind=="Y" and tokens else "inverter"
+            if (gate not in {"and","nand","or","nor","xor","xnor","inverter"} or len(tokens)!=4
+                    or (part.kind=="Y" and gate=="inverter")):
+                raise ValueError(f"{ref}: choose gate type, output high, input low/high and delay.")
+            high,low,threshold,delay = (design_scalar(v,variables,number) for v in tokens)
+            if not 0<=low<threshold<=high or delay<=0:
+                raise ValueError(f"{ref}: require 0 ≤ input low < input high ≤ output high and positive delay.")
+            stem = f"cbwl_{len(lines)}"
+            while any(stem+suffix in used_nodes or (stem+suffix).upper() in reserved_model_names
+                      or ("A"+stem+suffix).upper() in used_names for suffix in ("a","b","o","adc","gate","dac")):
+                stem += "_"
+            for suffix in ("a","b","o"):
+                used_nodes.add(stem+suffix)
+            for suffix in ("adc","gate","dac"):
+                reserved_model_names.add((stem+suffix).upper())
+            digital = [stem+"a",stem+"b"][:len(terminals)-1]
+            if any(device==ref for device,_ in sensors):
+                raise ValueError(f"{ref}: put current markers on an external component for XSPICE gates.")
+            analog = [names.get(terminal,terminal) for terminal in terminals]
+            input_bus = "["+" ".join(analog[:-1])+"]"
+            digital_bus = "["+" ".join(digital)+"]"
+            gate_input = digital[0] if gate=="inverter" else digital_bus
+            lines.extend((f"A{stem}adc {input_bus} {digital_bus} {stem}adc",
+                          f"A{stem}gate {gate_input} {stem}o {stem}gate",
+                          f"A{stem}dac [{stem}o] [{analog[-1]}] {stem}dac"))
+            models.update((f".model {stem}adc adc_bridge(in_low={low:.15g} in_high={threshold:.15g})",
+                           f".model {stem}gate d_{gate}(rise_delay={delay:.15g} fall_delay={delay:.15g})",
+                           f".model {stem}dac dac_bridge(out_low=0 out_high={high:.15g})"))
+            continue
         elif part.kind in "VI":
             value = source_value(value)
         elif part.kind == "X":
             if value not in project.subcircuits or part.port_names != project.subcircuits[value]["ports"]:
                 raise ValueError(f"{ref}: unknown subcircuit or mismatched port order")
-            subcircuits.add(value)
-            if scope:
-                value = scoped_name(scope, value)
+            model = project.subcircuits[value]
+            name = scoped_name(scope,value) if scope else value
+            overrides = project.instance_variables.get(part.ref,{})
+            pending = ""
+            if overrides:
+                if "source" in model:
+                    source = Project.load(json.dumps(model["source"]))
+                    if overrides.keys()-source.design_variables.keys():
+                        raise ValueError(f"{ref}: unknown embedded design variable")
+                    source.design_variables.update({k:f"{design_scalar(v,variables,number):.15g}" for k,v in overrides.items()})
+                    name = scoped_name(scope or value,"instance/"+ref)
+                    model = {**model,"source":json.loads(source.dump())}
+                else:
+                    if overrides.keys()-model.get("parameters",{}).keys():
+                        raise ValueError(f"{ref}: unknown SPICE subcircuit parameter")
+                    pending = "".join(f" {k}={design_scalar(v,variables,number):.15g}" for k,v in sorted(overrides.items()))
+            subcircuits[name] = model
+            value = name+pending
         elif value.upper() in project.device_models or part.kind in "QMJS":
             value = value.upper()
             model = project.device_models.get(value)
@@ -890,8 +1078,7 @@ def compile_circuit(project, measurements, ports=None, scope="", depth=0):
             raise ValueError(f"{endpoints[0]}: dangling terminal on {node}")
     definitions = []
     for name in sorted(subcircuits):
-        definitions.extend(emit_subcircuit(scoped_name(scope, name) if scope else name,
-                                           project.subcircuits[name], depth+1))
+        definitions.extend(emit_subcircuit(name,subcircuits[name],depth+1))
     return lines, sorted(models), definitions, refs
 
 

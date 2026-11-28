@@ -50,7 +50,12 @@ def load_selected(editor,item):
     path = item.data(0,Qt.ItemDataRole.UserRole)
     if path:
         try:
-            editor.load_saved_run(Path(path))
+            folder = Path(path)
+            if (folder/"study.json").is_file():
+                from design_studies import open_study
+                open_study(editor,folder/"study.json")
+                return
+            editor.load_saved_run(folder)
             editor.open_plots()
         except (OSError,ValueError) as error:
             editor.error(str(error))
@@ -91,6 +96,9 @@ def populate(editor,tree):
         for status in sorted(session.glob("*/status.json"),key=lambda p:p.stat().st_mtime,reverse=True):
             child = QTreeWidgetItem(parent,[run_title(status.parent)])
             child.setData(0,Qt.ItemDataRole.UserRole,str(status.parent))
+        for study in sorted(session.glob("*/study.json")):
+            child = QTreeWidgetItem(parent,[run_title(study.parent)])
+            child.setData(0,Qt.ItemDataRole.UserRole,str(study.parent))
         parent.setExpanded(True)
 
 
@@ -199,20 +207,27 @@ def show_sweep(editor):
               if all(name in plot.names for plot in plots)]
     signals = [name for name in marker_names if name in common]
     if not signals:
-        signals = ["v(out)" if "v(out)" in common else common[-1]]
+        signals = ["v(out)" if "v(out)" in common else common[-1]] if common else []
+    if not signals:
+        raise ValueError("No common sweep result vectors.")
     plan = editor.sweep_plan
     values = [editor.sweep_values[run] for run in runs]
+    labels = [", ".join(f"{name}={value}" for name,value in row.items()) for row in values]
     if "operating point" not in first.title.lower():
-        page = overlay(editor,[(f"{plan['ref']}={v}",p) for v,p in zip(values,plots)],
+        page = overlay(editor,list(zip(labels,plots)),
                        "Parametric sweep",signals)
     else:
-        rows = [[number(value),*(plot.rows[-1][plot.names.index(name)] for name in signals)]
-                for value,plot in zip(values,plots)]
+        nested = bool(plan.get("second_values"))
+        rows = [[i if nested else number(value[plan["ref"]]),
+                 *(plot.rows[-1][plot.names.index(name)] for name in signals)]
+                for i,(value,plot) in enumerate(zip(values,plots),1)]
         units = [first.units[first.names.index(name)] for name in signals]
-        page = editor.add_plot_page(Plot("Parametric sweep",[plan["ref"],*signals],["",*units],rows),
+        page = editor.add_plot_page(Plot("Parametric sweep",["run" if nested else plan["ref"],*signals],["",*units],rows),
                                     None,list(range(1,len(signals)+1)))
     if page:
-        page.message.setText("Sweep marker values. Use Sweep runs for individual waveforms.")
+        page.message.setText("Sweep marker values. Use Sweep runs for individual waveforms."
+                             if not plan.get("second_values") else
+                             ", ".join(f"{i}: {label}" for i,label in enumerate(labels,1)))
         editor.open_plots()
 
 
@@ -243,7 +258,7 @@ def pick_sweep(editor):
     layout.addWidget(table)
     plan = editor.sweep_plan
     for path in runs:
-        item = QTreeWidgetItem(table,[f"{plan['ref']} = {editor.sweep_values[path]}",
+        item = QTreeWidgetItem(table,[", ".join(f"{key} = {value}" for key,value in editor.sweep_values[path].items()),
                                      plan["profile"],path.parent.name.replace("_Session"," · Session ")])
         item.setData(0,Qt.ItemDataRole.UserRole,path)
     for column in range(3):

@@ -5,7 +5,7 @@ from PyQt6.QtCore import QPointF, QRectF, Qt
 from PyQt6.QtGui import QColor, QPainter, QPen
 from PyQt6.QtWidgets import QApplication, QWidget
 
-from circuit import MODELED_SYMBOLS, Part, SYMBOLS, connectivity, on_wire, part_parameters, symbol_geometry
+from circuit import MODELED_SYMBOLS, Part, COMPONENT_SYMBOLS as SYMBOLS, connectivity, on_wire, part_parameters, symbol_geometry
 from desktop_theme import desktop_colors
 from device_symbols import draw_device
 from spice_library import MODEL_PORTS
@@ -526,6 +526,27 @@ class Canvas(QWidget):
             path([(0, 0), (0, .4)])
             for y, half in ((.4, .55), (.57, .35), (.74, .17)):
                 path([(-half, y), (half, y)])
+        elif kind=="Y":
+            path([(-2,-1),(-.75,-1),(-.75,1),(-2,1)])
+            path([(-.75,-1),(.65,-1),(1.1,0),(.65,1),(-.75,1)])
+            path([(1.1,0),(2,0)])
+        elif kind=="Z":
+            path([(-2,0),(-.8,0),(-.8,-.7),(.52,0),(-.8,.7),(-.8,0)])
+            painter.drawEllipse(QPointF(.7,0),.18,.18)
+            path([(.88,0),(2,0)])
+        elif kind in "EUFHB":
+            path([(-.8,0),(0,-.65),(.8,0),(0,.65),(-.8,0)])
+            if kind not in "EU":
+                path([(-2,0),(-.8,0)])
+                path([(.8,0),(2,0)])
+            if kind in "EU":
+                for x,y in ((-2,-1),(2,-1),(-1,2),(1,2)):
+                    p = QPointF(x,y)
+                    painter.drawEllipse(p,.13,.13)
+                path([(-2,-1),(-.8,-1),(-.8,0)])
+                path([(2,-1),(.8,-1),(.8,0)])
+                path([(-1,2),(-1,1.25),(-.45,1.25)])
+                path([(1,2),(1,1.25),(.45,1.25)])
         elif kind == "N":
             painter.drawEllipse(QPointF(0, 0), .16, .16)
         else:

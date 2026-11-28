@@ -17,7 +17,7 @@ from PyQt6.QtWidgets import (
 
 from desktop_theme import apply_desktop_theme
 from canvas import Canvas, engineering
-from circuit import (GENERIC_MODELS, Profile, Project, SOURCE_DEFAULTS, SYMBOLS, WAVE_FIELDS, connectivity,
+from circuit import (GENERIC_MODELS, Profile, Project, SOURCE_DEFAULTS, COMPONENT_SYMBOLS as SYMBOLS, WAVE_FIELDS, connectivity,
                      diode_model, example, marker_node, netlist, number, on_wire, part_parameters, source_tokens,
                      source_value, translate_selection, reusable_subcircuit)
 from plotting import PlotReportPage, Waveform
@@ -27,7 +27,7 @@ from spice_library import MODEL_PORTS, read_library
 from subcircuit_designer import SubcircuitDesigner
 
 
-VERSION = "0.4.7-beta"
+VERSION = "0.5.0-beta"
 
 RUNTIME = Path(__file__).resolve().parent / "runtime"
 BUNDLED_SOLVER = RUNTIME / "ngspice" / "bin" / "ngspice_con.exe"
@@ -168,6 +168,8 @@ class Editor(QMainWindow):
         self.action(exports,"Plot page…","",self.export_plot_page)
         from studies import install_studies
         install_studies(self, simulation, draw, imports)
+        from design_studies import install_design_tools
+        install_design_tools(self,edit,simulation)
         markers = self.menuBar().addMenu("&Markers")
         for mode, title, key in (("Mark V", "Voltage", "Ctrl+M"),
                                  ("Mark VD", "Differential voltage", "Ctrl+Shift+M"),
@@ -837,7 +839,10 @@ class Editor(QMainWindow):
         self.value.setText(part.value if part else "")
         captions = {"R": "Resistance (Ω)", "C": "Capacitance (F)", "L": "Inductance (H)",
                     "V": "Source expression", "I": "Source expression", "D": "Diode model",
-                    "N": "Net name", "X": "Subcircuit", **dict.fromkeys("QMJS", "Device model")}
+                    "N": "Net name", "X": "Subcircuit", "E":"Voltage gain", "U":"Transconductance (S)",
+                    "F":"Sense source and gain", "H":"Sense source and gain (Ω)", "B":"V= or I= expression",
+                    "Y":"Gate, output high, input thresholds, delay",
+                    "Z":"Output high, input thresholds, delay", **dict.fromkeys("QMJS", "Device model")}
         self.value_caption.setText(captions.get(part.kind, "Value") if part else "Value")
         self.value.setVisible(bool(part and part.kind != "G"))
         self.value_caption.setVisible(bool(part and part.kind != "G"))
@@ -911,8 +916,10 @@ class Editor(QMainWindow):
             try:
                 if self.selected.kind in "VI":
                     source_value(value)
-                elif self.selected.kind in "RCL" and number(value) <= 0:
-                    raise ValueError("Component value must be positive")
+                elif self.selected.kind in "RCL":
+                    from plot_math import resolve_design, design_scalar
+                    if design_scalar(value,resolve_design(self.project.design_variables,number),number)<=0:
+                        raise ValueError("Component value must be positive")
             except ValueError as error:
                 self.error(str(error))
                 return False
@@ -920,6 +927,8 @@ class Editor(QMainWindow):
             for marker in self.project.markers:
                 if marker["kind"] == "I" and marker["ref"].upper() == self.selected.ref.upper():
                     marker["ref"] = ref
+            if self.selected.ref in self.project.instance_variables:
+                self.project.instance_variables[ref] = self.project.instance_variables.pop(self.selected.ref)
             self.selected.ref, self.selected.value = ref, value
             if hidden_parameters is not None:
                 self.selected.label_style["hidden_parameters"] = sorted(hidden_parameters)
@@ -1048,7 +1057,7 @@ class Editor(QMainWindow):
     def add_marker(self, point):
         kind = self.mode.removeprefix("Mark ")
         if kind == "P":
-            candidates = [p for p in self.project.parts if len(p.pins())==2
+            candidates = [p for p in self.project.parts if p.kind not in "YZ" and len(p.pins())==2
                           and (point in p.pins() or point==(p.x,p.y))]
             if candidates:
                 self.checkpoint()
@@ -1056,7 +1065,7 @@ class Editor(QMainWindow):
                 self.refresh()
             return
         if kind == "I":
-            matches = [(part, index) for part in self.project.parts if part.kind not in "GN"
+            matches = [(part, index) for part in self.project.parts if part.kind not in "GNYZ"
                        for index, pin in enumerate(part.pins()) if pin == point]
             if not matches:
                 self.statusBar().showMessage("Choose a component pin")
@@ -1274,6 +1283,8 @@ class Editor(QMainWindow):
         if self.selected_parts or self.selected_wires or self.selected_junctions or self.selected_markers:
             self.checkpoint()
             refs = {self.project.parts[index].ref.upper() for index in self.selected_parts}
+            self.project.instance_variables = {ref:value for ref,value in self.project.instance_variables.items()
+                                               if ref.upper() not in refs}
             self.project.markers = [marker for index, marker in enumerate(self.project.markers)
                                     if index not in self.selected_markers
                                     and (marker["kind"] != "I" or marker["ref"].upper() not in refs)]
@@ -1369,7 +1380,8 @@ class Editor(QMainWindow):
         name, accepted = QInputDialog.getText(self, "Simulation profile", "Profile name")
         if not accepted:
             return
-        choices = {"Operating point": "OP", "DC sweep": "DC", "AC sweep": "AC", "Transient": "TRAN"}
+        from analysis_setup import ANALYSIS_NAMES
+        choices = {caption:mode for mode,caption in ANALYSIS_NAMES.items()}
         mode = self.project.profiles[self.project.active].mode
         if not copy_active:
             label, accepted = QInputDialog.getItem(self, "Simulation profile", "Analysis",
@@ -1403,20 +1415,14 @@ class Editor(QMainWindow):
         form = QFormLayout(dialog)
         form.addRow("Active analysis", QLabel(self.project.active))
         fields = {}
-        labels = {"step": "Maximum step", "stop": "Stop time",
-                  "start_hz": "Start frequency (Hz)", "stop_hz": "Stop frequency (Hz)",
-                  "sweep_source": "Source reference", "sweep_start": "Start value",
-                  "sweep_stop": "Stop value", "sweep_step": "Step"}
-        keys = {"OP": (), "TRAN": ("step", "stop"), "AC": ("start_hz", "stop_hz"),
-                "DC": ("sweep_source", "sweep_start", "sweep_stop", "sweep_step")}
-        for key in keys[current.mode]:
-            fields[key] = QLineEdit(getattr(current, key))
-            form.addRow(labels[key], fields[key])
-        points = QSpinBox()
-        if current.mode == "AC":
-            points.setRange(1, 10000)
-            points.setValue(current.points)
-            form.addRow("Points per decade", points)
+        from analysis_setup import ANALYSIS_FIELDS
+        for key in ANALYSIS_FIELDS[current.mode]:
+            widget = QSpinBox() if key=="points" else QLineEdit(getattr(current,key))
+            if key=="points":
+                widget.setRange(1,10000)
+                widget.setValue(current.points)
+            fields[key] = widget
+            form.addRow(key.replace("_"," ").capitalize(),widget)
         if current.mode == "OP":
             form.addRow(QLabel("Calculate steady-state node voltages and branch currents."))
         buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
@@ -1425,9 +1431,7 @@ class Editor(QMainWindow):
         form.addRow(buttons)
         if dialog.exec():
             values = vars(current).copy()
-            values.update({key: widget.text().strip() for key, widget in fields.items()})
-            if current.mode == "AC":
-                values["points"] = points.value()
+            values.update({key: widget.value() if key=="points" else widget.text().strip() for key,widget in fields.items()})
             profile = Profile(**values)
             try:
                 profile.directive()
@@ -1538,6 +1542,8 @@ class Editor(QMainWindow):
         self.sweep_runs = []
         self.sweep_values = {}
         self.sweep_plan = self.project.analysis_plan.copy()
+        from analysis_setup import assignments
+        self.sweep_assignments = assignments(self.sweep_plan) if self.sweep_plan.get("parametric") else []
         self.run_next()
 
     def run_next(self):
@@ -1566,7 +1572,7 @@ class Editor(QMainWindow):
             if project.profiles[project.active].mode == "OP":
                 solver_deck, metadata = bias_deck(project)
                 (folder / "operating-point.json").write_text(json.dumps(metadata), encoding="utf-8")
-            (folder / "circuit.cir").write_text(analysis_deck(solver_deck), encoding="ascii")
+            (folder / "circuit.cir").write_text(analysis_deck(solver_deck,project.profiles[project.active]), encoding="ascii")
             revision = project.dump()
             (folder / "project.cwb").write_text(revision, encoding="utf-8")
         except (OSError, ValueError) as error:
@@ -1616,8 +1622,14 @@ class Editor(QMainWindow):
                     with path.open(encoding="utf-8", errors="replace") as log:
                         self.log.appendPlainText(log.read(60000))
             if code == 0 and not self.cancelled:
+                raw = load_plot(self.run_dir/"result.raw")
+                snapshot = Project.load(self.pending_revision)
+                assignment = self.sweep_assignments[len(self.sweep_runs)] if self.sweep_job else {}
+                result_info = raw.describe(snapshot.active,self.run_dir.name,assignment,
+                                           snapshot.profiles[snapshot.active].mode)
+                (self.run_dir/"dataset.json").write_text(json.dumps(result_info,indent=2),encoding="utf8")
                 if self.sweep_job:
-                    self.sweep_values[self.run_dir] = self.sweep_plan["values"][len(self.sweep_runs)]
+                    self.sweep_values[self.run_dir] = assignment
                     self.sweep_runs.append(self.run_dir)
                 else:
                     self.show_run_result(self.run_dir, self.pending_revision)
@@ -1655,11 +1667,18 @@ class Editor(QMainWindow):
         metadata = folder / "operating-point.json"
         operating_point = json.loads(metadata.read_text(encoding="utf-8")) if metadata.is_file() else None
         snapshot = Project.load(revision)
-        self.show_plot(load_plot(folder / "result.raw"), revision, operating_point=operating_point,
+        plot = load_plot(folder / "result.raw")
+        mode = snapshot.profiles[snapshot.active].mode
+        if mode in ("PZ","SENS") and len(plot.rows)==1:
+            plot.title += " · operating point table"
+        self.show_plot(plot, revision, operating_point=operating_point,
                        open_window=snapshot.profiles[snapshot.active].mode not in ("OP", "DC"))
         if self.active_readings:
             self.report_bias = [self.bias_list.item(i).text() for i in range(self.bias_list.count())]
             self.bias_dock.show()
+        if mode=="FOURIER":
+            from design_studies import fourier_report
+            self.plot_pages.currentWidget().message.setText(fourier_report(folder/"stdout.log"))
 
     def show_plot(self, plot, revision, *, operating_point=None, open_window=True):
         measurements = []

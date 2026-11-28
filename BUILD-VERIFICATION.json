@@ -6,8 +6,12 @@
   "ac_samples": 201,
   "png_export": true,
   "pdf_export": true,
+  "design_variable_volts": 7.5,
+  "noise_samples": 201,
   "status": "passed",
-  "source_tests_passed": 52,
-  "executable_path": "build/0.4.7-beta/CircuitBench.exe",
-  "executable_sha256": "51f1df2709ff749ac39c8a1106c31a01a19b7bd3308cc0a5e2caebb9d1c679be"
+  "source_tests_passed": 64,
+  "web_engine_tests_passed": true,
+  "targeted_mutation_checks_passed": 3,
+  "executable_path": "build/0.5.0-beta/CircuitBench.exe",
+  "executable_sha256": "bd59fa898fe9fee53c29b86040e55bc73188a70f392fcb83b7e38cca18ae08ec"
 }

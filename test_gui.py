@@ -197,6 +197,107 @@ class GuiTests(unittest.TestCase):
             measurements(editor)
         self.assertIn("Maximum: 2, Mean: 1, RMS: 1.1547", page.message.text())
 
+    def test_nested_temperature_sweep_records_axes_and_values(self):
+        from pathlib import Path
+        from tempfile import TemporaryDirectory
+        import json
+        from PyQt6.QtCore import QElapsedTimer
+
+        editor = self.window
+        editor.project = example()
+        editor.project.design_variables = {"LOAD":"1k"}
+        editor.project.parts[2].value = "{LOAD}"
+        editor.project.analysis_plan = {"enabled":[],"parametric":True,"profile":"Operating point",
+                                       "ref":"$LOAD","values":["1k","3k"],
+                                       "second_ref":"@temperature","second_values":["20","50"]}
+        with TemporaryDirectory(dir=".") as directory:
+            editor.path = Path(directory).resolve()/"sweep.cwb"
+            editor.run()
+            timer = QElapsedTimer()
+            timer.start()
+            while editor.process is not None and timer.elapsed()<7000:
+                self.application.processEvents()
+                QTest.qWait(15)
+            self.assertIsNone(editor.process)
+            records = [json.loads((folder/"dataset.json").read_text()) for folder in editor.sweep_runs]
+            self.assertEqual([r["sweep"] for r in records],[
+                {"$LOAD":"1k","@temperature":"20"},{"$LOAD":"1k","@temperature":"50"},
+                {"$LOAD":"3k","@temperature":"20"},{"$LOAD":"3k","@temperature":"50"}])
+            self.assertEqual([r["samples"] for r in records],[1,1,1,1])
+            self.assertIn("v(out)",[v["name"] for v in records[0]["vectors"]])
+            self.assertEqual(editor.project.design_variables,{"LOAD":"1k"})
+            self.assertEqual(editor.plot_pages.currentWidget().plot.rows,
+                             [[1,5],[2,5],[3,7.5],[4,7.5]])
+
+    def test_design_trials_record_reproducible_yield_and_optimization(self):
+        import json
+        from pathlib import Path
+        from tempfile import TemporaryDirectory
+        from unittest.mock import patch
+        from design_studies import run_trials,trial_values
+        from desktop04 import history_root
+
+        editor = self.window
+        editor.project = example()
+        settings = dict(target="R1",min="1k",max="3k",count=3,signal="v(out)",goal="2.5",
+                        seed=13,distribution="uniform",pass_min="2",pass_max="6")
+        with TemporaryDirectory(dir=".") as directory:
+            editor.path = Path(directory).resolve()/"study.cwb"
+            with patch("design_studies.json_editor",return_value=settings):
+                run_trials(editor,"Monte Carlo")
+                run_trials(editor,"Optimization")
+            records = {record["mode"]:record for record in (
+                json.loads(path.read_text()) for path in history_root(editor).glob("*/*/study.json"))}
+            self.assertEqual([row[0] for row in records["Monte Carlo"]["samples"]],trial_values(settings,"Monte Carlo"))
+            self.assertEqual([row[0] for row in records["Optimization"]["samples"]],[1000,2000,3000])
+            for (_,value),expected in zip(records["Optimization"]["samples"],[5,10/3,2.5]):
+                self.assertAlmostEqual(value,expected,places=8)
+            self.assertIn("Best tested value 3000",editor.plot_pages.currentWidget().message.text())
+            self.assertEqual(editor.project.parts[1].value,"1k")
+
+    @unittest.skipUnless(SOLVER, "Bundled ngspice is required")
+    def test_live_tuning_previews_without_editing_until_applied(self):
+        from unittest.mock import patch
+        from PyQt6.QtWidgets import QDialog, QLabel, QSlider
+        from design_studies import tune
+
+        window = self.window
+        window.solver = str(SOLVER)
+        window.project = example()
+        previews = []
+
+        def interact(dialog, accept):
+            def change():
+                dialog.findChild(QSlider).setValue(100)
+
+            def inspect_preview():
+                labels = [label.text() for label in dialog.findChildren(QLabel)]
+                if any("v(out) = 7.5" in label for label in labels):
+                    previews.append(window.project.parts[2].value)
+                    dialog.done(int(accept))
+            poll = QTimer(dialog)
+            poll.setInterval(20)
+            poll.timeout.connect(inspect_preview)
+            dialog.finished.connect(poll.stop)
+            deadline = QTimer(dialog)
+            deadline.setSingleShot(True)
+            deadline.timeout.connect(dialog.reject)
+            dialog.finished.connect(deadline.stop)
+            QTimer.singleShot(0, change)
+            poll.start()
+            deadline.start(5000)
+            return original_exec(dialog)
+
+        original_exec = QDialog.exec
+        with (patch("design_studies.QInputDialog.getItem", return_value=("R2", True)),
+              patch("design_studies.QInputDialog.getText", return_value=("1k, 3k", True))):
+            for accept in (False, True):
+                with patch.object(QDialog, "exec", lambda dialog: interact(dialog, accept)):
+                    tune(window)
+                self.assertEqual(float(window.project.parts[2].value) if accept
+                                 else window.project.parts[2].value, 3000 if accept else "1k")
+        self.assertEqual(previews, ["1k", "1k"])
+
     def test_intersections_respect_visible_limits_and_cap(self):
         from unittest.mock import patch
         page = self.window.add_plot_page(

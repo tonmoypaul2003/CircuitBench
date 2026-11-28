@@ -114,11 +114,37 @@ def validate_subcircuit(name, ports, body, parse_number, parameters=None):
             raise ValueError(f"{name}: passive element values must be positive")
 
 
-def read_library(path: Path, parse_number):
-    with path.open(encoding="utf-8-sig", errors="replace") as file:
-        source = file.read(2_000_001)
-    if len(source) > 2_000_000:
+INCLUDE = re.compile(r'^\.include\s+(?:"([^"]+)"|\x27([^\x27]+)\x27|([^\s;]+))\s*(?:;.*)?$',re.I)
+
+
+def library_source(path, root, active, remaining):
+    path = path.resolve()
+    if path in active:
+        raise ValueError(f"Cyclic SPICE include: {path.name}")
+    if len(active)>=8 or not path.is_relative_to(root):
+        raise ValueError("SPICE includes must stay within the selected library directory (depth at most eight).")
+    with path.open(encoding="utf-8-sig",errors="replace") as file:
+        source = file.read(remaining[0]+1)
+    remaining[0] -= len(source)
+    if remaining[0]<0:
         raise ValueError("SPICE library exceeds the import size limit")
+    output = []
+    for line in source.splitlines():
+        if line.strip().lower().startswith(".include"):
+            match = INCLUDE.fullmatch(line.strip())
+            if not match:
+                raise ValueError("Invalid SPICE include directive")
+            relative = Path(next(name for name in match.groups() if name is not None))
+            if relative.is_absolute() or relative.drive:
+                raise ValueError("Use a project-relative SPICE include.")
+            output.append(library_source(path.parent/relative,root,active|{path},remaining))
+        else:
+            output.append(line)
+    return "\n".join(output)
+
+
+def read_library(path: Path, parse_number):
+    source = library_source(path,path.resolve().parent,set(),[2_000_000])
     entries, models, issues = {}, {}, []
     name = None
     lines = []

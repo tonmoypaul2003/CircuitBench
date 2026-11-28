@@ -577,3 +577,22 @@ entries for substantive historical mistakes.
     Native enumeration was unavailable and the legacy solver failed to
     launch on this Windows host. No simulation behavior or CWB migration
     changes. Delivery: documentation prepared for GitHub main.
+
+2026-11-28 — Desktop v0.5.0 beta parameterized simulation and design studies
+    Applied Qucs study roadmap items 1, 2, 3 and 5 to the desktop workflow.
+    Added named variables, subcircuit instance overrides, nested and
+    temperature sweeps, and run manifests with typed vector metadata.
+    Added controlled and behavioral sources, inductor coupling, seed
+    voltages, solver options, project-local model includes and XSPICE gates.
+    Added noise density, pole-zero, DC sensitivity, Fourier and distortion.
+    Added live tuning, seeded Monte Carlo/yield and bounded single-target
+    optimization. Study trials and diagnostics are saved in Session History.
+    Existing CWB data remains loadable. New variable, option and override
+    fields are optional. The Web palette retains its established parts.
+    Additional solver backends and HDL co-simulation remain future work.
+    All 64 desktop tests passed with bundled ngspice. Web WASM regression
+    passed. Three targeted mutations failed their expected tests. The
+    packaged app passed smoke testing including parameterized DC, AC,
+    noise, manifest, model loading and PNG/PDF exports. Local versioned
+    and root executables match. Verification is in BUILD-VERIFICATION.json.
+    Delivery: local Windows build and source committed for GitHub main.

@@ -9,7 +9,7 @@ import traceback
 
 from PyQt6.QtCore import QEventLoop, QTimer
 
-from circuit import example
+from circuit import Profile, example
 
 
 def run_profile(window, application, folder, profile):
@@ -65,6 +65,19 @@ def verify(application, window, report):
             if not (folder / "plot.pdf").read_bytes().startswith(b"%PDF-"):
                 raise RuntimeError("PDF export failed")
             result.update(midpoint_volts=midpoint, ac_samples=len(ac.rows), png_export=True, pdf_export=True)
+            window.project.design_variables = {"LOAD": "3k"}
+            window.project.parts[2].value = "{LOAD}"
+            operating = run_profile(window, application, folder, "Operating point")
+            if not math.isclose(operating.rows[0][operating.names.index("v(out)")].real, 7.5):
+                raise RuntimeError("Design variable did not change the divider")
+            window.project.profiles["Noise"] = Profile("NOISE")
+            noise = run_profile(window, application, folder, "Noise")
+            if len(noise.rows) != 201 or noise.rows[0][noise.names.index("onoise_spectrum")].real <= 0:
+                raise RuntimeError("Bundled noise analysis failed")
+            metadata = json.loads((window.run_dir / "dataset.json").read_text(encoding="utf8"))
+            if metadata["mode"] != "NOISE":
+                raise RuntimeError("Missing typed noise result metadata")
+            result.update(design_variable_volts=7.5, noise_samples=len(noise.rows))
         result["status"] = "passed"
     except Exception:
         result.update(status="failed", traceback=traceback.format_exc())

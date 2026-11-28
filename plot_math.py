@@ -107,3 +107,72 @@ def evaluate(expression, plot):
     if not valid:
         raise ValueError("The expression has no finite samples")
     return samples
+
+
+DESIGN_IDENTIFIER = re.compile(r"[A-Za-z_][A-Za-z0-9_]*",re.ASCII)
+DESIGN_OPERATORS = {ast.Add:operator.add,ast.Sub:operator.sub,ast.Mult:operator.mul,
+             ast.Div:operator.truediv,ast.Pow:operator.pow}
+
+
+def evaluate_design(expression,lookup,number):
+    if not isinstance(expression,str) or not 0<len(expression.strip())<=160:
+        raise ValueError("Enter an expression of up to 160 characters.")
+    expression = expression.strip().removeprefix("{").removesuffix("}").strip()
+    expression = re.sub(
+        r"(?<![\w.])(?:\d+(?:\.\d*)?|\.\d+)(?:e[+-]?\d+)?(?:meg|[tgkmunpf])\b",
+        lambda match:repr(number(match[0])),expression,flags=re.I)
+    def visit(node):
+        if isinstance(node,ast.Constant) and type(node.value) in (float,int):
+            return float(node.value)
+        if isinstance(node,ast.Name):
+            return lookup(node.id)
+        if isinstance(node,ast.UnaryOp) and isinstance(node.op,(ast.UAdd,ast.USub)):
+            return (1 if isinstance(node.op,ast.UAdd) else -1)*visit(node.operand)
+        if isinstance(node,ast.BinOp) and type(node.op) in DESIGN_OPERATORS:
+            a,b = visit(node.left),visit(node.right)
+            if isinstance(node.op,ast.Pow) and abs(b)>64:
+                raise ValueError("Exponent is outside the supported range.")
+            return DESIGN_OPERATORS[type(node.op)](a,b)
+        raise ValueError("Use names, SPICE numbers and arithmetic operators.")
+    try:
+        value = visit(ast.parse(expression,mode="eval").body)
+        if not isinstance(value,(int,float)) or not math.isfinite(value):
+            raise ValueError("Design expressions must produce finite real values.")
+        return value
+    except (SyntaxError,ArithmeticError) as error:
+        raise ValueError(f"Invalid design expression: {expression}") from error
+
+
+def resolve_design(expressions,number):
+    if (not isinstance(expressions,dict) or len(expressions)>64
+            or any(not isinstance(k,str) or not DESIGN_IDENTIFIER.fullmatch(k) for k in expressions)):
+        raise ValueError("Use up to 64 design variables with identifier names.")
+    resolved = {}
+    active = set()
+    def get(name):
+        if name in resolved:
+            return resolved[name]
+        if name in active:
+            raise ValueError(f"Cyclic design variable: {name}")
+        if name not in expressions:
+            raise ValueError(f"Unknown design variable: {name}")
+        active.add(name)
+        resolved[name] = evaluate_design(expressions[name],get,number)
+        active.remove(name)
+        return resolved[name]
+    for name in expressions:
+        get(name)
+    return resolved
+
+
+def design_scalar(value, variables, number):
+    try:
+        return number(value)
+    except ValueError:
+        return evaluate_design(value,lambda name: design_lookup(variables,name),number)
+
+
+def design_lookup(variables,name):
+    if name not in variables:
+        raise ValueError(f"Unknown design variable: {name}")
+    return variables[name]

@@ -7,7 +7,7 @@ import subprocess
 import tempfile
 import unittest
 
-from circuit import Part, Project, connectivity, example, netlist, number, source_value
+from circuit import Part, Profile, Project, connectivity, example, netlist, number, source_value
 from results import Plot, analysis_deck, load_plot
 from plot_math import evaluate
 from qucs_library import import_diodes
@@ -15,6 +15,45 @@ from spice_library import read_library, read_subcircuits
 
 
 class CircuitTests(unittest.TestCase):
+    def test_design_variables_resolve_dependencies_and_reject_cycles(self):
+        project = example()
+        project.design_variables = {"LOAD":"2 * BASE","BASE":"1k"}
+        project.parts[2].value = "{LOAD}"
+        restored = Project.load(project.dump())
+        self.assertIn("R2 out 0 2000",netlist(restored))
+        restored.design_variables["BASE"] = "LOAD"
+        with self.assertRaisesRegex(ValueError,"Cyclic design variable"):
+            netlist(restored)
+
+    def test_project_local_library_includes_and_cycle(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            model = root/"part.lib"
+            index = root/"index.lib"
+            model.write_text(".model TEST D(IS=1e-12 N=1)\n")
+            index.write_text('.include "part.lib"\n')
+            models,_,issues = read_library(index,number)
+            self.assertEqual(models["TEST"]["parameters"]["IS"],"1e-12")
+            self.assertEqual(issues,[])
+            index.write_text('.include "../outside.lib"\n')
+            with self.assertRaisesRegex(ValueError,"stay within"):
+                read_library(index,number)
+            index.write_text('.include "part.lib"\n')
+            model.write_text('.include "index.lib"\n')
+            with self.assertRaisesRegex(ValueError,"Cyclic SPICE include"):
+                read_library(index,number)
+
+    def test_simulation_options_validate_nodes_and_emit_cards(self):
+        project = example()
+        project.simulation_options = {"temperature":"42","ic":{"out":"2"},
+                                      "nodeset":{"out":"3"},"reltol":"1m"}
+        deck = netlist(Project.load(project.dump()))
+        for card in (".temp 42",".ic V(out)=2",".nodeset V(out)=3",".options reltol=0.001"):
+            self.assertIn(card,deck)
+        project.simulation_options["ic"]["missing"] = "1"
+        with self.assertRaisesRegex(ValueError,"Unknown or grounded ic node"):
+            netlist(project)
+
     def test_discrete_pin_coordinates_and_rotation(self):
         bjt = Part("Q1", "Q", 10, 20, "GENERIC_NPN", port_names=["C", "B", "E"])
         self.assertEqual(bjt.pins(), [(11, 18), (8, 20), (11, 22)])
@@ -169,12 +208,98 @@ class ElectricalTests(unittest.TestCase):
     def run_circuit(self, project):
         with tempfile.TemporaryDirectory() as folder:
             path = Path(folder)
-            (path / "circuit.cir").write_text(analysis_deck(netlist(project)), encoding="ascii")
+            (path / "circuit.cir").write_text(analysis_deck(netlist(project),project.profiles[project.active]), encoding="ascii")
             run = subprocess.run([SOLVER, "-n", "-b", "circuit.cir"], cwd=path, timeout=25,
                                  capture_output=True, text=True)
             self.assertEqual(run.returncode, 0, run.stdout + run.stderr)
             self.assertTrue((path / "result.raw").exists(), run.stdout + run.stderr)
             return load_plot(path / "result.raw")
+
+    def test_controlled_sources_and_behavioral_voltage(self):
+        for kind,gain,expected in (("E","2",4),("U","1m",-2),("F","V1 2",4),
+                                   ("H","V1 1k",-2),("B","V={FACTOR}*v(in)",4)):
+            with self.subTest(kind=kind):
+                project = Project(design_variables={"FACTOR":"2"})
+                input_source = Part("V1","V",0,0,"DC 2")
+                source = Part(kind+"1",kind,10,0,gain)
+                load = Part("R1","R",20,0,"1k")
+                bias = Part("R2","R",30,0,"1k")
+                project.parts = [input_source,source,load,bias,Part("G1","G",60,0,"")]
+                label_pins(project,("in","0"),
+                           ("out","0","in","0") if kind in "EU" else ("out","0"),
+                           ("out","0"),("in","0"))
+                plot = self.run_circuit(project)
+                self.assertAlmostEqual(plot.rows[0][plot.names.index("v(out)")].real,expected,places=6)
+
+    def test_xspice_gates_translate_digital_levels(self):
+        for gate,first,second,expected in (("AND",5,5,5),("AND",0,5,0),("XOR",5,5,0),
+                                           ("OR",0,5,5),("XNOR",5,5,5),("NOR",0,0,5),
+                                           ("NAND",5,5,0),("INV",0,5,5),("INV",5,5,0)):
+            with self.subTest(gate=gate,first=first,second=second):
+                inverter = gate=="INV"
+                kind = "Z" if inverter else "Y"
+                value = "5 1 3 1n" if inverter else gate+" 5 1 3 1n"
+                project = Project(parts=[Part("V1","V",0,0,str(first)),Part("V2","V",10,0,str(second)),
+                    Part(kind+"1",kind,20,0,value),Part("R1","R",30,0,"1k"),
+                    Part("R2","R",40,0,"1k"),Part("G1","G",60,0,"")])
+                signals = ("a","out") if inverter else ("a","b","out")
+                label_pins(project,("a","0"),("b","0"),signals,("out","0"),("b","0"))
+                plot = self.run_circuit(project)
+                self.assertAlmostEqual(plot.rows[0][plot.names.index("v(out)")].real,expected,places=6)
+
+    def test_coupled_inductors_match_transformer_turns_ratio(self):
+        project = Project(parts=[Part("V1","V",0,0,"DC 0 AC 1"),
+            Part("L1","L",10,0,"1m"),Part("L2","L",20,0,"4m"),
+            Part("R1","R",30,0,"10k"),Part("G1","G",60,0,"")])
+        label_pins(project,("in","0"),("in","0"),("out","0"),("out","0"))
+        project.simulation_options = {"couplings":[["L1","L2","0.99"]]}
+        project.active = "AC sweep"
+        plot = self.run_circuit(project)
+        ratio = abs(plot.rows[0][plot.names.index("v(out)")])
+        self.assertAlmostEqual(ratio,.99*math.sqrt(4),places=4)
+
+    def test_subcircuit_instance_override_preserves_other_instances(self):
+        project = Project(subcircuits={"LOAD":{"ports":["IN","OUT","REF"],
+                        "body":["R1 IN OUT {BIAS}","R2 OUT REF 1k"],"parameters":{"BIAS":"1k"}}})
+        ports = ["IN","OUT","REF"]
+        project.parts = [Part("V1","V",0,0,"DC 10"),Part("X1","X",14,0,"LOAD",port_names=ports),
+                         Part("X2","X",28,0,"LOAD",port_names=ports),Part("R3","R",40,0,"1t"),
+                         Part("R4","R",50,0,"1t"),Part("G1","G",60,0,"")]
+        label_pins(project,("in","0"),("in","outa","0"),("in","outb","0"),("outa","0"),("outb","0"))
+        project.instance_variables = {"X1":{"BIAS":"3k"}}
+        plot = self.run_circuit(project)
+        self.assertAlmostEqual(plot.rows[0][plot.names.index("v(outa)")].real,2.5,places=6)
+        self.assertAlmostEqual(plot.rows[0][plot.names.index("v(outb)")].real,5,places=6)
+
+    def test_advanced_analyses_against_rc_reference(self):
+        project = example()
+        project.parts[2].kind,project.parts[2].ref,project.parts[2].value = "C","C1","1u"
+        project.parts[0].value = "DC 0 AC 1 SIN 0 1 1k 0 0 0"
+        project.parts.append(Part("N2","N",-6,-2,"in"))
+        project.active = "Study"
+        project.profiles["Study"] = Profile("NOISE")
+        noise = self.run_circuit(project)
+        actual = noise.rows[0][noise.names.index("onoise_spectrum")].real
+        expected = math.sqrt(4*1.380649e-23*300.15*1000)/math.hypot(1,2*math.pi*10*.001)
+        self.assertAlmostEqual(actual/expected,1,places=3)
+        project.profiles["Study"] = Profile("PZ")
+        poles = self.run_circuit(project)
+        self.assertAlmostEqual(poles.rows[0][poles.names.index("v(pole(1))")].real,-1000,places=4)
+        project.profiles["Study"] = Profile("FOURIER",step="1u",stop="20m")
+        spectrum = self.run_circuit(project)
+        self.assertTrue(any(name.startswith("thd") for name in spectrum.names))
+        self.assertLess(spectrum.rows[0][next(i for i,n in enumerate(spectrum.names) if n.startswith("thd"))].real,.1)
+        project.profiles["Study"] = Profile("DISTO")
+        distortion = self.run_circuit(project)
+        self.assertEqual(distortion.names[0],"frequency")
+        self.assertAlmostEqual(abs(distortion.rows[0][distortion.names.index("v(out)")]),0,places=10)
+
+    def test_dc_sensitivity_of_divider(self):
+        project = example()
+        project.profiles["Sensitivity"] = Profile("SENS")
+        project.active = "Sensitivity"
+        result = self.run_circuit(project)
+        self.assertAlmostEqual(result.rows[0][result.names.index("v(r1)")].real,-.0025,places=7)
 
     def test_divider_operating_point(self):
         plot = self.run_circuit(example())

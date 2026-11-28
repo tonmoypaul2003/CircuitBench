@@ -14,6 +14,12 @@ class Plot:
     units: list[str]
     rows: list[list[complex]]
 
+    def describe(self,profile,run,sweep=None,mode=None):
+        axes = [] if mode in ("OP","PZ","SENS") else self.names[:1]
+        return {"run":run,"analysis":profile,"mode":mode,"axes":axes,
+                "vectors":[{"name":name,"unit":unit} for name,unit in zip(self.names,self.units)],
+                "samples":len(self.rows),"sweep":sweep or {}}
+
     def marker_columns(self, measurements):
         indices = {name.lower(): index for index, name in enumerate(self.names)}
         selected = []
@@ -98,20 +104,26 @@ def load_plot(path):
     return Plot(header.get("Plotname", "Simulation"), names, units, rows)
 
 
-def analysis_deck(deck):
+def analysis_deck(deck, profile=None):
     # Use the selected analysis directive directly in a control block so that
     # ngspice produces one ASCII plot, including for operating-point runs.
     body, directive, end = deck.rstrip().rsplit("\n", 2)
-    if end != ".end" or not directive.startswith((".op", ".ac ", ".tran ", ".dc ")):
+    if end != ".end" or not directive.startswith((".op", ".ac ", ".tran ", ".dc ", ".noise ", ".pz ", ".sens ", ".disto ")):
         raise ValueError("Expected a generated single-analysis netlist")
-    return (f"{body}\n.control\nset filetype=ascii\n{directive[1:]}\n"
+    extra = ""
+    if directive.startswith(".noise "):
+        extra = "setplot noise1\n"
+    if profile is not None and profile.mode=="FOURIER":
+        profile.directive()
+        extra = f"fourier {profile.fourier_hz} v({profile.output_node})\n"
+    return (f"{body}\n.control\nset filetype=ascii\n{directive[1:]}\n{extra}"
             "write result.raw all\nquit\n.endc\n.end\n")
 
 
 def bias_deck(project):
     project = Project.load(project.dump())
     nets = connectivity(project)
-    devices = [(i, part) for i, part in enumerate(project.parts) if part.kind not in "GN"]
+    devices = [(i, part) for i, part in enumerate(project.parts) if part.kind not in "GNYZ"]
     anchors = {nets[pin]: pin for _, part in devices for pin in part.pins()}
     for point in project.junctions:
         if nets[point] in anchors:
