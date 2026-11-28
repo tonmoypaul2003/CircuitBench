@@ -10,7 +10,6 @@
   "noise_samples": 201,
   "status": "passed",
   "source_tests_passed": 78,
-  "web_engine_tests_passed": true,
   "executable_path": "build/0.5.3-beta/CircuitBench.exe",
-  "executable_sha256": "cb343908957e3aafa96a0330efe538f7714fd8aba1bd00a96a6227c15f35f3ac"
+  "executable_sha256": "348b89e3f9192f553fe501e73149b4a81e2e092257dca64146e1cd645f9c6c3f"
 }

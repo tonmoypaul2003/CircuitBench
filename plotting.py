@@ -8,7 +8,7 @@ from PyQt6.QtGui import QColor, QImage, QPageSize, QShortcut, QKeySequence, QPai
 from PyQt6.QtWidgets import (QApplication, QAbstractItemView, QColorDialog, QComboBox, QDialog, QDialogButtonBox, QFileDialog,
                              QCheckBox, QDoubleSpinBox, QFormLayout, QGridLayout, QHBoxLayout, QInputDialog, QLabel, QLineEdit,
                              QListWidget, QListWidgetItem, QPushButton, QScrollArea, QSlider, QSpinBox, QToolButton, QMenu,
-                             QVBoxLayout, QWidget)
+                             QStackedWidget, QVBoxLayout, QWidget)
 
 from circuit import number
 from plot_math import FUNCTIONS, SERIES_FUNCTIONS, evaluate, level_crossings
@@ -557,6 +557,7 @@ class PlotPage(QWidget):
     def __init__(self, plot, selected=None):
         super().__init__()
         self.setObjectName("plotControls")
+        self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground)
         self.wave = Waveform()
         self.wave.parent_page = self
         self.wave.plot = plot
@@ -616,6 +617,11 @@ class PlotPage(QWidget):
         self.x_axis.setMaximumWidth(155)
         self.x_axis.currentIndexChanged.connect(self.set_x_axis)
         layout = QVBoxLayout(self)
+        self.tools = QWidget(self)
+        self.tools.setObjectName("subplotTools")
+        tool_layout = QVBoxLayout(self.tools)
+        tool_layout.setContentsMargins(5,3,5,3)
+        tool_layout.setSpacing(4)
         toolbar = QHBoxLayout()
         anchor = QPushButton("Set A")
         anchor.setToolTip("Anchor the current sample as A, then click another point for B")
@@ -655,7 +661,7 @@ class PlotPage(QWidget):
         toolbar.addWidget(x_label)
         toolbar.addWidget(self.x_axis)
         toolbar.addStretch()
-        layout.addLayout(toolbar)
+        tool_layout.addLayout(toolbar)
         graph_tools = QHBoxLayout()
         fit = QPushButton("Fit data")
         fit.setToolTip("Reset axis limits and zoom to show all data")
@@ -671,7 +677,7 @@ class PlotPage(QWidget):
         for button in (self.limits_button, fit, appearance, self.grid_button):
             graph_tools.addWidget(button)
         graph_tools.addStretch()
-        layout.addLayout(graph_tools)
+        tool_layout.addLayout(graph_tools)
         pin_tools = QHBoxLayout()
         for item in (self.cursor_button, self.auto_pin_button, self.pin_shape, pin, remove_pin):
             pin_tools.addWidget(item)
@@ -690,7 +696,7 @@ class PlotPage(QWidget):
         guides.currentTextChanged.connect(set_guides)
         pin_tools.addWidget(guides)
         pin_tools.addStretch()
-        layout.addLayout(pin_tools)
+        tool_layout.addLayout(pin_tools)
         content = QHBoxLayout()
         content.addWidget(self.traces)
         chart = QGridLayout()
@@ -699,7 +705,9 @@ class PlotPage(QWidget):
         chart.addWidget(self.grid_density,1,1)
         chart.setColumnStretch(1,1)
         content.addLayout(chart,1)
-        zoom_tools = QVBoxLayout()
+        self.zoom_panel = QWidget()
+        zoom_tools = QVBoxLayout(self.zoom_panel)
+        zoom_tools.setContentsMargins(0,0,0,0)
         self.zoom_slider = QSlider(Qt.Orientation.Vertical)
         self.zoom_slider.setRange(25, 800)
         self.zoom_slider.setInvertedControls(False)
@@ -728,8 +736,9 @@ class PlotPage(QWidget):
         zoom_tools.addWidget(self.zoom_slider, 1, Qt.AlignmentFlag.AlignHCenter)
         zoom_tools.addWidget(self.zoom_out_button, alignment=Qt.AlignmentFlag.AlignHCenter)
         zoom_tools.addWidget(self.zoom_readout, alignment=Qt.AlignmentFlag.AlignHCenter)
-        content.addLayout(zoom_tools)
+        content.addWidget(self.zoom_panel)
         layout.addLayout(content, 1)
+        self.cursor_readout = readout
         layout.addWidget(readout)
         operating_point = "operating point" in plot.title.lower()
         self.x_axis.setEnabled(not operating_point)
@@ -1329,7 +1338,14 @@ class PlotReportPage(QWidget):
             controls.addWidget(button)
         controls.addStretch()
         layout.addLayout(controls)
-        scroller = QScrollArea()
+        self.focus_plot = QPushButton("Focus plot")
+        self.focus_plot.setCheckable(True)
+        self.focus_plot.toggled.connect(self.arrange_subplots)
+        controls.insertWidget(2,self.focus_plot)
+        self.plot_tools = QStackedWidget()
+        layout.addWidget(self.plot_tools)
+        self.active.currentIndexChanged.connect(self.sync_active_subplot)
+        self.scroller = scroller = QScrollArea()
         scroller.viewport().setObjectName("plotViewport")
         scroller.setWidgetResizable(True)
         content = QWidget()
@@ -1399,7 +1415,8 @@ class PlotReportPage(QWidget):
             self.message.setText("A page can contain up to 12 subplots.")
             return
         subplot = PlotPage(self.plot, selected)
-        for button in subplot.findChildren(QPushButton):
+        self.plot_tools.addWidget(subplot.tools)
+        for button in [*subplot.findChildren(QPushButton),*subplot.tools.findChildren(QPushButton)]:
             button.setAutoDefault(False)
         subplot.wave.title = f"Plot {len(self.subplots)+1}"
         self.subplots.append(subplot)
@@ -1407,6 +1424,7 @@ class PlotReportPage(QWidget):
         self.arrange_subplots()
         self.active.addItem(f"Plot {len(self.subplots)}")
         self.active.setCurrentIndex(len(self.subplots)-1)
+        self.sync_active_subplot(self.active.currentIndex())
         return subplot
 
     def arrange_subplots(self):
@@ -1415,6 +1433,27 @@ class PlotReportPage(QWidget):
             self.stack.addWidget(subplot, index//columns, index%columns)
         self.stack.setColumnStretch(0, 1)
         self.stack.setColumnStretch(1, int(columns == 2))
+        self.sync_active_subplot(self.active.currentIndex())
+
+    def sync_active_subplot(self, index):
+        if not 0<=index<len(self.subplots):
+            return
+        self.plot_tools.setCurrentWidget(self.subplots[index].tools)
+        focused = self.focus_plot.isChecked()
+        for i,subplot in enumerate(self.subplots):
+            active = i==index
+            subplot.setVisible(active or not focused)
+            subplot.setProperty("activePlot",active)
+            subplot.style().unpolish(subplot)
+            subplot.style().polish(subplot)
+            subplot.cursor_readout.setVisible(active)
+            subplot.zoom_panel.setVisible(active)
+            subplot.traces.setVisible(active)
+            subplot.grid_density.setVisible(active and subplot.grid_button.isChecked())
+            subplot.y_grid_density.setVisible(active and subplot.grid_button.isChecked())
+        if focused:
+            self.stack.addWidget(self.subplots[index],0,0,1,self.tiles.currentIndex()+1)
+        self.scroller.ensureWidgetVisible(self.subplots[index],0,0)
 
     def remove_subplot(self):
         if len(self.subplots) == 1:
@@ -1423,11 +1462,16 @@ class PlotReportPage(QWidget):
         index = self.active.currentIndex()
         subplot = self.subplots.pop(index)
         self.stack.removeWidget(subplot)
+        self.plot_tools.removeWidget(subplot.tools)
+        subplot.tools.deleteLater()
         subplot.deleteLater()
         self.active.removeItem(index)
         self.arrange_subplots()
         for index in range(self.active.count()):
             self.active.setItemText(index, f"Plot {index+1}")
+            if re.fullmatch(r"Plot \d+",self.subplots[index].wave.title):
+                self.subplots[index].wave.title = f"Plot {index+1}"
+                self.subplots[index].wave.update()
 
     def add_expression(self, text):
         expression = text.strip()

@@ -167,7 +167,7 @@ class GuiTests(unittest.TestCase):
         self.assertEqual([p[1] for p in sub.wave.pins],[.5,1.5])
         sub.wave.grab()
         QTest.keyClick(sub.wave,Qt.Key.Key_Right)
-        buttons = {b.text():b for b in sub.findChildren(QPushButton)}
+        buttons = {b.text():b for b in sub.tools.findChildren(QPushButton)}
         buttons["Set A"].click()
         self.assertIsNotNone(sub.wave.reference)
         buttons["Set A"].click()
@@ -236,7 +236,7 @@ class GuiTests(unittest.TestCase):
         rect = wave.screen_axes[0]
         start = QPoint(round(rect.left()+4),round(rect.center().y()))
         end = QPoint(round(rect.right()-4),round(rect.center().y()))
-        buttons = {b.text():b for b in sub.findChildren(QPushButton)}
+        buttons = {b.text():b for b in sub.tools.findChildren(QPushButton)}
         QTest.mouseClick(wave,Qt.MouseButton.LeftButton,pos=start)
         buttons["Set A"].click()
         a = wave.reference
