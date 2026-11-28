@@ -148,6 +148,9 @@ class Canvas(QWidget):
             selected = index in self.editor.selected_parts
             painter.save()
             painter.translate(part.x, part.y)
+            if part is getattr(self.editor,"component_highlight",None):
+                painter.setPen(QPen(highlight_ink,.12))
+                painter.drawEllipse(QPointF(),2.65,2.65)
             painter.rotate(part.rotation * 90)
             self.symbol_color = part.label_style.get("symbol_color",project.element_colors.get(part.ref))
             if part.kind == "X":
@@ -606,6 +609,8 @@ class Canvas(QWidget):
 
     def mousePressEvent(self, event):
         self.editor.bias_list.clearSelection()
+        self.editor.component_highlight = None
+        self.update()
         self.setFocus()
         pos = event.position()
         point = self.grid(pos)

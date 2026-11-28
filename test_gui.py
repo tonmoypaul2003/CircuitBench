@@ -537,6 +537,95 @@ class GuiTests(unittest.TestCase):
         self.window.restore(self.window.redo_stack, self.window.undo_stack)
         self.assertEqual(len(self.window.project.wires), 2)
 
+    def test_component_list_selects_and_reveals_component(self):
+        editor = self.window
+        editor.project = example()
+        editor.project.parts[0].x = 1000
+        editor.refresh()
+        self.assertEqual(editor.component_list.count(),3)
+        editor.component_list.setCurrentRow(0)
+        part = editor.project.parts[0]
+        self.assertIs(editor.selected,part)
+        self.assertIs(editor.component_highlight,part)
+        self.assertEqual(editor.ref.text(),"V1")
+        self.assertEqual(editor.canvas.offset.x(),-1000*editor.canvas.cell)
+        self.click(part.x,part.y)
+        self.assertIsNone(editor.component_highlight)
+
+    def test_measurement_dialog_prefills_vector_and_analysis_interval(self):
+        from unittest.mock import patch
+        from PyQt6.QtWidgets import QDialog, QDialogButtonBox, QPushButton, QTableWidget
+        from design_studies import edit_run_measurements
+
+        editor = self.window
+        editor.project = example()
+        editor.project.active = "AC sweep"
+        def submit(dialog):
+            next(button for button in dialog.findChildren(QPushButton) if button.text()=="Add row").click()
+            table = dialog.findChild(QTableWidget)
+            self.assertEqual(table.cellWidget(0,2).currentText(),"v(out)")
+            self.assertEqual(table.cellWidget(0,3).text(),"10")
+            self.assertEqual(table.cellWidget(0,4).text(),"100k")
+            table.cellWidget(0,1).setText("Peak output")
+            table.cellWidget(0,4).setText("50k")
+            dialog.findChild(QDialogButtonBox).button(QDialogButtonBox.StandardButton.Ok).click()
+            return dialog.result()
+        with patch.object(QDialog,"exec",submit):
+            edit_run_measurements(editor)
+        self.assertEqual(editor.project.run_measurements,[["Peak output","Maximum","v(out)","10","50k"]])
+
+    def test_simulation_options_offer_nodes_and_disable_irrelevant_fields(self):
+        from unittest.mock import patch
+        from PyQt6.QtWidgets import QDialog, QDialogButtonBox, QTableWidget
+        from design_studies import edit_options
+
+        editor = self.window
+        editor.project = example()
+        def submit(dialog):
+            table = dialog.findChild(QTableWidget)
+            self.assertFalse(table.cellWidget(0,1).isEnabled())
+            self.assertEqual(table.cellWidget(0,3).placeholderText(),"27")
+            table.cellWidget(0,0).setCurrentText("Initial voltage")
+            table.cellWidget(0,1).setCurrentText("out")
+            self.assertTrue(table.cellWidget(0,1).isEnabled())
+            self.assertFalse(table.cellWidget(0,2).isEnabled())
+            table.cellWidget(0,3).setText("2")
+            dialog.findChild(QDialogButtonBox).button(QDialogButtonBox.StandardButton.Ok).click()
+            return dialog.result()
+        with patch.object(QDialog,"exec",submit):
+            edit_options(editor)
+        self.assertEqual(editor.project.simulation_options,{"ic":{"out":"2"}})
+
+    @unittest.skipUnless(SOLVER, "Bundled ngspice is required")
+    def test_fourier_harmonics_use_a_table_and_diagnostics_are_copyable(self):
+        from PyQt6.QtWidgets import QTableWidget
+        from circuit import Profile
+        from smoke_test import run_profile
+        editor = self.window
+        editor.solver = str(SOLVER)
+        editor.project = example()
+        editor.project.parts[0].value = "DC 0 SIN 0 1 1k 0 0 0"
+        editor.project.profiles["Fourier test"] = Profile("FOURIER",stop="10m")
+        editor.project.run_measurements = [["Output peak","Maximum","v(out)","",""]]
+        with tempfile.TemporaryDirectory() as directory:
+            run_profile(editor,self.application,Path(directory),"Fourier test")
+            page = editor.plot_pages.currentWidget()
+            table = page.findChild(QTableWidget)
+            self.assertGreaterEqual(table.rowCount(),9)
+            self.assertEqual(table.item(1,1).text(),"1000")
+            log = editor.log.toPlainText()
+            self.assertIn("Fourier test — completed",log)
+            self.assertIn("Output peak = ",log)
+            self.assertNotIn("Norm. Mag",log)
+            editor.log.show_timestamps(True)
+            self.assertRegex(editor.log.toPlainText(),r"\[\d{2}:\d{2}:\d{2}\] Fourier test")
+            editor.log.show_timestamps(False)
+            self.assertEqual(editor.log.toPlainText(),log)
+            editor.log.clear()
+            self.assertEqual(editor.log.toPlainText(),"")
+            editor.log.show_timestamps(True)
+            self.assertEqual(editor.log.toPlainText(),"")
+
     def test_example_preview_and_render(self):
         self.window.replace(example())
         self.assertIn("R2 out 0 1k", self.window.preview())

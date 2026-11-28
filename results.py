@@ -1,6 +1,7 @@
 """Read a single ASCII ngspice plot and export vectors."""
 import csv
 from dataclasses import dataclass
+from itertools import pairwise
 import math
 from pathlib import Path
 
@@ -20,12 +21,23 @@ def named_measurements(plot, definitions):
             col = columns.get(signal.casefold())
             if col is None or not plot.rows:
                 raise ValueError(f"{signal} is unavailable")
-            lo = number(start) if start else plot.rows[0][0].real
-            hi = number(stop) if stop else plot.rows[-1][0].real
+            if len(plot.rows)==1 and not (start or stop) and metric!="Value at X":
+                sample = plot.rows[0][col]
+                reading = abs(sample) if metric=="RMS" or sample.imag else sample.real
+                if not math.isfinite(reading):
+                    raise ValueError("Nonfinite measurement")
+                results[name] = {"value":0.0 if metric in ("Integral","Peak-to-peak") else reading}
+                continue
+            descending = plot.rows[0][0].real > plot.rows[-1][0].real
+            rows = reversed(plot.rows) if descending else iter(plot.rows)
+            first = plot.rows[-1 if descending else 0]
+            last = plot.rows[0 if descending else -1]
+            lo = number(start) if start else first[0].real
+            hi = number(stop) if stop else last[0].real
             if metric=="Value at X":
                 hi = lo
             points = []
-            for before,after in zip(plot.rows,plot.rows[1:]):
+            for before,after in pairwise(rows):
                 x0,x1 = before[0].real,after[0].real
                 left,right = max(lo,x0),min(hi,x1)
                 if x1<=x0 or left>right or not all(math.isfinite(abs(row[col])) for row in (before,after)):

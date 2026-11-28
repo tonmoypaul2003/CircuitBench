@@ -17,20 +17,42 @@ from results import Plot, RUN_METRICS
 from studies import simulate
 
 
-def fourier_report(path):
-    if not path.is_file():
-        return ""
-    lines = path.read_text(encoding="utf8",errors="replace").splitlines()
-    start = next((i for i,line in enumerate(lines) if "Fourier analysis" in line),None)
-    if start is None:
-        return "No Fourier summary was emitted. Inspect the solver log."
-    return "\n".join(lines[start:start+22]).strip()
+def fourier_table(path, parent=None):
+    table = QTableWidget(0, 6, parent)
+    table.setHorizontalHeaderLabels(("Harmonic","Frequency (Hz)","Magnitude","Phase (°)",
+                                      "Relative magnitude","Relative phase (°)"))
+    table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
+    table.verticalHeader().hide()
+    table.setAlternatingRowColors(True)
+    table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
+    summary = "Fourier harmonics are unavailable for this run."
+    active = False
+    if path.is_file():
+        for line in path.read_text(encoding="utf8",errors="replace").splitlines():
+            if "Fourier analysis for" in line:
+                active = True
+                summary = line.strip().rstrip(":")
+            if not active:
+                continue
+            if "THD:" in line:
+                summary += " · " + line.split("THD:",1)[1].split(",",1)[0].strip() + " THD"
+            cells = line.split()
+            if len(cells)==6 and cells[0].isdigit():
+                row = table.rowCount()
+                table.insertRow(row)
+                for column,value in enumerate(cells):
+                    item = QTableWidgetItem(value)
+                    item.setTextAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
+                    table.setItem(row,column,item)
+            elif table.rowCount():
+                break
+    return summary,table
 
 
-def edit_rows(editor, title, columns, rows, validate, fixed=False, choices=()):
+def edit_rows(editor, title, columns, rows, validate, fixed=False, choices=(), row_fields=None, new_row=None):
     dialog = QDialog(editor)
     dialog.setWindowTitle(title)
-    dialog.resize(530,340)
+    dialog.resize(760 if row_fields else 530,360)
     form = QFormLayout(dialog)
     table = QTableWidget(0,len(columns))
     table.setHorizontalHeaderLabels(columns)
@@ -48,6 +70,8 @@ def edit_rows(editor, title, columns, rows, validate, fixed=False, choices=()):
                     combo.setCurrentText(values[0])
                 table.setCellWidget(row,col,combo)
                 continue
+            if row_fields and row_fields(table,row,col,values[col] if col<len(values) else ""):
+                continue
             cell = QTableWidgetItem(values[col] if col<len(values) else "")
             if fixed and col != 1:
                 cell.setFlags(cell.flags() & ~Qt.ItemFlag.ItemIsEditable)
@@ -55,10 +79,17 @@ def edit_rows(editor, title, columns, rows, validate, fixed=False, choices=()):
 
     for values in rows:
         append(values)
+    next_row = table.rowCount()
+
+    def add_row():
+        nonlocal next_row
+        append(new_row(next_row) if new_row else ())
+        next_row += 1
+
     if not fixed:
         add = QPushButton("Add row")
         remove = QPushButton("Remove selected row")
-        add.clicked.connect(lambda: append())
+        add.clicked.connect(add_row)
         remove.clicked.connect(lambda: table.removeRow(table.currentRow()))
         form.addRow(add,remove)
     error_label = QLabel()
@@ -68,10 +99,16 @@ def edit_rows(editor, title, columns, rows, validate, fixed=False, choices=()):
     form.addRow(buttons)
     result = []
 
+    def text_at(row,col):
+        widget = table.cellWidget(row,col)
+        if isinstance(widget,QComboBox):
+            return widget.currentText().strip()
+        if widget:
+            return widget.text().strip()
+        return table.item(row,col).text().strip()
+
     def submit():
-        entries = [tuple((table.cellWidget(row,col).currentText() if table.cellWidget(row,col)
-                          else table.item(row,col).text()).strip() for col in range(len(columns)))
-                   for row in range(table.rowCount())]
+        entries = [tuple(text_at(row,col) for col in range(len(columns))) for row in range(table.rowCount())]
         try:
             result.append(validate([row for row in entries if any(row)]))
         except ValueError as error:
@@ -130,8 +167,45 @@ def edit_options(editor):
         simulation_cards(snapshot)
         return values
 
+    nodes = sorted(set(connectivity(editor.project).values()) - {"0"})
+    inductors = [part.ref for part in editor.project.parts if part.kind=="L"]
+
+    def fields(table,row,col,value):
+        option = table.cellWidget(row,0)
+        if col==3:
+            widget = QLineEdit(value)
+            defaults = {"Temperature (°C)":"27","Relative tolerance":"0.001","Absolute tolerance":"1p",
+                        "Initial voltage":"0","Node voltage estimate":"0","Inductor coupling":"0.99"}
+            def update():
+                widget.setPlaceholderText(defaults[option.currentText()])
+            option.currentTextChanged.connect(update)
+            update()
+        else:
+            widget = QComboBox()
+            def update():
+                kind = option.currentText()
+                items = (inductors if kind=="Inductor coupling" else nodes
+                         if col==1 and kind in ("Initial voltage","Node voltage estimate") else [])
+                current = widget.currentText()
+                widget.clear()
+                widget.addItems(items)
+                widget.setEnabled(bool(items))
+                if current in items:
+                    widget.setCurrentText(current)
+                elif col==2 and widget.count()>1:
+                    widget.setCurrentIndex(1)
+            option.currentTextChanged.connect(update)
+            update()
+            if value:
+                if widget.findText(value)<0:
+                    widget.addItem(value)
+                widget.setCurrentText(value)
+        table.setCellWidget(row,col,widget)
+        return True
+
     value = edit_rows(editor,"Simulation options",("Option","Node or inductor","Second inductor","Value"),
-                      rows,validate,choices=("Initial voltage","Node voltage estimate","Inductor coupling",*labels.values()))
+                      rows,validate,choices=("Initial voltage","Node voltage estimate","Inductor coupling",*labels.values()),
+                      row_fields=fields)
     if value is not None:
         editor.checkpoint()
         editor.project.simulation_options = value
@@ -453,11 +527,49 @@ def edit_run_measurements(editor):
                 number(stop)
         return [[name,metric,signal,start,stop] for metric,name,signal,start,stop in rows]
 
+    profile = editor.project.profiles[editor.project.active]
+    vectors = [f"v({node})" for node in sorted(set(connectivity(editor.project).values()) - {"0"})]
+    vectors.extend(f"i({part.ref.lower()})" for part in editor.project.parts if part.kind=="V")
+    loaded = editor.wave.plot
+    if loaded and editor.run_revision == editor.project.dump(include_label_styles=False):
+        vectors.extend(loaded.names[1:] if profile.mode not in ("OP","TF","SENS","PZ") else loaded.names)
+    vectors = list(dict.fromkeys(vectors))
+    if profile.mode in ("TRAN","FOURIER"):
+        bounds = profile.start,profile.stop
+    elif profile.mode=="DC":
+        bounds = tuple(sorted((profile.sweep_start,profile.sweep_stop),key=number))
+    elif profile.mode in ("AC","NOISE","DISTO"):
+        bounds = profile.start_hz,profile.stop_hz
+    else:
+        bounds = "",""
+
+    def fields(table,row,col,value):
+        if col==2:
+            widget = QComboBox()
+            widget.addItems(vectors)
+            if value and widget.findText(value)<0:
+                widget.addItem(value)
+            widget.setCurrentText(value or ("v(out)" if "v(out)" in vectors else widget.currentText()))
+        else:
+            widget = QLineEdit(value)
+        table.setCellWidget(row,col,widget)
+        return True
+
     existing = [(metric,name,signal,start,stop)
                 for name,metric,signal,start,stop in editor.project.run_measurements]
+    used_names = {row[1] for row in existing}
+    def default_measurement(index):
+        index += 1
+        while f"Measurement {index}" in used_names:
+            index += 1
+        name = f"Measurement {index}"
+        used_names.add(name)
+        return "Maximum",name,"",*bounds
+
     values = edit_rows(editor,"Automatic waveform measurements",
-                       ("Measurement","Name","Signal (e.g. v(out))","Start X","End X"),
-                       existing,validate,choices=RUN_METRICS)
+                       ("Measurement","Name","Signal","Start X","End X"),
+                       existing,validate,choices=RUN_METRICS,row_fields=fields,
+                       new_row=default_measurement)
     if values is not None:
         editor.checkpoint()
         editor.project.run_measurements = values

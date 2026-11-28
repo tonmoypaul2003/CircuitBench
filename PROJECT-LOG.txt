@@ -621,3 +621,15 @@ entries for substantive historical mistakes.
     The beta name remains on the release. Historical beta assets use
     GitHub prerelease status. Build artifacts remain ignored in Git.
     https://github.com/tonmoypaul2003/CircuitBench/releases/tag/v0.5.1-beta
+
+2026-11-28 — Desktop measurement defaults, component inspection and diagnostics
+    Added signal dropdowns and editable profile-based bounds to waveform
+    measurements, and context-aware node and inductor choices to options.
+    Added a floatable List of components dock with canvas highlighting
+    and panning to off-screen parts. Put Fourier harmonics in a results
+    table. Diagnostics now offers Clear, optional timestamps and readable
+    scalar and run summaries while waveform rows stay with the plots.
+    Existing CWB and run data remain compatible. All 71 Desktop tests,
+    the Web engine regression and the packaged Windows smoke test passed.
+    Delivery: verified local v0.5.1 beta build with matching executable
+    copies, and source staged for GitHub main.

@@ -1,4 +1,5 @@
 """CircuitBench desktop entry point."""
+from datetime import datetime
 import json
 import os
 from pathlib import Path
@@ -6,7 +7,7 @@ import shutil
 import sys
 import tempfile
 
-from PyQt6.QtCore import QEvent, QItemSelectionModel, QPointF, QProcess, QSettings, Qt, QUrl
+from PyQt6.QtCore import QEvent, QSignalBlocker, QItemSelectionModel, QPointF, QProcess, QSettings, Qt, QUrl
 from PyQt6.QtGui import QAction, QActionGroup, QColor, QDesktopServices, QIcon
 from PyQt6.QtWidgets import (
     QApplication, QCheckBox, QColorDialog, QComboBox, QDialog, QDialogButtonBox, QDockWidget, QFileDialog,
@@ -31,6 +32,36 @@ VERSION = "0.5.1-beta"
 
 RUNTIME = Path(__file__).resolve().parent / "runtime"
 BUNDLED_SOLVER = RUNTIME / "ngspice" / "bin" / "ngspice_con.exe"
+
+
+class DiagnosticsLog(QPlainTextEdit):
+    def __init__(self):
+        super().__init__(readOnly=True)
+        self.entries = []
+        self.timestamps = False
+
+    def display_entry(self, stamp, message):
+        return "\n".join(f"[{stamp}] {line}" if line else "" for line in message.split("\n")) if self.timestamps else message
+
+    def appendPlainText(self, message):
+        if not message:
+            return
+        entry = (datetime.now().strftime("%H:%M:%S"),message)
+        self.entries.append(entry)
+        super().appendPlainText(self.display_entry(*entry))
+
+    def setPlainText(self, message):
+        self.clear()
+        self.appendPlainText(message)
+
+    def clear(self):
+        self.entries.clear()
+        super().clear()
+
+    def show_timestamps(self, enabled):
+        self.timestamps = enabled
+        super().setPlainText("\n".join(self.display_entry(*entry) for entry in self.entries))
+        self.verticalScrollBar().setValue(self.verticalScrollBar().maximum())
 
 
 class MarkerList(QListWidget):
@@ -236,9 +267,21 @@ class Editor(QMainWindow):
         self.action(edit, "Edit selected properties", "Alt+Return", self.edit_selection)
 
         self.tabs = QTabWidget()
-        self.log = QPlainTextEdit(readOnly=True)
+        self.log = DiagnosticsLog()
+        self.diagnostics = QWidget()
+        log_layout = QVBoxLayout(self.diagnostics)
+        controls_log = QHBoxLayout()
+        clear_log = QPushButton("Clear")
+        clear_log.clicked.connect(self.log.clear)
+        timestamps = QCheckBox("Timestamps")
+        timestamps.toggled.connect(self.log.show_timestamps)
+        controls_log.addWidget(clear_log)
+        controls_log.addWidget(timestamps)
+        controls_log.addStretch()
+        log_layout.addLayout(controls_log)
+        log_layout.addWidget(self.log)
         self.deck = QPlainTextEdit(readOnly=True)
-        self.tabs.addTab(self.log, "Diagnostics")
+        self.tabs.addTab(self.diagnostics, "Diagnostics")
         self.tabs.addTab(self.deck, "Netlist")
         self.plot_window = QDialog(self)
         self.plot_window.setWindowTitle("CircuitBench Simulation")
@@ -276,6 +319,12 @@ class Editor(QMainWindow):
         self.marker_list.itemClicked.connect(self.select_marker_item)
         self.marker_list.installEventFilter(self)
         self.marker_dock = self.dock("Measurement markers", self.marker_list, Qt.DockWidgetArea.RightDockWidgetArea)
+        self.component_highlight = None
+        self.component_list = QListWidget()
+        self.component_list.currentItemChanged.connect(self.inspect_component)
+        self.component_list.itemClicked.connect(lambda item: self.inspect_component(item,None)
+                                                if self.component_highlight is None else None)
+        self.component_dock = self.dock("List of components", self.component_list, Qt.DockWidgetArea.RightDockWidgetArea)
         self.bias_list = QListWidget()
         self.bias_list.itemSelectionChanged.connect(self.canvas.update)
         self.reading_nets = {}
@@ -295,7 +344,7 @@ class Editor(QMainWindow):
         install(self,view,edit,simulation,controls)
         self.output_dock = self.dock("Simulation output", self.tabs, Qt.DockWidgetArea.BottomDockWidgetArea)
         view.addSeparator()
-        for panel in (self.library_dock, self.properties_dock, self.marker_dock, self.bias_dock, self.output_dock):
+        for panel in (self.library_dock, self.properties_dock, self.component_dock, self.marker_dock, self.bias_dock, self.output_dock):
             view.addAction(panel.toggleViewAction())
             panel.hide()
         from PyQt6.QtWidgets import QStyle
@@ -761,7 +810,39 @@ class Editor(QMainWindow):
         self.select(part)
         self.refresh()
 
+    def refresh_components(self):
+        with QSignalBlocker(self.component_list):
+            self.component_list.clear()
+            for index,part in enumerate(self.project.parts):
+                if part.kind in "GN":
+                    continue
+                item = QListWidgetItem(f"{part.ref}  ·  {part.value or SYMBOLS[part.kind][0]}")
+                item.setData(Qt.ItemDataRole.UserRole,index)
+                item.setToolTip(f"{SYMBOLS[part.kind][0]} at ({part.x}, {part.y})")
+                self.component_list.addItem(item)
+                if part is self.selected:
+                    self.component_list.setCurrentItem(item)
+        if not any(part is self.component_highlight for part in self.project.parts):
+            self.component_highlight = None
+
+    def inspect_component(self, item, previous):
+        if item is None:
+            return
+        index = item.data(Qt.ItemDataRole.UserRole)
+        if index >= len(self.project.parts):
+            return
+        part = self.project.parts[index]
+        self.select(part)
+        self.bias_list.clearSelection()
+        self.component_highlight = part
+        self.properties_dock.show()
+        center = self.canvas.origin() + QPointF(part.x,part.y)*self.canvas.cell
+        if not self.canvas.rect().adjusted(30,30,-30,-30).contains(center.toPoint()):
+            self.canvas.offset = -QPointF(part.x,part.y)*self.canvas.cell
+        self.canvas.update()
+
     def refresh(self):
+        self.refresh_components()
         self.filter_library(self.search.text())
         if ((self.mode == "X" and self.placement_subcircuit() is None)
                 or (self.mode in ("Q", "M", "J", "S") and self.placement_value not in self.project.device_models)):
@@ -835,6 +916,12 @@ class Editor(QMainWindow):
         count = len(parts)+len(wires)+len(junctions)+len(self.selected_markers)
         part = self.project.parts[next(iter(parts))] if count == 1 and parts else None
         self.selected = part
+        if part is not self.component_highlight:
+            self.component_highlight = None
+        with QSignalBlocker(self.component_list):
+            item = next((self.component_list.item(row) for row in range(self.component_list.count())
+                         if count==1 and parts and self.component_list.item(row).data(Qt.ItemDataRole.UserRole) in parts),None)
+            self.component_list.setCurrentItem(item)
         self.ref.setText(part.ref if part else "")
         self.value.setText(part.value if part else "")
         captions = {"R": "Resistance (Ω)", "C": "Capacitance (F)", "L": "Inductance (H)",
@@ -1486,7 +1573,7 @@ class Editor(QMainWindow):
     def error(self, message):
         self.output_dock.show()
         self.log.appendPlainText(message)
-        self.tabs.setCurrentWidget(self.log)
+        self.tabs.setCurrentWidget(self.diagnostics)
         self.statusBar().showMessage(message, 6500)
 
     def preview(self):
@@ -1513,17 +1600,55 @@ class Editor(QMainWindow):
         from desktop04 import show_history
         show_history(self)
 
-    def load_saved_run(self, folder):
-        logs = []
+    def append_run_diagnostics(self, folder, successful):
         for name in ("stdout.log", "stderr.log"):
             path = folder / name
             if path.is_file():
-                with path.open(encoding="utf-8", errors="replace") as file:
-                    logs.append(file.read(60000))
-        self.log.setPlainText("\n".join([str(folder), *logs]))
-        self.tabs.setCurrentWidget(self.log)
+                with path.open(encoding="utf-8",errors="replace") as stream:
+                    lines = stream.read(60000).splitlines()
+                if successful and name=="stdout.log":
+                    lines = [line for line in lines if line.lstrip().lower().startswith(("warning","error","note:"))]
+                self.log.appendPlainText("\n".join(lines).strip())
+
+    def describe_run(self, plot, snapshot, assignment, folder, measurements):
+        mode = snapshot.profiles[snapshot.active].mode
+        lines = [f"{snapshot.active} — completed"]
+        if assignment:
+            lines.append("Sweep: " + ", ".join(f"{key} = {value}" for key,value in assignment.items()))
+        bias_path = folder/"operating-point.json"
+        if mode=="OP" and bias_path.is_file() and plot.rows:
+            data = bias_readings(plot,json.loads(bias_path.read_text(encoding="utf8")))
+            lines.extend(f"  {row['net']} = {engineering(row['value'],'V')}" for row in data["nodes"])
+            for row in data["currents"]:
+                part = snapshot.parts[row["part"]]
+                lines.append(f"  {part.ref}, pin {row['pin']+1} = {engineering(row['value'],'A')}")
+        elif mode in ("OP","TF","PZ","SENS") and len(plot.rows)==1:
+            for name,value in zip(plot.names,plot.rows[0]):
+                label = name.removeprefix("v(").removesuffix(")") if name.startswith("v(") else name
+                label = label.replace("_"," ")
+                lines.append(f"  {label}: {value:.7g}" if value.imag else f"  {label}: {value.real:.7g}")
+        elif plot.rows:
+            axis = plot.names[0]
+            lines.append(f"  {len(plot.rows):,} samples · {axis} from {plot.rows[0][0].real:.7g} to {plot.rows[-1][0].real:.7g}")
+            lines.append(f"  {len(plot.names)-1} waveform vectors available in Simulation Plots.")
+            if mode=="FOURIER":
+                lines.append("  Fourier harmonics and THD are available in the results table.")
+        for name,result in measurements.items():
+            summary = f'{result["value"]:.7g}' if "value" in result else result["error"]
+            lines.append(f"  {name} = {summary}")
+        self.log.appendPlainText("\n".join(lines))
+
+    def load_saved_run(self, folder):
+        successful = (folder / "result.raw").is_file()
+        self.log.setPlainText(str(folder))
+        self.append_run_diagnostics(folder,successful)
+        self.tabs.setCurrentWidget(self.diagnostics)
         if (folder / "result.raw").is_file():
             snapshot = (folder / "project.cwb").read_text(encoding="utf-8")
+            info_file = folder/"dataset.json"
+            info = json.loads(info_file.read_text(encoding="utf8")) if info_file.is_file() else {}
+            self.describe_run(load_plot(folder/"result.raw"),Project.load(snapshot),info.get("sweep",{}),
+                              folder,info.get("measurements",{}))
             self.show_run_result(folder, snapshot)
             from desktop04 import run_title
             page = self.plot_pages.currentWidget()
@@ -1581,8 +1706,8 @@ class Editor(QMainWindow):
         self.run_dir = folder
         self.pending_revision = revision
         self.cancelled = False
-        self.log.setPlainText(str(folder))
-        self.tabs.setCurrentWidget(self.log)
+        self.log.appendPlainText(f"Run folder: {folder}")
+        self.tabs.setCurrentWidget(self.diagnostics)
         process = QProcess(self)
         self.process = process
         process.setWorkingDirectory(str(folder))
@@ -1616,11 +1741,7 @@ class Editor(QMainWindow):
         self.cancel_action.setEnabled(False)
         status = "cancelled" if self.cancelled else "failed"
         try:
-            for name in ("stdout.log", "stderr.log"):
-                path = self.run_dir / name
-                if path.exists():
-                    with path.open(encoding="utf-8", errors="replace") as log:
-                        self.log.appendPlainText(log.read(60000))
+            self.append_run_diagnostics(self.run_dir,code == 0 and not self.cancelled)
             if code == 0 and not self.cancelled:
                 raw = load_plot(self.run_dir/"result.raw")
                 snapshot = Project.load(self.pending_revision)
@@ -1630,9 +1751,7 @@ class Editor(QMainWindow):
                 if snapshot.run_measurements:
                     from results import named_measurements
                     result_info["measurements"] = named_measurements(raw,snapshot.run_measurements)
-                    for name,result in result_info["measurements"].items():
-                        summary = f'{result["value"]:.7g}' if "value" in result else result["error"]
-                        self.log.appendPlainText(f"{name} = {summary}")
+                self.describe_run(raw,snapshot,assignment,self.run_dir,result_info.get("measurements",{}))
                 (self.run_dir/"dataset.json").write_text(json.dumps(result_info,indent=2),encoding="utf8")
                 if self.sweep_job:
                     self.sweep_values[self.run_dir] = assignment
@@ -1683,8 +1802,12 @@ class Editor(QMainWindow):
             self.report_bias = [self.bias_list.item(i).text() for i in range(self.bias_list.count())]
             self.bias_dock.show()
         if mode=="FOURIER":
-            from design_studies import fourier_report
-            self.plot_pages.currentWidget().message.setText(fourier_report(folder/"stdout.log"))
+            from design_studies import fourier_table
+            page = self.plot_pages.currentWidget()
+            summary,table = fourier_table(folder/"stdout.log",page)
+            table.setMinimumHeight(205)
+            page.layout().insertWidget(1,QLabel(summary))
+            page.layout().insertWidget(2,table)
 
     def show_plot(self, plot, revision, *, operating_point=None, open_window=True):
         measurements = []
