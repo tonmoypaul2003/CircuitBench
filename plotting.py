@@ -3,12 +3,12 @@ import math
 import re
 from pathlib import Path
 
-from PyQt6.QtCore import QIODevice, QPointF, QRectF, QSaveFile, Qt, pyqtSignal
+from PyQt6.QtCore import QIODevice, QPointF, QRectF, QSaveFile, QSize, Qt, pyqtSignal
 from PyQt6.QtGui import QColor, QImage, QPageSize, QShortcut, QKeySequence, QPainter, QPainterPath, QPdfWriter, QPen, QPolygonF
 from PyQt6.QtWidgets import (QApplication, QAbstractItemView, QColorDialog, QComboBox, QDialog, QDialogButtonBox, QFileDialog,
-                             QCheckBox, QDoubleSpinBox, QFormLayout, QGridLayout, QHBoxLayout, QInputDialog, QLabel, QLineEdit,
+                             QBoxLayout, QCheckBox, QDoubleSpinBox, QFormLayout, QGridLayout, QHBoxLayout, QInputDialog, QLabel, QLineEdit,
                              QListWidget, QListWidgetItem, QPushButton, QScrollArea, QSlider, QSpinBox, QToolButton, QMenu,
-                             QStackedWidget, QVBoxLayout, QWidget)
+                             QSizePolicy, QStackedWidget, QVBoxLayout, QWidget)
 
 from circuit import number
 from plot_math import FUNCTIONS, SERIES_FUNCTIONS, evaluate, level_crossings
@@ -553,6 +553,32 @@ class Waveform(QWidget):
             painter.restore()
 
 
+class ToolbarGroups(QWidget):
+    """Lay out two groups side by side when their controls fit."""
+    def __init__(self, left, right):
+        super().__init__()
+        self.setSizePolicy(QSizePolicy.Policy.Expanding,QSizePolicy.Policy.Maximum)
+        self.left, self.right = left, right
+        self.groups = QBoxLayout(QBoxLayout.Direction.TopToBottom,self)
+        self.groups.setContentsMargins(0,0,0,0)
+        self.groups.setSpacing(8)
+        self.groups.addWidget(left)
+        self.groups.addWidget(right)
+
+    def minimumSizeHint(self):
+        return QSize(max(self.left.minimumSizeHint().width(),self.right.minimumSizeHint().width()),
+                     self.groups.minimumSize().height())
+
+    def resizeEvent(self,event):
+        needed = self.left.sizeHint().width()+self.right.sizeHint().width()+self.groups.spacing()
+        direction = (QBoxLayout.Direction.LeftToRight if event.size().width()>=needed
+                     else QBoxLayout.Direction.TopToBottom)
+        if direction!=self.groups.direction():
+            self.groups.setDirection(direction)
+            self.updateGeometry()
+        super().resizeEvent(event)
+
+
 class PlotPage(QWidget):
     def __init__(self, plot, selected=None):
         super().__init__()
@@ -661,7 +687,15 @@ class PlotPage(QWidget):
         toolbar.addWidget(x_label)
         toolbar.addWidget(self.x_axis)
         toolbar.addStretch()
-        tool_layout.addLayout(toolbar)
+        left_tools = QWidget()
+        left_layout = QVBoxLayout(left_tools)
+        left_layout.setContentsMargins(0,0,0,0)
+        left_layout.addLayout(toolbar)
+        left_layout.addStretch()
+        right_tools = QWidget()
+        right_layout = QVBoxLayout(right_tools)
+        right_layout.setContentsMargins(0,0,0,0)
+        right_layout.setSpacing(4)
         graph_tools = QHBoxLayout()
         fit = QPushButton("Fit data")
         fit.setToolTip("Reset axis limits and zoom to show all data")
@@ -677,7 +711,7 @@ class PlotPage(QWidget):
         for button in (self.limits_button, fit, appearance, self.grid_button):
             graph_tools.addWidget(button)
         graph_tools.addStretch()
-        tool_layout.addLayout(graph_tools)
+        right_layout.addLayout(graph_tools)
         pin_tools = QHBoxLayout()
         for item in (self.cursor_button, self.auto_pin_button, self.pin_shape, pin, remove_pin):
             pin_tools.addWidget(item)
@@ -696,7 +730,8 @@ class PlotPage(QWidget):
         guides.currentTextChanged.connect(set_guides)
         pin_tools.addWidget(guides)
         pin_tools.addStretch()
-        tool_layout.addLayout(pin_tools)
+        right_layout.addLayout(pin_tools)
+        tool_layout.addWidget(ToolbarGroups(left_tools,right_tools))
         content = QHBoxLayout()
         content.addWidget(self.traces)
         chart = QGridLayout()
@@ -1326,7 +1361,9 @@ class PlotReportPage(QWidget):
         self.expressions = []
         self.subplots = []
         layout = QVBoxLayout(self)
-        controls = QHBoxLayout()
+        self.page_controls = QWidget(self)
+        controls = QHBoxLayout(self.page_controls)
+        controls.setContentsMargins(0,0,0,0)
         self.active = QComboBox()
         self.active.setAccessibleName("Active subplot")
         controls.addWidget(self.active)
@@ -1337,7 +1374,7 @@ class PlotReportPage(QWidget):
             button.clicked.connect(lambda checked=False, callback=action: callback())
             controls.addWidget(button)
         controls.addStretch()
-        layout.addLayout(controls)
+        layout.addWidget(self.page_controls)
         self.focus_plot = QPushButton("Focus plot")
         self.focus_plot.setCheckable(True)
         self.focus_plot.toggled.connect(self.arrange_subplots)

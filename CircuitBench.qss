@@ -54,3 +54,5 @@ QLineEdit:disabled, QPlainTextEdit:disabled, QComboBox:disabled, QSpinBox:disabl
 QWidget#subplotTools { border-bottom: 1px solid @line@; }
 QWidget#plotControls { border: 1px solid @line@; }
 QWidget#plotControls[activePlot="true"] { border-color: @focus@; }
+
+QToolBar#drawingTools QToolButton { text-align: left; }

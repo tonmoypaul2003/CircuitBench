@@ -12,7 +12,7 @@ from PyQt6.QtGui import QAction, QActionGroup, QColor, QDesktopServices, QFontDa
 from PyQt6.QtWidgets import (
     QApplication, QCheckBox, QColorDialog, QComboBox, QDialog, QDialogButtonBox, QDockWidget, QFileDialog,
     QFormLayout, QInputDialog, QLabel, QLineEdit, QListWidget, QListWidgetItem, QMainWindow, QAbstractItemView,
-    QMessageBox, QPlainTextEdit, QPushButton, QScrollArea, QSpinBox, QTabWidget, QToolBar,
+    QMessageBox, QPlainTextEdit, QPushButton, QScrollArea, QSpinBox, QStackedWidget, QTabWidget, QToolBar,
     QHBoxLayout, QVBoxLayout, QWidget,
 )
 
@@ -21,7 +21,7 @@ from canvas import Canvas, engineering
 from circuit import (GENERIC_MODELS, Profile, Project, SOURCE_DEFAULTS, COMPONENT_SYMBOLS as SYMBOLS, WAVE_FIELDS, connectivity,
                      diode_model, example, marker_node, netlist, number, on_wire, part_parameters, source_tokens,
                      source_value, translate_selection, reusable_subcircuit)
-from plotting import PlotReportPage, Waveform
+from plotting import PlotReportPage, ToolbarGroups, Waveform
 from qucs_library import import_diodes
 from results import analysis_deck, bias_deck, bias_readings, load_plot, Plot, trim_bias_vectors
 from spice_library import MODEL_PORTS, read_library
@@ -111,6 +111,7 @@ class Editor(QMainWindow):
         tools.setMovable(False)
         self.addToolBar(tools)
         drawing_tools = QToolBar("Drawing tools")
+        drawing_tools.setObjectName("drawingTools")
         drawing_tools.setMovable(False)
         drawing_tools.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextBesideIcon)
         self.addToolBar(Qt.ToolBarArea.LeftToolBarArea, drawing_tools)
@@ -141,6 +142,11 @@ class Editor(QMainWindow):
         drawing_tools.addAction(self.action(draw, "Part…", "P", self.focus_library))
         self.action(drawing_tools, "Ground", "", lambda: self.set_mode("G"))
         self.action(drawing_tools, "Label", "", lambda: self.set_mode("N"))
+        draw_buttons = [drawing_tools.widgetForAction(action) for action in drawing_tools.actions()]
+        width = max(button.sizeHint().width() for button in draw_buttons)
+        height = max(button.sizeHint().height() for button in draw_buttons)
+        for button in draw_buttons:
+            button.setFixedSize(width,height)
         imports = self.menuBar().addMenu("&Import")
         self.action(imports, "Import model libraries…", "", self.open_library)
         self.action(draw, "Build reusable subcircuit…", "", self.build_reusable_subcircuit)
@@ -306,7 +312,9 @@ class Editor(QMainWindow):
         plots_layout = QVBoxLayout(self.plot_window)
         button = QPushButton("Add plot page")
         button.clicked.connect(self.duplicate_plot_page)
-        controls = QHBoxLayout()
+        global_tools = QWidget()
+        controls = QHBoxLayout(global_tools)
+        controls.setContentsMargins(0,0,0,0)
         controls.addWidget(button)
         close_page = QPushButton("Remove plot page")
         close_page.clicked.connect(lambda: self.close_plot_page(self.plot_pages.currentIndex()))
@@ -317,12 +325,16 @@ class Editor(QMainWindow):
         for control in (button,close_page,studies_button):
             control.setAutoDefault(False)
         controls.addStretch()
-        plots_layout.addLayout(controls)
+        self.plot_page_tools = QStackedWidget()
+        self.empty_plot_page_tools = QWidget()
+        self.plot_page_tools.addWidget(self.empty_plot_page_tools)
+        plots_layout.addWidget(ToolbarGroups(global_tools,self.plot_page_tools))
         self.plot_pages = QTabWidget()
         self.plot_pages.setTabsClosable(True)
+        self.plot_pages.currentChanged.connect(self.sync_plot_page_tools)
         self.plot_pages.tabCloseRequested.connect(self.close_plot_page)
         self.plot_pages.tabBarDoubleClicked.connect(self.rename_plot_page)
-        plots_layout.addWidget(self.plot_pages)
+        plots_layout.addWidget(self.plot_pages,1)
         self.wave = Waveform()
         self.marker_list = MarkerList()
         self.marker_list.setSelectionMode(QAbstractItemView.SelectionMode.ExtendedSelection)
@@ -1957,10 +1969,16 @@ class Editor(QMainWindow):
         self.plot_window.raise_()
         self.plot_window.activateWindow()
 
+    def sync_plot_page_tools(self,index):
+        page = self.plot_pages.widget(index)
+        self.plot_page_tools.setCurrentWidget(getattr(page,"page_controls",self.empty_plot_page_tools))
+        self.plot_page_tools.setVisible(hasattr(page,"page_controls"))
+
     def add_plot_page(self, plot, revision, selected=None):
         page = PlotReportPage(plot, selected)
         page.revision = revision
         page.title = plot.title
+        self.plot_page_tools.addWidget(page.page_controls)
         index = self.plot_pages.addTab(page, page.title)
         self.plot_pages.setCurrentIndex(index)
         return page
@@ -1982,6 +2000,9 @@ class Editor(QMainWindow):
         if page is None:
             return
         self.plot_pages.removeTab(index)
+        if hasattr(page,"page_controls"):
+            self.plot_page_tools.removeWidget(page.page_controls)
+            page.page_controls.deleteLater()
         if getattr(page,"plot",None) is self.wave.plot and hasattr(page,"wave"):
             current = self.plot_pages.currentWidget()
             if not hasattr(current,"wave"):

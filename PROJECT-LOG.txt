@@ -755,3 +755,11 @@ entries for substantive historical mistakes.
     Passed 78 desktop tests, native Windows layout checks and packaged
     smoke. Local v0.5.3 beta executable copies match.
     Delivery: verified local build and source prepared for GitHub main.
+
+2026-11-28 — Desktop drawing and simulation toolbar alignment
+    Equalized the drawing tool buttons and aligned the icons and labels.
+    Moved subplot controls to the simulation header and organized axes
+    and pin controls to the right of trace controls. Groups wrap on
+    narrower windows. Saved projects and plot layouts need no migration.
+    Passed 78 desktop tests, Windows layout checks and packaged smoke.
+    Delivery: matching local v0.5.3 beta executables and source for main.
